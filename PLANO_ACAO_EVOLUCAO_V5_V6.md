@@ -193,4 +193,63 @@ Quando formos iniciar o ciclo de desenvolvimento das versões v5 ou v6:
 2. **Execução Isolada por Worktree / Mesa:** O Maestro criará uma branch/worktree dedicada para cada iniciativa, garantindo zero contaminação de contexto.
 3. **Validação Contínua por Gates:** Nenhuma iniciativa será dada como concluída sem validação dos 7 Quality Gates locais (`python scripts/aidd.py audit --report`) com Exit Code 0.
 
+---
+
+## 5. A Experiência Fluida de Ponta a Ponta (Do Clone à Entrega em Produção)
+
+O maior diferencial das versões v5 e v6 é transformar a arquitetura distribuída e corporativa em uma **experiência de usuário totalmente fluida, natural e com zero atrito cognitivo**.
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                          A JORNADA DO USUÁRIO NAS VERSÕES v5 E v6                                      │
+├────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                        │
+│  FASE 0: BOOTSTRAP INVISÍVEL (Zero Setup / Smart Environment Detection)                                │
+│  ├── Usuário clona o repositório ou abre a pasta.                                                      │
+│  ├── Detecção automática de runtime: Python, Docker, PostgreSQL, Redis, Kubernetes ou ORCA.           │
+│  └── Se nada estiver instalado: O sistema opera 100% autônomo em modo Local Embedded (Zero Config).    │
+│                                                                                                        │
+│  FASE 1: ENTRADA EM LINGUAGEM NATURAL PURA (Zero Atrito & Zero Flags Técnicas)                         │
+│  ├── Usuário digita no chat: "Crie um ERP de vendas e faturamento com envio de boletos e relatórios". │
+│  ├── O Maestro deduz os domínios, entidades DDD, eventos necessários e adapters recomendados.         │
+│  └── Nenhuma exigência de comandos complexos ou configurações manuais de JSON.                         │
+│                                                                                                        │
+│  FASE 1.5: SPEC GATE CONVERSACIONAL (Alinhamento em 3 Níveis)                                          │
+│  ├── Geração em segundos do SPEC em 3 níveis (Negócio, Backend e Frontend/UX).                         │
+│  ├── O usuário revisa e pode iterar por conversa: "Adicione desconto progressivo para compras > 500".   │
+│  └── Ao responder "Aprovado" ou "Pode criar", dispara automaticamente a esteira mecânica.              │
+│                                                                                                        │
+│  FASE 2: PROCESSAMENTO MECÂNICO & IA RECURSIVA (Execução Silenciosa e Blindada)                        │
+│  ├── Scaffolding atômico das fatias verticais, Transactional Outbox e adaptadores poliglotas.          │
+│  ├── Subagente de Domínio (BDD) implementa regras complexas guiado por cenários Gherkin.               │
+│  ├── Execução em background via subprocessos/worktrees sem poluir o chat do usuário.                   │
+│  └── Homologação obrigatória dos 7 Quality Gates + Benchmark de latência (< 5ms) e auto-cura.          │
+│                                                                                                        │
+│  FASE 3: ENTREGA IMEDIATA & OPERAÇÃO MULTI-PORTAL                                                      │
+│  ├── Servidor sobe em porta livre (Port Fallback automático).                                          │
+│  ├── 6 Portais disponíveis:                                                                            │
+│  │   ├── 1. Super-App UI / Next.js (http://localhost:3000/)                                            │
+│  │   ├── 2. Swagger Studio OpenAPI 3.1 (http://localhost:3000/docs)                                    │
+│  │   ├── 3. Model Context Protocol (http://localhost:3000/mcp)                                         │
+│  │   ├── 4. Webhook Studio HMAC SHA-256 (http://localhost:3000/webhooks)                                │
+│  │   ├── 5. Background Jobs & DLQ (http://localhost:3000/jobs)                                         │
+│  │   └── 6. Métricas Prometheus (/metrics)                                                             │
+│  └── Relatório Factual Auditado (Score 100% Nota A+ Cibersegurança e Concorrência).                     │
+│                                                                                                        │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Comparativo de Fluidez: v4.1 vs v5 / v6
+
+| Etapa do Fluxo | Versão v4.1 (Atual) | Versão v5 / v6 (Evolução Fluida) |
+| :--- | :--- | :--- |
+| **Clone & Setup** | Exige `python scripts/aidd.py setup` para pre-flight e pacotes. | **Zero Setup:** O bootstrap roda no primeiro input e autodetecta PostgreSQL/Docker/Redis se existirem. |
+| **Entrada do Usuário** | Aceita prompt natural para planejar fatias CRUD básicas. | **Intenção Completa:** Aceita prompts de regras complexas, inferindo stack (Vanilla vs Next.js) e banco. |
+| **Refinamento do Plano** | Usuário edita manualmente ou aprova o plano geral. | **Refinamento Conversacional:** O usuário pede ajustes na conversa e a IA reescreve apenas os deltas da SPEC. |
+| **Processamento** | Geração estática de CRUD + 7 Gates mecânicos em ~5s. | **Processamento Híbrido:** Scaffolding mecânico + Subagente BDD para cálculos complexos + 7 Gates. |
+| **Entrega** | 4 Portais (UI Vanilla, Swagger, MCP, Webhooks) + SQLite. | **6 Portais Enterprise:** UI Híbrida (Vanilla/Next.js), Swagger, MCP, Webhooks, Jobs e Prometheus. |
+
 *Plano de Ação estruturado, homologado e salvo para execução estratégica imediata nas próximas versões.*
+

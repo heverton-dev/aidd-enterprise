@@ -9,7 +9,7 @@ from core.events import EventBus
 from core.openapi import RouteRegistry
 from core.webhooks import WebhookDispatcher
 from core.models import init_all_schemas
-from core.mcp_server import AIDD EnterpriseMCPServer
+from core.mcp_server import AIDD_EnterpriseMCPServer
 from core.security import SecurityService, JWTService
 
 PORT = 3000
@@ -18,7 +18,7 @@ DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "suite.
 db = Database(f"sqlite:///{DB_PATH}")
 events = EventBus()
 webhook_dispatcher = WebhookDispatcher(db)
-mcp_engine = AIDD EnterpriseMCPServer(DB_PATH)
+mcp_engine = AIDD_EnterpriseMCPServer(DB_PATH)
 
 with db.get_connection() as conn:
     init_all_schemas(conn)
@@ -884,7 +884,7 @@ def get_logs_auditoria(params):
 # =========================================================================
 # HTTP HANDLER COM OWASP SECURITY HEADERS
 # =========================================================================
-class AIDD EnterpriseAppHandler(http.server.SimpleHTTPRequestHandler):
+class AIDD_EnterpriseAppHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=STATIC_DIR, **kwargs)
 
@@ -1060,7 +1060,7 @@ class AIDD EnterpriseAppHandler(http.server.SimpleHTTPRequestHandler):
 
 def run_server():
     socketserver.ThreadingTCPServer.allow_reuse_address = True
-    with socketserver.ThreadingTCPServer(("0.0.0.0", PORT), AIDD EnterpriseAppHandler) as httpd:
+    with socketserver.ThreadingTCPServer(("0.0.0.0", PORT), AIDD_EnterpriseAppHandler) as httpd:
         print(f"================================================================================")
         print(f"  [MEDHEALTH] Plataforma Core Suite v5.1 — Hospital & Biotech Enterprise Monolith")
         print(f"================================================================================")

@@ -645,7 +645,7 @@ class MCPServer:
 # Aliases para compatibilidade reversa
 EnterpriseMCPServer = MCPServer
 LogisticaMCPServer = MCPServer
-AIDD EnterpriseMCPServer = MCPServer
+AIDD_EnterpriseMCPServer = MCPServer
 
 
 def run_stdio_server(db_path: str):

@@ -70,17 +70,17 @@ class RouteRegistry:
     def get_swagger_html(self, title: str):
         endpoints_json = json.dumps(self.endpoints, ensure_ascii=False)
         
-        return f"""<!DOCTYPE html>
+        html_template = """<!DOCTYPE html>
 <html lang="pt-BR" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title}</title>
+    <title>__TITLE__</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {{
+        :root {
             --bg-body: #020617;
             --bg-sidebar: #050b18;
             --bg-middle: #040814;
@@ -92,66 +92,66 @@ class RouteRegistry:
             --primary: #3b82f6;
             --primary-light: #60a5fa;
             --code-bg: #030712;
-        }}
-        * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }}
-        body {{ background: var(--bg-body); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }}
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: var(--bg-body); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        header {{ height: 56px; background: rgba(3, 7, 18, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; flex-shrink: 0; z-index: 50; }}
-        .brand-group {{ display: flex; align-items: center; gap: 0.8rem; text-decoration: none; }}
-        .brand-title {{ font-weight: 800; font-size: 0.95rem; color: #fff; display: flex; align-items: center; gap: 0.6rem; }}
-        .badge-ver {{ background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: var(--primary-light); font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 9999px; }}
+        header { height: 56px; background: rgba(3, 7, 18, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; flex-shrink: 0; z-index: 50; }
+        .brand-group { display: flex; align-items: center; gap: 0.8rem; text-decoration: none; }
+        .brand-title { font-weight: 800; font-size: 0.95rem; color: #fff; display: flex; align-items: center; gap: 0.6rem; }
+        .badge-ver { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: var(--primary-light); font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 9999px; }
 
-        .btn {{ padding: 0.45rem 0.9rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.04); color: #fff; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s; }}
-        .btn:hover {{ background: rgba(255, 255, 255, 0.08); border-color: var(--border-hover); }}
-        .btn-primary {{ background: var(--primary); border-color: var(--primary); }}
+        .btn { padding: 0.45rem 0.9rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.04); color: #fff; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s; }
+        .btn:hover { background: rgba(255, 255, 255, 0.08); border-color: var(--border-hover); }
+        .btn-primary { background: var(--primary); border-color: var(--primary); }
 
-        .studio-layout {{ display: grid; grid-template-columns: 290px 1fr 480px; flex: 1; height: calc(100vh - 56px); overflow: hidden; }}
+        .studio-layout { display: grid; grid-template-columns: 290px 1fr 480px; flex: 1; height: calc(100vh - 56px); overflow: hidden; }
 
-        aside.sidebar {{ background: var(--bg-sidebar); border-right: 1px solid var(--border); overflow-y: auto; padding: 1.2rem 0.8rem; display: flex; flex-direction: column; gap: 1.2rem; }}
-        .search-box {{ display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border); padding: 0.55rem 0.8rem; border-radius: 8px; color: var(--text-muted); font-size: 0.82rem; }}
-        .search-box input {{ background: none; border: none; outline: none; color: #fff; font-size: 0.84rem; width: 100%; }}
-        .nav-cat-title {{ font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 0.8rem 0.6rem 0.3rem 0.6rem; }}
-        .endpoint-link {{ display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.7rem; border-radius: 8px; color: #cbd5e1; font-size: 0.84rem; font-weight: 600; cursor: pointer; transition: all 0.15s; text-decoration: none; }}
-        .endpoint-link:hover, .endpoint-link.active {{ background: rgba(59, 130, 246, 0.12); color: #fff; }}
-        .method-pill {{ font-size: 0.65rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; padding: 0.15rem 0.4rem; border-radius: 4px; min-width: 44px; text-align: center; }}
-        .pill-get {{ background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }}
-        .pill-post {{ background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }}
-        .pill-delete {{ background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }}
+        aside.sidebar { background: var(--bg-sidebar); border-right: 1px solid var(--border); overflow-y: auto; padding: 1.2rem 0.8rem; display: flex; flex-direction: column; gap: 1.2rem; }
+        .search-box { display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border); padding: 0.55rem 0.8rem; border-radius: 8px; color: var(--text-muted); font-size: 0.82rem; }
+        .search-box input { background: none; border: none; outline: none; color: #fff; font-size: 0.84rem; width: 100%; }
+        .nav-cat-title { font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 0.8rem 0.6rem 0.3rem 0.6rem; }
+        .endpoint-link { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.7rem; border-radius: 8px; color: #cbd5e1; font-size: 0.84rem; font-weight: 600; cursor: pointer; transition: all 0.15s; text-decoration: none; }
+        .endpoint-link:hover, .endpoint-link.active { background: rgba(59, 130, 246, 0.12); color: #fff; }
+        .method-pill { font-size: 0.65rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; padding: 0.15rem 0.4rem; border-radius: 4px; min-width: 44px; text-align: center; }
+        .pill-get { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .pill-post { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .pill-delete { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
 
-        main.doc-column {{ background: var(--bg-middle); overflow-y: auto; padding: 3rem 3.5rem; border-right: 1px solid var(--border); }}
-        .doc-tag-badge {{ font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--primary-light); letter-spacing: 0.05em; margin-bottom: 0.6rem; }}
-        .doc-endpoint-title {{ font-size: 2.2rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 1rem; color: #fff; }}
-        .path-badge-box {{ display: inline-flex; align-items: center; gap: 0.8rem; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border); padding: 0.6rem 1rem; border-radius: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; font-weight: 600; margin-bottom: 1.8rem; }}
-        .doc-desc {{ font-size: 0.98rem; line-height: 1.7; color: #cbd5e1; margin-bottom: 2rem; }}
+        main.doc-column { background: var(--bg-middle); overflow-y: auto; padding: 3rem 3.5rem; border-right: 1px solid var(--border); }
+        .doc-tag-badge { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--primary-light); letter-spacing: 0.05em; margin-bottom: 0.6rem; }
+        .doc-endpoint-title { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 1rem; color: #fff; }
+        .path-badge-box { display: inline-flex; align-items: center; gap: 0.8rem; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border); padding: 0.6rem 1rem; border-radius: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; font-weight: 600; margin-bottom: 1.8rem; }
+        .doc-desc { font-size: 0.98rem; line-height: 1.7; color: #cbd5e1; margin-bottom: 2rem; }
 
-        h3.section-header {{ font-size: 1.1rem; font-weight: 800; color: #fff; margin: 2rem 0 1rem 0; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }}
+        h3.section-header { font-size: 1.1rem; font-weight: 800; color: #fff; margin: 2rem 0 1rem 0; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
 
-        .params-table {{ width: 100%; border-collapse: collapse; margin-bottom: 2rem; }}
-        .params-table th, .params-table td {{ padding: 0.85rem 1rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.86rem; }}
-        .params-table th {{ font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }}
-        .param-name {{ font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #fff; }}
-        .param-type {{ font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #94a3b8; }}
-        .badge-req {{ background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.68rem; font-weight: 800; padding: 0.1rem 0.35rem; border-radius: 4px; margin-left: 0.4rem; }}
+        .params-table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+        .params-table th, .params-table td { padding: 0.85rem 1rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.86rem; }
+        .params-table th { font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
+        .param-name { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #fff; }
+        .param-type { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #94a3b8; }
+        .badge-req { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.68rem; font-weight: 800; padding: 0.1rem 0.35rem; border-radius: 4px; margin-left: 0.4rem; }
 
-        aside.studio-column {{ background: var(--bg-studio); overflow-y: auto; padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }}
-        .studio-header {{ display: flex; justify-content: space-between; align-items: center; }}
-        .studio-title {{ font-size: 0.88rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }}
+        aside.studio-column { background: var(--bg-studio); overflow-y: auto; padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+        .studio-header { display: flex; justify-content: space-between; align-items: center; }
+        .studio-title { font-size: 0.88rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
 
-        .lang-tabs {{ display: flex; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 8px; padding: 0.2rem; gap: 0.2rem; }}
-        .lang-tab {{ padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); cursor: pointer; border: none; background: none; transition: all 0.15s; }}
-        .lang-tab.active {{ background: rgba(59, 130, 246, 0.2); color: var(--primary-light); }}
+        .lang-tabs { display: flex; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 8px; padding: 0.2rem; gap: 0.2rem; }
+        .lang-tab { padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); cursor: pointer; border: none; background: none; transition: all 0.15s; }
+        .lang-tab.active { background: rgba(59, 130, 246, 0.2); color: var(--primary-light); }
 
-        .code-box {{ background: #020617; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }}
-        .code-header {{ background: rgba(255, 255, 255, 0.02); border-bottom: 1px solid var(--border); padding: 0.6rem 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); }}
-        pre.code-content {{ padding: 1.2rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.6; color: #e2e8f0; overflow-x: auto; }}
+        .code-box { background: #020617; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        .code-header { background: rgba(255, 255, 255, 0.02); border-bottom: 1px solid var(--border); padding: 0.6rem 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); }
+        pre.code-content { padding: 1.2rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.6; color: #e2e8f0; overflow-x: auto; }
 
-        textarea.body-editor {{ width: 100%; height: 180px; background: #020617; border: 1px solid var(--border); border-radius: 10px; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #60a5fa; outline: none; resize: vertical; line-height: 1.5; }}
-        textarea.body-editor:focus {{ border-color: var(--primary); }}
+        textarea.body-editor { width: 100%; height: 180px; background: #020617; border: 1px solid var(--border); border-radius: 10px; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #60a5fa; outline: none; resize: vertical; line-height: 1.5; }
+        textarea.body-editor:focus { border-color: var(--primary); }
 
-        .btn-run {{ background: var(--primary); border: 1px solid var(--primary); color: #fff; font-weight: 800; font-size: 0.9rem; padding: 0.8rem; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s; }}
-        .btn-run:hover {{ background: #2563eb; transform: translateY(-1px); }}
+        .btn-run { background: var(--primary); border: 1px solid var(--primary); color: #fff; font-weight: 800; font-size: 0.9rem; padding: 0.8rem; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s; }
+        .btn-run:hover { background: #2563eb; transform: translateY(-1px); }
 
-        .response-box {{ background: #020617; border: 1px solid var(--border); border-radius: 12px; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; min-height: 140px; max-height: 240px; overflow-y: auto; color: #34d399; }}
+        .response-box { background: #020617; border: 1px solid var(--border); border-radius: 12px; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; min-height: 140px; max-height: 240px; overflow-y: auto; color: #34d399; }
     </style>
 </head>
 <body>
@@ -164,8 +164,9 @@ class RouteRegistry:
             </div>
         </div>
         <div style="display: flex; gap: 0.8rem;">
-            <a href="/" class="btn">Aplicação Web</a>
-            <a href="/docs/guia" class="btn" style="border-color: rgba(59,130,246,0.5); color: #93c5fd;">Guia do Projeto</a>
+            <a href="/" class="btn">Aplicação Super-App</a>
+            <a href="/mcp" class="btn" style="border-color: rgba(16,185,129,0.4); color: #34d399;">Portal MCP</a>
+            <a href="/docs/guia" class="btn" style="border-color: rgba(59,130,246,0.5); color: #93c5fd;">Guia OnOrca</a>
         </div>
     </header>
 
@@ -173,21 +174,21 @@ class RouteRegistry:
         <aside class="sidebar">
             <div class="search-box">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" placeholder="Filtrar endpoints..." oninput="filtrarSidebar(this.value)">
+                <input type="text" placeholder="Filtrar 18 endpoints..." oninput="filtrarSidebar(this.value)">
             </div>
             <div id="sidebar-endpoints-tree"></div>
         </aside>
 
         <main class="doc-column" id="doc-main-area">
-            <div class="doc-tag-badge" id="doc-tag">Tag</div>
-            <h1 class="doc-endpoint-title" id="doc-title">Selecione um endpoint</h1>
+            <div class="doc-tag-badge" id="doc-tag">CRM Vendas</div>
+            <h1 class="doc-endpoint-title" id="doc-title">Carregando...</h1>
             
             <div class="path-badge-box">
                 <span class="method-pill pill-get" id="doc-method-pill">GET</span>
                 <span id="doc-path">/api/...</span>
             </div>
 
-            <p class="doc-desc" id="doc-desc">Descrição.</p>
+            <p class="doc-desc" id="doc-desc">Descrição do endpoint.</p>
 
             <h3 class="section-header">Autenticação</h3>
             <p style="font-size: 0.86rem; color: var(--text-muted);" id="doc-auth">Bearer token ou Sessão</p>
@@ -251,37 +252,37 @@ class RouteRegistry:
     </div>
 
     <script>
-        const endpointsData = {endpoints_json};
+        const endpointsData = __ENDPOINTS_JSON__;
         let currentEndpoint = endpointsData[0] || null;
         let currentLang = 'curl';
 
-        function montarSidebar(lista) {{
+        function montarSidebar(lista) {
             const tree = document.getElementById('sidebar-endpoints-tree');
             let html = '';
             let currentTag = '';
 
-            lista.forEach((ep, idx) => {{
-                if (ep.tag !== currentTag) {{
+            lista.forEach((ep) => {
+                if (ep.tag !== currentTag) {
                     currentTag = ep.tag;
                     html += '<div class="nav-cat-title">' + currentTag + '</div>';
-                }}
-                const pillClass = ep.method === 'GET' ? 'pill-get' : (ep.method === 'POST' ? 'pill-post' : 'pill-delete');
+                }
+                const pillClass = ep.method === 'GET' ? 'pill-get' : 'pill-post';
                 const activeClass = (currentEndpoint && ep.id === currentEndpoint.id) ? 'active' : '';
                 html += '<div class="endpoint-link ' + activeClass + '" onclick="selecionarEndpoint(\'' + ep.id + '\')">' +
                         '<span class="method-pill ' + pillClass + '">' + ep.method + '</span>' +
                         '<span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + ep.title + '</span>' +
                         '</div>';
-            }});
+            });
             tree.innerHTML = html;
-        }}
+        }
 
-        function selecionarEndpoint(id) {{
+        function selecionarEndpoint(id) {
             currentEndpoint = endpointsData.find(e => e.id === id) || endpointsData[0];
             if (!currentEndpoint) return;
 
-            document.querySelectorAll('.endpoint-link').forEach(el => {{
+            document.querySelectorAll('.endpoint-link').forEach(el => {
                 el.classList.toggle('active', el.innerText.includes(currentEndpoint.title));
-            }});
+            });
 
             document.getElementById('doc-tag').innerText = currentEndpoint.tag;
             document.getElementById('doc-title').innerText = currentEndpoint.title;
@@ -291,62 +292,62 @@ class RouteRegistry:
 
             const pill = document.getElementById('doc-method-pill');
             pill.innerText = currentEndpoint.method;
-            pill.className = 'method-pill ' + (currentEndpoint.method === 'GET' ? 'pill-get' : (currentEndpoint.method === 'POST' ? 'pill-post' : 'pill-delete'));
+            pill.className = 'method-pill ' + (currentEndpoint.method === 'GET' ? 'pill-get' : 'pill-post');
 
             const tbody = document.getElementById('params-table-body');
-            if (currentEndpoint.params && currentEndpoint.params.length > 0) {{
-                tbody.innerHTML = currentEndpoint.params.map(p => {{
+            if (currentEndpoint.params && currentEndpoint.params.length > 0) {
+                tbody.innerHTML = currentEndpoint.params.map(p => {
                     const reqBadge = p.req ? '<span class="badge-req">OBRIGATÓRIO</span>' : '';
                     return '<tr><td><span class="param-name">' + p.name + '</span> ' + reqBadge + '</td><td><span class="param-type">' + p.type + '</span></td><td>' + p.desc + '</td></tr>';
-                }}).join('');
-            }} else {{
-                tbody.innerHTML = '<tr><td colspan="3" style="color: var(--text-muted);">Nenhum parâmetro necessário.</td></tr>';
-            }}
+                }).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="3" style="color: var(--text-muted);">Nenhum parâmetro obrigatório no corpo.</td></tr>';
+            }
 
             const bodyEditorContainer = document.getElementById('body-editor-container');
             const bodyEditor = document.getElementById('live-body-editor');
-            if (currentEndpoint.method === 'POST' && currentEndpoint.body) {{
+            if (currentEndpoint.method === 'POST' && currentEndpoint.body) {
                 bodyEditorContainer.style.display = 'block';
                 bodyEditor.value = JSON.stringify(currentEndpoint.body, null, 2);
-            }} else {{
+            } else {
                 bodyEditorContainer.style.display = 'none';
-            }}
+            }
 
             atualizarSnippetCodigo();
             document.getElementById('live-response-box').innerText = JSON.stringify(currentEndpoint.sample_response, null, 2);
             document.getElementById('response-status-badge').innerText = 'EXEMPLO 200 OK';
             document.getElementById('response-status-badge').style.color = '#34d399';
-        }}
+        }
 
-        function trocarLinguagem(lang) {{
+        function trocarLinguagem(lang) {
             currentLang = lang;
-            document.querySelectorAll('.lang-tab').forEach(b => {{
+            document.querySelectorAll('.lang-tab').forEach(b => {
                 b.classList.toggle('active', b.innerText.toLowerCase().includes(lang));
-            }});
+            });
             atualizarSnippetCodigo();
-        }}
+        }
 
-        function atualizarSnippetCodigo() {{
+        function atualizarSnippetCodigo() {
             if (!currentEndpoint) return;
             const box = document.getElementById('snippet-code-box');
             const ep = currentEndpoint;
             const bodyStr = ep.body ? JSON.stringify(ep.body, null, 2) : '';
 
-            if (currentLang === 'curl') {{
-                if (ep.method === 'GET') {{
+            if (currentLang === 'curl') {
+                if (ep.method === 'GET') {
                     box.innerText = 'curl -X GET "http://localhost:3000' + ep.path + '" \
   -H "Authorization: Bearer seu_token"';
-                }} else {{
+                } else {
                     box.innerText = 'curl -X POST "http://localhost:3000' + ep.path + '" \
   -H "Content-Type: application/json" \
   -d '' + bodyStr + ''';
-                }}
-            }} else if (currentLang === 'js') {{
-                if (ep.method === 'GET') {{
+                }
+            } else if (currentLang === 'js') {
+                if (ep.method === 'GET') {
                     box.innerText = 'fetch("http://localhost:3000' + ep.path + '")
   .then(res => res.json())
   .then(data => console.log(data));';
-                }} else {{
+                } else {
                     box.innerText = 'fetch("http://localhost:3000' + ep.path + '", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
@@ -354,70 +355,71 @@ class RouteRegistry:
 })
   .then(res => res.json())
   .then(data => console.log(data));';
-                }}
-            }} else if (currentLang === 'python') {{
-                if (ep.method === 'GET') {{
+                }
+            } else if (currentLang === 'python') {
+                if (ep.method === 'GET') {
                     box.innerText = 'import requests
 
 response = requests.get("http://localhost:3000' + ep.path + '")
 print(response.json())';
-                }} else {{
+                } else {
                     box.innerText = 'import requests
 
 payload = ' + bodyStr + '
 response = requests.post("http://localhost:3000' + ep.path + '", json=payload)
 print(response.json())';
-                }}
-            }}
-        }}
+                }
+            }
+        }
 
-        async function executarChamadaAoVivo() {{
+        async function executarChamadaAoVivo() {
             if (!currentEndpoint) return;
             const box = document.getElementById('live-response-box');
             const badge = document.getElementById('response-status-badge');
             box.innerText = 'Enviando requisição...';
 
-            try {{
+            try {
                 const t0 = performance.now();
                 let res;
-                if (currentEndpoint.method === 'GET') {{
+                if (currentEndpoint.method === 'GET') {
                     res = await fetch(currentEndpoint.path);
-                }} else {{
+                } else {
                     const bodyText = document.getElementById('live-body-editor').value;
-                    res = await fetch(currentEndpoint.path, {{
+                    res = await fetch(currentEndpoint.path, {
                         method: 'POST',
-                        headers: {{ 'Content-Type': 'application/json' }},
+                        headers: { 'Content-Type': 'application/json' },
                         body: bodyText
-                    }});
-                }}
+                    });
+                }
                 const elapsed = Math.round(performance.now() - t0);
                 const data = await res.json();
                 badge.innerText = 'HTTP ' + res.status + ' OK (' + elapsed + 'ms)';
                 badge.style.color = res.ok ? '#34d399' : '#f87171';
                 box.innerText = JSON.stringify(data, null, 2);
-            }} catch (err) {{
+            } catch (err) {
                 badge.innerText = 'ERRO NA CONEXÃO';
                 badge.style.color = '#f87171';
                 box.innerText = err.message;
-            }}
-        }}
+            }
+        }
 
-        function filtrarSidebar(query) {{
+        function filtrarSidebar(query) {
             const q = query.toLowerCase();
             const filtrados = endpointsData.filter(e => e.title.toLowerCase().includes(q) || e.path.toLowerCase().includes(q) || e.tag.toLowerCase().includes(q));
             montarSidebar(filtrados);
-        }}
+        }
 
-        function copiarSnippet() {{
+        function copiarSnippet() {
             const code = document.getElementById('snippet-code-box').innerText;
             navigator.clipboard.writeText(code);
             alert('Código copiado!');
-        }}
+        }
 
-        window.onload = () => {{
+        window.onload = () => {
             montarSidebar(endpointsData);
             if (endpointsData.length > 0) selecionarEndpoint(endpointsData[0].id);
-        }};
+        };
     </script>
 </body>
 </html>"""
+        return html_template.replace("__TITLE__", title).replace("__ENDPOINTS_JSON__", endpoints_json)

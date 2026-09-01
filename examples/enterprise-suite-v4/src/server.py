@@ -9,12 +9,14 @@ from core.events import EventBus
 from core.openapi import RouteRegistry
 from core.webhooks import WebhookDispatcher
 from core.models import init_all_schemas
+from core.mcp_server import EnterpriseMCPServer
 
 PORT = 3000
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 db = Database(f"sqlite:///{os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'suite.db')}")
 events = EventBus()
 webhook_dispatcher = WebhookDispatcher(db)
+mcp_engine = EnterpriseMCPServer(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "suite.db"))
 
 with db.get_connection() as conn:
     init_all_schemas(conn)
@@ -258,7 +260,9 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         p = urllib.parse.urlparse(self.path)
         length = int(self.headers.get("Content-Length", 0))
         data = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
-        if p.path in registry.routes["POST"]:
+        if p.path == "/mcp":
+            self._send_json(mcp_engine.process_rpc(data))
+        elif p.path in registry.routes["POST"]:
             self._send_json(registry.routes["POST"][p.path](data))
         else: self.send_error(404)
 

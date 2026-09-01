@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MedHealth Core Suite v4.0 — Hospital & Biotech Enterprise Monolith</title>
+    <title>Plataforma Core Suite v5.1 — Hospital & Biotech Enterprise Monolith</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -72,8 +72,8 @@
             </div>
             <div>
                 <div class="flex items-center gap-2">
-                    <span class="font-extrabold tracking-tight text-sm text-slate-100">MedHealth Core</span>
-                    <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">v4.0 Enterprise</span>
+                    <span class="font-extrabold tracking-tight text-sm text-slate-100">Plataforma Core</span>
+                    <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">v5.1 Enterprise</span>
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 </div>
                 <p class="text-[11px] text-slate-400 hidden sm:block mt-0.5">Hospital & Clinical Core • Clean Architecture Cross-Domain</p>
@@ -361,7 +361,7 @@
                         <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
                         Faturamento Hospitalar TISS/TUSS & Auditoria
                     </h2>
-                    <p class="text-xs text-slate-400">Contas hospitalares, diárias de UTI, tabela TUSS e liquidação de convênios</p>
+                    <p class="text-xs text-slate-400">Contas empresariais, diárias de UTI, tabela TUSS e liquidação de convênios</p>
                 </div>
                 <button onclick="abrirModalGuia()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow-lg shadow-indigo-600/20 flex items-center gap-1.5">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -1264,7 +1264,7 @@
 
         const SPOTLIGHT_COMMANDS = [
             // NAVEGAÇÃO
-            { id: 'nav-app', cat: 'Navegação', title: 'Super-App Clínico (Home)', desc: 'Dashboard e painéis hospitalares', iconType: 'app', action: () => { window.location.href = '/'; } },
+            { id: 'nav-app', cat: 'Navegação', title: 'Super-App Clínico (Home)', desc: 'Dashboard e painéis do Super-App', iconType: 'app', action: () => { window.location.href = '/'; } },
             { id: 'nav-docs', cat: 'Navegação', title: 'Swagger Studio (OpenAPI)', desc: 'Documentação interativa REST e live playground', iconType: 'docs', action: () => { window.open('/docs', '_blank'); } },
             { id: 'nav-wh', cat: 'Navegação', title: 'Webhook Studio', desc: 'Simulador de eventos e logs de webhook', iconType: 'webhooks', action: () => { window.open('/webhooks', '_blank'); } },
             { id: 'nav-mcp', cat: 'Navegação', title: 'MCP Native Server Portal', desc: '16 Ferramentas JSON-RPC para Claude Desktop e LLMs', iconType: 'mcp', action: () => { window.open('/mcp', '_blank'); } },

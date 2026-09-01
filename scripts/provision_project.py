@@ -18,7 +18,7 @@ def provision(project_desc, base_dir=None):
         
     project_dir = os.path.join(base_dir, f'proj_{slug}')
     
-    print(f"🚀 [AIDD MASTER PACK v4.1] Provisionando ecossistema modular: {slug}")
+    print(f"🚀 [AIDD MASTER PACK v5.1] Provisionando ecossistema modular: {slug}")
     print(f"📁 Destino: {project_dir}")
     
     # 1. Estrutura de Diretórios Modulares + Shared Kernel
@@ -85,7 +85,7 @@ def provision(project_desc, base_dir=None):
         "projeto": {
             "nome": slug,
             "descricao": project_desc,
-            "arquitetura": "AIDD v4.1 Modular Monolith",
+            "arquitetura": "AIDD v5.1 Modular Monolith",
             "zero_api_key_mode": True,
             "status": "INICIALIZADO"
         },

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-AIDD v4.1 Enterprise — Shared Kernel MCP Server (mcp_server.py)
+AIDD v5.1 Enterprise — Shared Kernel MCP Server (mcp_server.py)
 =============================================================================
 Servidor nativo Model Context Protocol (MCP) compatível com JSON-RPC 2.0.
 Permite integração direta com Claude Desktop, Cursor, Antigravity e agentes autônomos.
@@ -348,7 +348,7 @@ class MCPServer:
     handle_request = handle_json_rpc
 
     def get_studio_html(self, title: str = "AIDD Enterprise — MCP Server Studio") -> str:
-        """Gera a interface Web Impeccable para o Studio de Ferramentas MCP (/mcp)."""
+        """Gera a interface Web Impeccable para o Studio de Ferramentas MCP (/mcp) sem CDNs externas."""
         tools = self.get_tools_manifest()
         claude_config = {
             "mcpServers": {
@@ -363,21 +363,21 @@ class MCPServer:
 
         cards_html = []
         for t in tools:
-            schema_json = json.dumps(t["inputSchema"], indent=2, ensure_ascii=False)
-            cards_html.append(f'''
-                <div class="tool-card bg-slate-900/60 border border-slate-800 p-5 rounded-xl flex flex-col justify-between" data-name="{t["name"].lower()}">
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="font-mono text-sm font-bold text-purple-400">{t["name"]}</span>
-                        </div>
-                        <p class="text-xs text-slate-300 mb-3">{t["description"]}</p>
+            schema_json = json.dumps(t.get("inputSchema", {}), indent=2, ensure_ascii=False)
+            t_name = t["name"]
+            t_desc = t.get("description", "")
+            cards_html.append(f"""
+                <div class="tool-card" data-name="{t_name.lower()}">
+                    <div class="tool-header">
+                        <span class="tool-name">{t_name}</span>
+                        <span class="badge badge-purple">Tool</span>
                     </div>
-                    <div>
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Input Schema</div>
-                        <pre class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 font-mono text-[11px] text-slate-400 overflow-x-auto max-h-36">{schema_json}</pre>
-                    </div>
+                    <p class="tool-desc">{t_desc}</p>
+                    <div class="schema-label">Input Schema</div>
+                    <pre class="schema-box">{schema_json}</pre>
+                    <button class="btn btn-sm btn-outline" onclick="selectTool('{t_name}')">Usar no Console &rarr;</button>
                 </div>
-            ''')
+            """)
         cards_str = "\n".join(cards_html)
 
         return f"""<!DOCTYPE html>
@@ -386,87 +386,257 @@ class MCPServer:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        :root {{
+            --bg-base: #020617;
+            --bg-surface: #0f172a;
+            --bg-card: #090d16;
+            --border: #1e293b;
+            --border-highlight: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #7c3aed;
+            --primary-hover: #6d28d9;
+            --sky: #38bdf8;
+            --emerald: #10b981;
+        }}
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }}
         ::-webkit-scrollbar {{ width: 4px; height: 4px; }}
-        ::-webkit-scrollbar-track {{ background: #020617; }}
-        ::-webkit-scrollbar-thumb {{ background: #1e293b; border-radius: 2px; }}
-        ::-webkit-scrollbar-thumb:hover {{ background: #334155; }}
-        .font-mono {{ font-family: 'JetBrains Mono', monospace; }}
+        ::-webkit-scrollbar-track {{ background: var(--bg-base); }}
+        ::-webkit-scrollbar-thumb {{ background: var(--border); border-radius: 2px; }}
+        
+        header {{
+            height: 56px;
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }}
+        .brand {{ display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: #fff; }}
+        .pulse-dot {{ width: 8px; height: 8px; background: var(--emerald); border-radius: 50%; }}
+        .badge {{ display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 700; }}
+        .badge-purple {{ background: rgba(168,85,247,.15); color: #c084fc; border: 1px solid rgba(168,85,247,.3); }}
+        .badge-blue {{ background: rgba(56,189,248,.15); color: #38bdf8; border: 1px solid rgba(56,189,248,.3); }}
+        .badge-green {{ background: rgba(16,185,129,.15); color: #34d399; border: 1px solid rgba(16,185,129,.3); }}
+        
+        .nav-links {{ display: flex; gap: 8px; }}
+        .nav-links a {{ color: var(--text-muted); text-decoration: none; font-size: 12px; padding: 6px 12px; border-radius: 6px; border: 1px solid transparent; }}
+        .nav-links a:hover, .nav-links a.active {{ color: #fff; background: #1e293b; border-color: var(--border-highlight); }}
+        
+        main {{ max-width: 1300px; width: 100%; margin: 0 auto; padding: 28px 24px; flex: 1; display: flex; flex-direction: column; gap: 20px; }}
+        
+        .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }}
+        .stat-card {{ background: var(--bg-surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }}
+        .stat-card .title {{ font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: .5px; }}
+        .stat-card .val {{ font-size: 22px; font-weight: 800; color: #fff; margin-top: 4px; }}
+        
+        .panel {{ background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }}
+        .panel-header {{ display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 12px; }}
+        .panel-title {{ font-size: 14px; font-weight: 700; color: #fff; }}
+        
+        .grid-2col {{ display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }}
+        @media(max-width:960px){{ .grid-2col {{ grid-template-columns: 1fr; }} }}
+        
+        .search-bar {{ width: 100%; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 13px; outline: none; }}
+        .search-bar:focus {{ border-color: var(--primary); }}
+        
+        .tools-container {{ display: grid; grid-template-columns: 1fr; gap: 12px; max-height: 540px; overflow-y: auto; padding-right: 4px; }}
+        .tool-card {{ background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }}
+        .tool-header {{ display: flex; align-items: center; justify-content: space-between; }}
+        .tool-name {{ font-family: ui-monospace, monospace; font-size: 13px; font-weight: 700; color: #c084fc; }}
+        .tool-desc {{ font-size: 12px; color: var(--text-muted); line-height: 1.4; }}
+        .schema-label {{ font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748b; }}
+        .schema-box {{ background: #020617; border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-family: ui-monospace, monospace; font-size: 11px; color: var(--text-muted); overflow-x: auto; max-height: 80px; }}
+        
+        .btn {{ display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; }}
+        .btn-primary {{ background: var(--primary); color: #fff; }}
+        .btn-primary:hover {{ background: var(--primary-hover); }}
+        .btn-outline {{ background: transparent; border: 1px solid var(--border-highlight); color: #cbd5e1; }}
+        .btn-outline:hover {{ background: #1e293b; color: #fff; }}
+        .btn-sm {{ padding: 4px 10px; font-size: 11px; }}
+        
+        .form-group {{ display: flex; flex-direction: column; gap: 6px; }}
+        .form-group label {{ font-size: 11px; font-weight: 600; color: var(--text-muted); }}
+        .form-control {{ padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: #fff; font-size: 12px; font-family: inherit; outline: none; }}
+        .form-control:focus {{ border-color: var(--primary); }}
+        textarea.form-control {{ font-family: ui-monospace, monospace; min-height: 120px; }}
+        .console-output {{ background: #020617; border: 1px solid var(--border); border-radius: 6px; padding: 12px; min-height: 150px; max-height: 260px; overflow-y: auto; font-family: ui-monospace, monospace; font-size: 11px; color: var(--sky); white-space: pre-wrap; }}
+        .config-box {{ background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: ui-monospace, monospace; font-size: 11px; color: var(--text-muted); overflow-x: auto; }}
     </style>
 </head>
-<body class="bg-[#020617] text-slate-100 min-h-screen font-sans antialiased flex flex-col">
-    <!-- TOPBAR -->
-    <header class="min-h-[56px] h-14 border-b border-slate-800 bg-[#0f172a]/95 backdrop-blur sticky top-0 z-40 px-6 flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-            <span class="font-extrabold text-sm text-slate-100">{title}</span>
-            <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">JSON-RPC 2.0</span>
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        </div>
-        <div class="flex items-center gap-2">
-            <a href="/" class="text-xs text-slate-300 hover:text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">App</a>
-            <a href="/docs" class="text-xs text-slate-300 hover:text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">Swagger</a>
-            <a href="/webhooks" class="text-xs text-slate-300 hover:text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">Webhooks</a>
+<body>
+    <header>
+        <div class="brand"><span class="pulse-dot"></span> {title} <span class="badge badge-purple">v5.1</span></div>
+        <div class="nav-links">
+            <a href="/">App</a>
+            <a href="/docs">Swagger</a>
+            <a href="/webhooks">Webhooks</a>
+            <a href="/mcp" class="active">MCP Studio</a>
+            <a href="/metrics">Metrics</a>
         </div>
     </header>
-
-    <main class="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
-        <!-- STATS -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Ferramentas MCP</div>
-                <div class="text-2xl font-black text-purple-400 mt-1">{len(tools)} Tools</div>
+    <main>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="title">Ferramentas Registradas</div>
+                <div class="val">{len(tools)} Tools</div>
             </div>
-            <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Protocolo</div>
-                <div class="text-2xl font-black text-sky-400 mt-1">JSON-RPC 2.0</div>
+            <div class="stat-card">
+                <div class="title">Protocolo Nativo</div>
+                <div class="val">JSON-RPC 2.0</div>
             </div>
-            <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Transportes</div>
-                <div class="text-2xl font-black text-emerald-400 mt-1">STDIO & HTTP</div>
+            <div class="stat-card">
+                <div class="title">Transportes</div>
+                <div class="val">HTTP & STDIO</div>
             </div>
-            <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Conexão LLM</div>
-                <div class="text-2xl font-black text-amber-400 mt-1">Claude / Cursor</div>
+            <div class="stat-card">
+                <div class="title">Conexão LLM</div>
+                <div class="val">Claude & Cursor</div>
             </div>
         </div>
 
-        <!-- CONFIG CLAUDE -->
-        <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-800">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Configuração Claude Desktop & Cursor (claude_desktop_config.json)</span>
-                <button onclick="copiarConfig()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1 rounded border border-slate-700 transition">Copiar JSON</button>
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Configuração Claude Desktop & Cursor (claude_desktop_config.json)</span>
+                <button class="btn btn-sm btn-outline" onclick="copiarConfig()">Copiar JSON</button>
             </div>
-            <pre class="bg-slate-950 p-3.5 rounded-lg border border-slate-800 text-xs text-slate-300 font-mono overflow-x-auto" id="config-json">{claude_config_json}</pre>
+            <pre class="config-box" id="claude-config-text">{claude_config_json}</pre>
         </div>
 
-        <!-- LISTA DE TOOLS -->
-        <div class="space-y-4">
-            <div class="flex items-center justify-between">
-                <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400">Catálogo de Ferramentas Disponíveis</h2>
-                <input type="text" id="filter-tools" placeholder="Filtrar ferramentas..." oninput="filtrar(this.value)" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-1.5 w-64 outline-none focus:border-purple-500">
+        <div class="grid-2col">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Catálogo de Ferramentas ({len(tools)})</span>
+                </div>
+                <input type="text" class="search-bar" placeholder="Filtrar ferramentas..." oninput="filtrarTools(this.value)">
+                <div class="tools-container" id="tools-list">
+                    {cards_str}
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="grid-tools">
-                {cards_str}
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Console Interativo JSON-RPC 2.0</span>
+                    <span class="badge badge-green" id="rpc-status">Pronto</span>
+                </div>
+                <div class="form-group">
+                    <label>Ferramenta</label>
+                    <select class="form-control" id="tool-select" onchange="onToolChange(this.value)">
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Argumentos (JSON)</label>
+                    <textarea class="form-control" id="tool-args">{{}}</textarea>
+                </div>
+                <button class="btn btn-primary" onclick="executarToolRpc()" id="btn-run">Executar Ferramenta (tools/call)</button>
+                <div class="form-group">
+                    <label>Resposta do Servidor</label>
+                    <div class="console-output" id="rpc-output">// Selecione uma ferramenta e clique em Executar</div>
+                </div>
             </div>
         </div>
     </main>
 
     <script>
-        function copiarConfig() {{
-            const txt = document.getElementById('config-json').textContent;
-            navigator.clipboard.writeText(txt).then(() => alert('Configuração copiada!'));
+    const TOOLS_LIST = {json.dumps(tools, ensure_ascii=False)};
+    
+    function initSelect() {{
+        const sel = document.getElementById('tool-select');
+        sel.innerHTML = '';
+        TOOLS_LIST.forEach(t => {{
+            const opt = document.createElement('option');
+            opt.value = t.name;
+            opt.textContent = t.name;
+            sel.appendChild(opt);
+        }});
+        if (TOOLS_LIST.length > 0) onToolChange(TOOLS_LIST[0].name);
+    }}
+
+    function onToolChange(name) {{
+        const tool = TOOLS_LIST.find(t => t.name === name);
+        const sample = {{}};
+        if (tool && tool.inputSchema && tool.inputSchema.properties) {{
+            for (const [k, v] of Object.entries(tool.inputSchema.properties)) {{
+                sample[k] = v.type === 'integer' || v.type === 'number' ? 1 : (v.type === 'boolean' ? true : "exemplo");
+            }}
         }}
-        function filtrar(q) {{
-            const val = q.toLowerCase();
-            document.querySelectorAll('.tool-card').forEach(c => {{
-                c.style.display = c.getAttribute('data-name').includes(val) ? 'flex' : 'none';
+        document.getElementById('tool-args').value = JSON.stringify(sample, null, 2);
+    }}
+
+    function selectTool(name) {{
+        const sel = document.getElementById('tool-select');
+        sel.value = name;
+        onToolChange(name);
+        sel.scrollIntoView({{behavior: 'smooth', block: 'center'}});
+    }}
+
+    function filtrarTools(q) {{
+        const query = q.toLowerCase().trim();
+        document.querySelectorAll('.tool-card').forEach(c => {{
+            const name = c.getAttribute('data-name');
+            c.style.display = name.includes(query) ? 'flex' : 'none';
+        }});
+    }}
+
+    function copiarConfig() {{
+        const text = document.getElementById('claude-config-text').textContent;
+        navigator.clipboard.writeText(text).then(() => alert('Configuração copiada!'));
+    }}
+
+    async function executarToolRpc() {{
+        const name = document.getElementById('tool-select').value;
+        const argsRaw = document.getElementById('tool-args').value;
+        const outBox = document.getElementById('rpc-output');
+        const status = document.getElementById('rpc-status');
+        let args = {{}};
+        try {{
+            args = JSON.parse(argsRaw);
+        }} catch(e) {{
+            outBox.textContent = "Erro JSON: " + e.message;
+            return;
+        }}
+
+        status.textContent = "Enviando...";
+        status.className = "badge badge-blue";
+
+        try {{
+            const t0 = performance.now();
+            const res = await fetch('/mcp', {{
+                method: 'POST',
+                headers: {{'Content-Type': 'application/json'}},
+                body: JSON.stringify({{
+                    jsonrpc: "2.0",
+                    method: "tools/call",
+                    params: {{ name: name, arguments: args }},
+                    id: Date.now()
+                }})
             }});
+            const data = await res.json();
+            const ms = (performance.now() - t0).toFixed(1);
+            outBox.textContent = JSON.stringify(data, null, 2);
+            status.textContent = res.ok ? `HTTP ${{res.status}} (${{ms}}ms)` : `Erro ${{res.status}}`;
+            status.className = res.ok ? "badge badge-green" : "badge badge-purple";
+        }} catch(err) {{
+            outBox.textContent = "Erro de conexão: " + err.message;
+            status.textContent = "Falha";
+            status.className = "badge badge-purple";
         }}
+    }}
+
+    initSelect();
     </script>
 </body>
 </html>"""
@@ -475,7 +645,7 @@ class MCPServer:
 # Aliases para compatibilidade reversa
 EnterpriseMCPServer = MCPServer
 LogisticaMCPServer = MCPServer
-MedHealthMCPServer = MCPServer
+AIDD EnterpriseMCPServer = MCPServer
 
 
 def run_stdio_server(db_path: str):

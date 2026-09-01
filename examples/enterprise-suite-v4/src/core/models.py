@@ -114,7 +114,7 @@ def init_all_schemas(conn: sqlite3.Connection):
             ('Microsserviços de Alta Performance com Python', 'Construção de APIs assíncronas com SQLite WAL, OpenAPI e Webhooks.', 'Backend', 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&auto=format&fit=crop&q=60', 18);
 
             INSERT INTO produtos (nome, preco, categoria, descricao, estoque) VALUES
-            ('Licença AIDD Enterprise v4.0', 4990.00, 'Software', 'Acesso completo ao Monólito Modular com 5 fatias de negócio.', 100),
+            ('Licença AIDD Enterprise v5.1', 4990.00, 'Software', 'Acesso completo ao Monólito Modular com 5 fatias de negócio.', 100),
             ('Kit de Automação n8n Pro', 1290.00, 'Templates', 'Workflows prontos de CRM, ERP e Helpdesk para n8n.', 250),
             ('Mentoria de Arquitetura de Software', 3500.00, 'Serviços', 'Acompanhamento direto para implementação em larga escala.', 10);
         """)

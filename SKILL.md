@@ -1,16 +1,16 @@
 ---
 name: aidd-master-pack-v4
 version: 4.1.0
-description: AIDD v4.1 — Enterprise Suite Engine com Fatias Verticais Isoladas, EventBus Cross-Domain, Webhooks HMAC, OpenAPI 3.1 Swagger Studio, MCP Nativo e Bateria de Quality Gates Rígidos Anti-Atalhos.
+description: AIDD v5.1 — Enterprise Suite Engine com Fatias Verticais Isoladas, EventBus Cross-Domain, Webhooks HMAC, OpenAPI 3.1 Swagger Studio, MCP Nativo e Bateria de Quality Gates Rígidos Anti-Atalhos.
 ---
 
-# 🌐 AIDD Master Pack v4.1 — Enterprise Modular Architecture
+# 🌐 AIDD Master Pack v5.1 — Enterprise Modular Architecture
 
-O **AIDD v4.1** é o framework definitivo de engenharia agêntica para construção de **Suítes Empresariais Cross-Project** e **Monólitos Modulares de Alta Performance**. Ele une múltiplos domínios de negócio com isolamento de Clean Architecture, comunicação assíncrona por eventos, conformidade de segurança OWASP, documentação interativa ao vivo, conectividade MCP para IAs e **Quality Gates Mecânicos Rígidos** que impedem qualquer atalho ou geração incompleta.
+O **AIDD v5.1** é o framework definitivo de engenharia agêntica para construção de **Suítes Empresariais Cross-Project** e **Monólitos Modulares de Alta Performance**. Ele une múltiplos domínios de negócio com isolamento de Clean Architecture, comunicação assíncrona por eventos, conformidade de segurança OWASP, documentação interativa ao vivo, conectividade MCP para IAs e **Quality Gates Mecânicos Rígidos** que impedem qualquer atalho ou geração incompleta.
 
 ---
 
-## 🏆 As 4 Regras de Ouro do AIDD v4.1
+## 🏆 As 4 Regras de Ouro do AIDD v5.1
 
 1. **Clean Architecture & Fatias Verticais Isoladas (`src/modules/<dominio>/`):** Cada domínio de negócio (`crm`, `erp`, `logistica`, `helpdesk`, `wms`, `membros`, `catalogo`) é estruturado como uma fatia vertical independente com `models.py`, `services.py`, `routes.py`, comunicando-se exclusivamente via `EventBus` pub/sub. Monólitos sem fatias verticais são bloqueados pelo gate `G_ESTRUTURA`.
 2. **Full CRUD Diligente com 100% de Testes Unitários:** Toda entidade possui Create, Read, Update e Delete totalmente funcionais, persistidos no banco de dados SQLite WAL, com modais no front-end e suíte completa de testes unitários com pytest em `tests/unit/test_<modulo>.py`.

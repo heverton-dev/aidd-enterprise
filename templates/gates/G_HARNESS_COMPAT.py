@@ -4,7 +4,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 def check_harness():
-    print("[GATE G_HARNESS_COMPAT v4.1] Verificando compatibilidade multi-harness...")
+    print("[GATE G_HARNESS_COMPAT v5.1] Verificando compatibilidade multi-harness...")
     erros = []
     
     # 1. Scripts de automação essenciais

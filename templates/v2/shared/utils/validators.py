@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-AIDD v4.1 Enterprise — VALIDADORES & VALUE OBJECTS (Objetos de Valor DDD)
+AIDD v5.1 Enterprise — VALIDADORES & VALUE OBJECTS (Objetos de Valor DDD)
 =============================================================================
 Tipos imutáveis com validação rica embutida para erradicar entidades anêmicas.
 """

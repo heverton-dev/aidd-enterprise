@@ -1084,7 +1084,7 @@ class RouteRegistry:
 
         function getSpotlightCommands() {
             const baseCommands = [
-                { id: 'nav-app', cat: 'Navegação', title: 'Super-App Clínico (Home)', desc: 'Dashboard e painéis hospitalares', iconType: 'app', action: () => { window.location.href = '/'; } },
+                { id: 'nav-app', cat: 'Navegação', title: 'Super-App Clínico (Home)', desc: 'Dashboard e painéis do Super-App', iconType: 'app', action: () => { window.location.href = '/'; } },
                 { id: 'nav-docs', cat: 'Navegação', title: 'Swagger Studio (OpenAPI)', desc: 'Documentação interativa REST e live playground', iconType: 'docs', action: () => { window.location.href = '/docs'; } },
                 { id: 'nav-wh', cat: 'Navegação', title: 'Webhook Studio', desc: 'Simulador de eventos e logs de webhook', iconType: 'webhooks', action: () => { window.location.href = '/webhooks'; } },
                 { id: 'nav-mcp', cat: 'Navegação', title: 'MCP Native Server Portal', desc: '16 Ferramentas JSON-RPC para Claude Desktop e LLMs', iconType: 'mcp', action: () => { window.location.href = '/mcp'; } },

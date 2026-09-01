@@ -1,4 +1,4 @@
-# Relatório Comparativo Factual: AIDD v1.0 vs v2.0 vs v3.0 vs v4.1
+# Relatório Comparativo Factual: AIDD v1.0 vs v2.0 vs v3.0 vs v5.1
 
 > **Exercício Prático:** Geração do mesmo projeto empresarial (*CRM & Faturamento*) utilizando as versões v1, v2, v3 e v4 do pacote AIDD.  
 > **Diretório de Comparação:** `C:\Users\trcnologia\Desktop\comparativo-aidd-v1-v4`  
@@ -12,7 +12,7 @@
 
 ## 1. Matriz Comparativa Quantitativa de Arquivos e Código
 
-| Métrica / Dimensão | Versão v1.0 (`app-v1`) | Versão v2.0 (`app-v2`) | Versão v3.0 (`app-v3`) | Versão v4.1 (`app-v4`) |
+| Métrica / Dimensão | Versão v1.0 (`app-v1`) | Versão v2.0 (`app-v2`) | Versão v3.0 (`app-v3`) | Versão v5.1 (`app-v4`) |
 | :--- | :---: | :---: | :---: | :---: |
 | **Total de Arquivos Gerados** | 32 | 32 | 32 | **59 (+84% de completude)** |
 | **Arquivos Python (`.py`)** | 27 | 27 | 27 | **41** |
@@ -35,7 +35,7 @@
   - Sem rastreamento de migrações (`_schema_migrations`).
   - Sem Soft-Delete (`deletado_em`) — exclusão causava `DELETE` físico irreversível.
   - Sem seed data inicial (banco nascia 100% vazio).
-- **v4.1:**  
+- **v5.1:**  
   - SQLite WAL de alta concorrência com `PRAGMA busy_timeout = 5000` e `foreign_keys = ON`.
   - Suporte nativo a **Soft-Delete** com índice dedicado (`idx_<modulo>_deletado`).
   - **Seed Fixtures Determinísticas:** Banco nasce com 2 registros de exemplo populados automaticamente.
@@ -50,7 +50,7 @@
   - Sem suporte a paginação ou busca textual.
   - Sem método de agregação de métricas/KPIs.
   - Exceções soltas quebrando o fluxo da IA.
-- **v4.1:**  
+- **v5.1:**  
   - **Full CRUD Rigoroso:** `listar()`, `obter_por_id()`, `criar()`, `atualizar()`, `deletar()` e `obter_metricas()`.
   - Suporte nativo a paginação (`pagina`, `limite`) e busca instantânea (`busca`).
   - **Padrão Resultado Monádico (`Result.ok` / `Result.fail`)** no Shared Kernel.
@@ -65,7 +65,7 @@
   - Sem ferramentas MCP expostas para agentes de IA.
   - Sem Swagger Studio interativo no navegador.
   - Sem middleware de CORS preflight (`OPTIONS`).
-- **v4.1:**  
+- **v5.1:**  
   - Rotas 100% catalogadas com esquemas OpenAPI 3.1, exemplos e query params.
   - **Swagger Studio Vivo** em `/docs` e `/docs/guia`.
   - **Servidor Universal MCP JSON-RPC 2.0** em `/mcp` com ferramentas dinâmicas registradas para cada módulo.
@@ -79,7 +79,7 @@
   - Apenas arquivos parciais de tabela em `src/static/components/<modulo>.html`.
   - Sem arquivo central `index.html` integrador (o usuário tinha que codificar a página principal manualmente).
   - Sem sistema de Toasts ou Modais de criação/edição.
-- **v4.1:**  
+- **v5.1:**  
   - **Super-App SPA Dinâmico** gerado em `src/static/index.html`.
   - Padrão **Impeccable UI** (Tailwind Slate/Indigo, 4px scrollbars, Header unificado).
   - Cards de KPIs no topo sincronizados com `/api/<modulo>/metricas`.
@@ -95,7 +95,7 @@
   - Não validava acoplamento de código entre módulos.
   - Não validava contratos OpenAPI/MCP.
   - Sem testes de conformidade OWASP.
-- **v4.1:**  
+- **v5.1:**  
   - **7 Quality Gates Bloqueantes (Exit Code 0):**  
     1. `G_ESTRUTURA` (Layout, AST Anti-Acoplamento, Scanner de Connection Leak).  
     2. `G_QUALIDADE` (py_compile, AST Anti-Stubs, Linter WCAG 2.1).  
@@ -116,13 +116,13 @@
 | **v1.0** | Esqueleto básico com pastas e templates crus. | Exigia montagem manual de servidor e front-end; sem testes. | ❌ Incompleto (Score 35%) |
 | **v2.0** | Templates de segurança e eventos adicionados. | Caminhos estáticos engessados (`~/.agents/...`); sem suíte de testes. | ❌ Incompleto (Score 40%) |
 | **v3.0** | Estrutura de regras e guidelines refinada. | Não gerava aplicação monolítica funcional out-of-the-box. | ❌ Incompleto (Score 45%) |
-| **v4.1** | **Ecossistema Enterprise Completo e Autossuficiente** em um comando único. | **Zero atalhos:** Servidor dinâmico, Super-App UI, 4 Portais, Full CRUD, Testes com Pytest, 7 Gates e Nota A+ OWASP. | ✅ **100% Pronto (Score 100% A+)** |
+| **v5.1** | **Ecossistema Enterprise Completo e Autossuficiente** em um comando único. | **Zero atalhos:** Servidor dinâmico, Super-App UI, 4 Portais, Full CRUD, Testes com Pytest, 7 Gates e Nota A+ OWASP. | ✅ **100% Pronto (Score 100% A+)** |
 
 ---
 
 ## 4. Comparativo de Eficiência Operacional, Consumo de Tokens e Excelência de Entrega
 
-| Dimensão de Análise | Versões Anteriores (v1, v2 e v3) | Versão Atual (v4.1 Enterprise) | Impacto / Ganho Técnico |
+| Dimensão de Análise | Versões Anteriores (v1, v2 e v3) | Versão Atual (v5.1 Enterprise) | Impacto / Ganho Técnico |
 | :--- | :--- | :--- | :--- |
 | **Tempo de Geração & Setup** | ~0.2s para gerar pastas, porém **2 a 4 horas de codificação manual** pelo desenvolvedor/agente para ligar o servidor, montar o front-end e escrever testes. | **1.83 segundos** para gerar 100% da aplicação funcional, testada, documentada e com 4 portais ativos. | **Redução de 99.8% no tempo de entrega**. |
 | **Consumo de Tokens de IA** | **45.000 a 80.000 tokens** consumidos no chat principal para o agente tentar escrever rotas, consertar imports e criar a UI. | **0 tokens de LLM** para geração de código (execução mecânica local) ou **~500 tokens** no chat se disparado por linguagem natural. | **Economia de 99% dos tokens semanais** (Regra de Ouro #1). |

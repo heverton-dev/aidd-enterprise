@@ -1,6 +1,9 @@
 import hmac, hashlib, base64, json, time, os, urllib.parse, urllib.request
 
-JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "aidd_enterprise_master_jwt_secret_key_v4_scale_production_2026")
+_JWT_SECRET_RAW = os.environ.get("JWT_SECRET_KEY")
+if not _JWT_SECRET_RAW:
+    _JWT_SECRET_RAW = "DEV_ONLY_INSECURE_SECRET_CHANGE_BEFORE_DEPLOY"
+JWT_SECRET_KEY = _JWT_SECRET_RAW
 
 class JWTService:
     @staticmethod
@@ -70,7 +73,7 @@ class SecurityService:
             "X-Frame-Options": "DENY",
             "X-XSS-Protection": "1; mode=block",
             "Referrer-Policy": "strict-origin-when-cross-origin",
-            "Content-Security-Policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com;",
+            "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';",
             "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
             "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload"
         }
@@ -93,9 +96,8 @@ class SecurityService:
 
     @staticmethod
     def validate_request_auth(auth_header: str, required_role: str = None) -> tuple:
-        # Se nenhuma autenticação for configurada via env (ALLOW_ANONYMOUS=1), permite bypass para desenvolvimento
-        if os.environ.get("ALLOW_ANONYMOUS", "0") == "1" and not auth_header:
-            return True, {"sub": "dev_guest", "role": "admin"}
+        if not auth_header:
+            return False, "Token de autenticação ausente"
         
         ok, payload, msg = JWTService.decode(auth_header)
         if not ok:

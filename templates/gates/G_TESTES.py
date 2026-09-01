@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-AIDD v4.1 Enterprise — GATE DETERMINÍSTICO DE TESTES UNITÁRIOS & HEALTHCHECK (G_TESTES)
+AIDD v5.1 Enterprise — GATE DETERMINÍSTICO DE TESTES UNITÁRIOS & HEALTHCHECK (G_TESTES)
 =============================================================================
 Executa obrigatoriamente a suíte pytest em tests/unit/ e valida o healthcheck sintético
 de rotas e fatias verticais. Bloqueia com exit 1 se 0 testes forem encontrados ou
@@ -20,7 +20,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 
 def testar(target_dir: str = "."):
-    print("[GATE G_TESTES v4.1] Executando bateria de testes unitários com pytest e healthcheck...")
+    print("[GATE G_TESTES v5.1] Executando bateria de testes unitários com pytest e healthcheck...")
     target_dir = os.path.abspath(target_dir)
     test_dir = os.path.join(target_dir, "tests", "unit")
 

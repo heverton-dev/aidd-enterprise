@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-AIDD v4.1 Enterprise — PADRÃO RESULTADO MONÁDICO (Result Pattern)
+AIDD v5.1 Enterprise — PADRÃO RESULTADO MONÁDICO (Result Pattern)
 =============================================================================
 Elimina exceções soltas e fornece retornos previsíveis para serviços de domínio,
 APIs e chamadas de ferramentas de agentes (MCP).

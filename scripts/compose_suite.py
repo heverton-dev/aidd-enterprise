@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-AIDD v4.1 Enterprise — Cross-Project Enterprise Suite Composition Engine
+AIDD v5.1 Enterprise — Cross-Project Enterprise Suite Composition Engine
 =============================================================================
 Compõe suítes empresariais e monólitos modulares completos com:
 - Shared Kernel (Database SQLite WAL, EventBus, RouteRegistry, WebhookDispatcher, SecurityService, MCPServer)
@@ -37,6 +37,7 @@ def generate_modular_server_code(suite_name: str, module_slugs: list, db_engine:
     service_inits = []
     routes_regs = []
     mcp_tool_regs = []
+    webhook_event_regs = []
 
     for mod in module_slugs:
         slug = slugify(mod)
@@ -54,17 +55,19 @@ def generate_modular_server_code(suite_name: str, module_slugs: list, db_engine:
         # em RouteRegistry.mount() ao iterar e appendar em self.endpoints).
         routes_regs.append(f"reg_{slug}_routes(service_{slug})")
         mcp_tool_regs.append(f"mcp_server.register_module_tools('{slug}', '{pascal}')")
+        webhook_event_regs.append(f"webhook_dispatcher.register_module_events('{slug}', '{pascal}')")
 
     imports_str = "\n".join(imports_lines)
     init_schemas_str = "\n".join(init_schema_calls)
     service_inits_str = "\n".join(service_inits)
     routes_regs_str = "\n".join(routes_regs)
     mcp_tool_regs_str = "\n".join(mcp_tool_regs)
+    webhook_event_regs_str = "\n".join(webhook_event_regs)
 
     template = """# -*- coding: utf-8 -*-
 \"\"\"
 =============================================================================
-__SUITE_NAME__ — Servidor Monolítico Modular (AIDD v4.1 Enterprise)
+__SUITE_NAME__ — Servidor Monolítico Modular (AIDD v5.1 Enterprise)
 =============================================================================
 Inicializa o Shared Kernel, orquestra fatias verticais, registra rotas OpenAPI 3.1,
 servidor Webhook Studio, servidor nativo MCP e serve a aplicação Web Super-App.
@@ -106,6 +109,8 @@ STATIC_DIR = os.path.join(CURRENT_DIR, "static")
 __DB_INIT__
 
 db = Database(__DB_URL_EXPR__)
+from core.token_revocation import TokenRevocationList
+TokenRevocationList.configure(db)
 events = EventBus()
 webhook_dispatcher = WebhookDispatcher(db)
 registry = RouteRegistry()
@@ -145,6 +150,9 @@ __ROUTES_REGS__
 
 # 4. Registrar Ferramentas MCP para cada Módulo
 __MCP_TOOL_REGS__
+
+# 4.5 Registrar Catálogo de Eventos Webhook para cada Módulo
+__WEBHOOK_EVENT_REGS__
 
 # 5. Rota de Autenticação JWT
 @registry.post(
@@ -539,7 +547,7 @@ def run_server():
 
     with httpd:
         print("=" * 80)
-        print(f"🚀 __SUITE_NAME__ (AIDD v4.1 Enterprise)")
+        print(f"🚀 __SUITE_NAME__ (AIDD v5.1 Enterprise)")
         print(f"📡 Servidor Ativo:     http://localhost:{PORT}")
         print(f"📜 Swagger Studio:     http://localhost:{PORT}/docs")
         print(f"⚡ Webhook Studio:     http://localhost:{PORT}/webhooks")
@@ -576,7 +584,7 @@ if __name__ == "__main__":
         .replace("__INIT_SCHEMAS__", init_schemas_str)
         .replace("__SERVICE_INITS__", service_inits_str)
         .replace("__ROUTES_REGS__", routes_regs_str)
-        .replace("__MCP_TOOL_REGS__", mcp_tool_regs_str)
+        .replace("__MCP_TOOL_REGS__", mcp_tool_regs_str).replace("__WEBHOOK_EVENT_REGS__", webhook_event_regs_str)
         .replace("__DB_INIT__", db_init_str)
         .replace("__DB_URL_EXPR__", db_url_expr_str)
     )
@@ -1090,7 +1098,7 @@ def generate_superapp_index_html(suite_name: str, module_slugs: list) -> str:
     <header class="topbar">
         <div class="topbar-brand">
             <span>__SUITE_NAME__</span>
-            <span class="badge-ver">v4.1 Enterprise</span>
+            <span class="badge-ver">v5.1 Enterprise</span>
         </div>
         <div class="topbar-links">
             <a href="/docs" target="_blank" class="topbar-link">Swagger Studio</a>
@@ -1321,7 +1329,7 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
             "nome": suite_name,
             "slug": slugify(suite_name),
             "versao": "4.1.0",
-            "framework": "AIDD Master Pack v4.1 Enterprise Anti-Fail",
+            "framework": "AIDD Master Pack v5.1 Enterprise Anti-Fail",
             "status": "em_desenvolvimento",
             "criado_em": datetime.datetime.now().isoformat()
         },
@@ -1439,7 +1447,7 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
 
 ## 1. Visão Geral
 - **Nome:** {suite_name}
-- **Framework:** AIDD Master Pack v4.1 Enterprise Anti-Fail
+- **Framework:** AIDD Master Pack v5.1 Enterprise Anti-Fail
 - **Banco de Dados:** SQLite Concorrente WAL (`suite.db`)
 - **Portais Ativos:** `/` (Super-App), `/docs` (Swagger Studio), `/mcp` (MCP Server), `/webhooks` (Webhook Studio)
 

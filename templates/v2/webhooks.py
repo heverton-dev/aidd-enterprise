@@ -1,101 +1,54 @@
 import urllib.request, urllib.error, json, threading, hmac, hashlib, time, uuid, os
 
 class WebhookDispatcher:
-    EVENT_CATALOG = [
+    BASE_CATALOG = [
         {
             "event": "*",
             "modulo": "Global",
-            "descricao": "Assina todos os eventos gerados por todos os módulos da suíte hospitalar.",
+            "descricao": "Assina todos os eventos gerados por todos os módulos da suíte.",
             "exemplo": {"event": "qualquer_evento", "data": {}}
-        },
-        {
-            "event": "cross_domain.triagem_critica_to_leito",
-            "modulo": "Cross-Domain",
-            "descricao": "Disparado quando a triagem Manchester é Vermelha/Laranja, alocando leito de emergência imediato.",
-            "exemplo": {"protocolo": "TRI-9081", "paciente_nome": "Carlos Alberto Silveira", "classificacao": "vermelho", "leito": "UTI Emergência 01"}
-        },
-        {
-            "event": "cross_domain.prescricao_to_farmacia",
-            "modulo": "Cross-Domain",
-            "descricao": "Disparado na emissão de prescrição médica, gerando ordem de dispensação na Farmácia Hospitalar.",
-            "exemplo": {"prescricao_id": 1, "medicamento": "Nitroglicerina IV", "paciente": "Carlos Alberto Silveira", "status": "pendente"}
-        },
-        {
-            "event": "cross_domain.cirurgia_to_faturamento",
-            "modulo": "Cross-Domain",
-            "descricao": "Disparado ao concluir uma cirurgia no Bloco, gerando automaticamente a guia de Faturamento TUSS.",
-            "exemplo": {"codigo_agendamento": "CC-501", "procedimento": "Apendicectomia Videolaparoscópica", "valor_faturado": 11200.0}
-        },
-        {
-            "event": "triagem.paciente_admitido",
-            "modulo": "Pronto-Socorro",
-            "descricao": "Disparado quando um novo paciente é classificado no protocolo de Manchester.",
-            "exemplo": {"protocolo": "TRI-9082", "paciente_nome": "Mariana Duarte Souza", "classificacao": "laranja", "sla_min": 10}
-        },
-        {
-            "event": "triagem.urgencia_critica",
-            "modulo": "Pronto-Socorro",
-            "descricao": "Alerta imediato de emergência clínica com risco de vida (Manchester Vermelho).",
-            "exemplo": {"protocolo": "TRI-9081", "prioridade": "EMERGENCIA_0MIN", "queixa": "Dor precordial aguda"}
-        },
-        {
-            "event": "pep.prontuario_atualizado",
-            "modulo": "PEP Clínico",
-            "descricao": "Disparado quando uma nova evolução médica ou diagnóstico CID-10 é salvo.",
-            "exemplo": {"prontuario_id": 1, "cid10": "I21.9 - Infarto Agudo", "medico": "Dra. Beatriz Helena"}
-        },
-        {
-            "event": "pep.prescricao_emitida",
-            "modulo": "PEP Clínico",
-            "descricao": "Disparado na criação de uma nova prescrição de medicamentos.",
-            "exemplo": {"prontuario_id": 1, "medicamento": "Ácido Acetilsalicílico 100mg", "dosagem": "300mg ataque"}
-        },
-        {
-            "event": "cirurgico.cirurgia_agendada",
-            "modulo": "Centro Cirúrgico",
-            "descricao": "Disparado no agendamento de procedimento cirúrgico e alocação de sala/equipe.",
-            "exemplo": {"codigo_agendamento": "CC-502", "sala": "Sala 04", "procedimento": "Artroplastia de Quadril"}
-        },
-        {
-            "event": "cirurgico.fase_alterada",
-            "modulo": "Centro Cirúrgico",
-            "descricao": "Disparado quando o status cirúrgico avança (pre_op -> em_andamento -> rpa -> concluida).",
-            "exemplo": {"cirurgia_id": 1, "novo_status": "em_andamento"}
-        },
-        {
-            "event": "farmacia.item_dispensado",
-            "modulo": "Farmácia Hospitalar",
-            "descricao": "Disparado na baixa física e dispensação fracionada de medicamento controlado ou comum.",
-            "exemplo": {"medicamento": "Nitroglicerina 50mg", "quantidade": 2, "farmaceutico_crf": "CRF/SP 44.921"}
-        },
-        {
-            "event": "farmacia.estoque_critico",
-            "modulo": "Farmácia Hospitalar",
-            "descricao": "Disparado quando o saldo em estoque atinge o nível mínimo de segurança.",
-            "exemplo": {"codigo_item": "MED-003", "medicamento": "Morfina 10mg", "saldo_atual": 18, "minimo": 20}
-        },
-        {
-            "event": "faturamento.guia_gerada",
-            "modulo": "Faturamento TISS/TUSS",
-            "descricao": "Disparado na emissão de conta hospitalar ou guia de convênio.",
-            "exemplo": {"numero_guia": "TISS-8801", "convenio": "Bradesco Saúde", "valor_total": 14850.0}
-        },
-        {
-            "event": "faturamento.guia_liquidada",
-            "modulo": "Faturamento TISS/TUSS",
-            "descricao": "Disparado no recebimento do pagamento e liquidação do faturamento.",
-            "exemplo": {"guia_id": 1, "numero_guia": "TISS-8802", "status": "liquidada"}
         },
         {
             "event": "auth.login_sucesso",
             "modulo": "Segurança",
-            "descricao": "Disparado após autenticação JWT bem-sucedida de um operador ou médico.",
-            "exemplo": {"email": "medico@hospital.com", "role": "medico_chefe"}
+            "descricao": "Disparado após autenticação JWT bem-sucedida de um usuário ou operador.",
+            "exemplo": {"email": "admin@empresa.com", "role": "admin"}
         }
     ]
+    EVENT_CATALOG = [e.copy() for e in BASE_CATALOG]
+
+    @classmethod
+    def register_module_events(cls, slug: str, name: str):
+        """Registra dinamicamente os eventos padrão do ciclo de vida de uma fatia vertical."""
+        clean_slug = str(slug).lower().strip()
+        events = [
+            {
+                "event": f"{clean_slug}.criado",
+                "modulo": name,
+                "descricao": f"Disparado na criação e persistência de um novo registro no módulo {name}.",
+                "exemplo": {"id": 1, "modulo": clean_slug, "status": "ativo"}
+            },
+            {
+                "event": f"{clean_slug}.atualizado",
+                "modulo": name,
+                "descricao": f"Disparado na alteração de dados de um registro no módulo {name}.",
+                "exemplo": {"id": 1, "modulo": clean_slug, "status": "atualizado"}
+            },
+            {
+                "event": f"{clean_slug}.deletado",
+                "modulo": name,
+                "descricao": f"Disparado na exclusão lógica ou física de um registro no módulo {name}.",
+                "exemplo": {"id": 1, "modulo": clean_slug, "deletado": True}
+            }
+        ]
+        existing = {e["event"] for e in cls.EVENT_CATALOG}
+        for ev in events:
+            if ev["event"] not in existing:
+                cls.EVENT_CATALOG.append(ev)
 
     def __init__(self, db):
         self.db = db
+
 
     def calcular_assinatura(self, secret: str, payload_bytes: bytes) -> str:
         if not secret:
@@ -145,7 +98,7 @@ class WebhookDispatcher:
 
         headers = {
             "Content-Type": "application/json",
-            "User-Agent": "MedHealth-Enterprise-Webhook-Studio/4.0",
+            "User-Agent": "AIDD-Enterprise-Webhook-Studio/5.1",
             "X-Webhook-Event": evento,
             "X-Webhook-Delivery": body_dict.get("delivery_id", str(uuid.uuid4())),
             "X-Webhook-Timestamp": str(body_dict.get("timestamp", int(time.time())))
@@ -204,7 +157,7 @@ class WebhookDispatcher:
 
         headers = {
             "Content-Type": "application/json",
-            "User-Agent": "MedHealth-Enterprise-Webhook-Studio/4.0",
+            "User-Agent": "AIDD-Enterprise-Webhook-Studio/5.1",
             "X-Webhook-Event": evento,
             "X-Webhook-Delivery": body_dict["delivery_id"],
             "X-Webhook-Timestamp": str(body_dict["timestamp"])
@@ -257,7 +210,7 @@ class WebhookDispatcher:
             "resposta_recebida": resp_body[:2000]
         }
 
-    def get_studio_html(self, title: str = "MedHealth Suite v4.0 — Webhook Studio") -> str:
+    def get_studio_html(self, title: str = "Plataforma SaaS Suite — Webhook Studio") -> str:
         # Dynamic build of event options & templates
         event_options = "".join([
             f'<option value="{ev["event"]}">{ev["event"]} ({ev["modulo"]})</option>'
@@ -508,9 +461,9 @@ class WebhookDispatcher:
         <div style="display: flex; align-items: center; gap: 1rem;">
             <a href="/webhooks" class="brand">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                MedHealth Webhook Studio
+                AIDD Webhook Studio
             </a>
-            <span class="badge-ver">v4.0 Event Engine</span>
+            <span class="badge-ver">v5.1 Event Engine</span>
         </div>
 
         <nav class="nav-tabs">
@@ -572,7 +525,7 @@ class WebhookDispatcher:
                 <div class="panel-header">
                     <div>
                         <div class="panel-title">Destinos & Webhooks Configurados</div>
-                        <div class="panel-desc">Endpoints cadastrados para recepção de eventos hospitalares em tempo real.</div>
+                        <div class="panel-desc">Endpoints cadastrados para recepção de eventos transacionais em tempo real da suíte.</div>
                     </div>
                     <button class="btn btn-primary" onclick="abrirModalCriar()">+ Novo Endpoint</button>
                 </div>
@@ -615,7 +568,7 @@ class WebhookDispatcher:
                         </div>
                         <div class="form-group">
                             <label class="form-label">Secret Token (Assinatura HMAC)</label>
-                            <input type="text" id="play-secret" class="form-control" placeholder="sec_med_health_2026">
+                            <input type="text" id="play-secret" class="form-control" placeholder="sec_aidd_suite_2026">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Tópico do Evento da Plataforma</label>
@@ -686,7 +639,7 @@ class WebhookDispatcher:
             <div class="panel">
                 <div class="panel-header">
                     <div>
-                        <div class="panel-title">Catálogo Oficial de Eventos do MedHealth Core</div>
+                        <div class="panel-title">Catálogo Oficial de Eventos da Suíte Enterprise</div>
                         <div class="panel-desc">Tópicos canônicos de eventos emitidos pelas fatias verticais e pelo EventBus.</div>
                     </div>
                 </div>
@@ -719,11 +672,11 @@ class WebhookDispatcher:
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">URL de Destino (HTTPS)</label>
-                    <input type="url" id="wh-url" class="form-control" placeholder="https://n8n.hospital.com/webhook/tiss" required>
+                    <input type="url" id="wh-url" class="form-control" placeholder="https://webhook.site/demo" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Secret Token HMAC</label>
-                    <input type="text" id="wh-secret" class="form-control" placeholder="sec_med_health_2026">
+                    <input type="text" id="wh-secret" class="form-control" placeholder="sec_aidd_suite_2026">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Eventos Assinados da Plataforma</label>
@@ -768,7 +721,7 @@ class WebhookDispatcher:
 
         function abrirModalCriar() {{
             document.getElementById('wh-url').value = '';
-            document.getElementById('wh-secret').value = 'sec_med_' + Math.random().toString(36).substring(2, 10);
+            document.getElementById('wh-secret').value = 'sec_aidd_' + Math.random().toString(36).substring(2, 10);
             document.querySelectorAll('input[name="wh-ev"]').forEach(cb => cb.checked = false);
             document.getElementById('modal-endpoint').classList.add('active');
         }}
@@ -990,15 +943,15 @@ class WebhookDispatcher:
 
         function getSpotlightCommands() {{
             return [
-                {{ id: 'nav-app', cat: 'Navegação', title: 'Super-App Clínico (Home)', desc: 'Dashboard e painéis hospitalares', iconType: 'app', action: () => {{ window.location.href = '/'; }} }},
+                {{ id: 'nav-app', cat: 'Navegação', title: 'Super-App Clínico (Home)', desc: 'Dashboard e painéis do Super-App', iconType: 'app', action: () => {{ window.location.href = '/'; }} }},
                 {{ id: 'nav-docs', cat: 'Navegação', title: 'Swagger Studio (OpenAPI)', desc: 'Documentação interativa REST e live playground', iconType: 'docs', action: () => {{ window.location.href = '/docs'; }} }},
                 {{ id: 'nav-wh', cat: 'Navegação', title: 'Webhook Studio', desc: 'Simulador de eventos e logs de webhook', iconType: 'webhooks', action: () => {{ window.location.href = '/webhooks'; }} }},
                 {{ id: 'nav-mcp', cat: 'Navegação', title: 'MCP Native Server Portal', desc: '16 Ferramentas JSON-RPC para Claude Desktop e LLMs', iconType: 'mcp', action: () => {{ window.location.href = '/mcp'; }} }},
                 {{ id: 'nav-guia', cat: 'Navegação', title: 'Manual Enciclopédico & Design System', desc: '11 Capítulos de arquitetura, segurança e UI', iconType: 'guia', action: () => {{ window.location.href = '/docs/guia'; }} }},
                 {{ id: 'act-new-ep', cat: 'Ações Webhook', title: 'Cadastrar Novo Endpoint Webhook', desc: 'Registrar URL de destino com secret HMAC', iconType: 'plus', action: () => {{ openModal(); }} }},
-                {{ id: 'act-tab-sim', cat: 'Ações Webhook', title: 'Abrir Simulador de Disparos', desc: 'Testar emissão de eventos hospitalares', iconType: 'rocket', action: () => {{ switchTab('playground'); }} }},
+                {{ id: 'act-tab-sim', cat: 'Ações Webhook', title: 'Abrir Simulador de Disparos', desc: 'Testar emissão de eventos empresariais', iconType: 'rocket', action: () => {{ switchTab('playground'); }} }},
                 {{ id: 'act-tab-logs', cat: 'Ações Webhook', title: 'Ver Auditoria e Histórico de Logs', desc: 'Inspecionar status HTTP e payloads', iconType: 'logs', action: () => {{ switchTab('logs'); }} }},
-                {{ id: 'act-tab-cat', cat: 'Ações Webhook', title: 'Ver Catálogo Oficial de Eventos', desc: '15 eventos de Triagem, Cirurgia, Farmácia e Faturamento', iconType: 'catalog', action: () => {{ switchTab('catalog'); }} }}
+                {{ id: 'act-tab-cat', cat: 'Ações Webhook', title: 'Ver Catálogo Oficial de Eventos', desc: 'Catálogo de eventos transacionais das fatias verticais', iconType: 'catalog', action: () => {{ switchTab('catalog'); }} }}
             ];
         }}
 

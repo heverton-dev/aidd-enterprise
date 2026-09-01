@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MedHealth Suite v4.0 — Guia e Documentação Enciclopédica</title>
+    <title>Plataforma SaaS Suite v5.1 — Guia e Documentação Enciclopédica</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script>
@@ -38,9 +38,9 @@
             </div>
             <div>
                 <h1 class="text-base font-bold text-slate-100 flex items-center gap-2">
-                    MedHealth Core Suite v4.0 <span class="text-xs bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded-full border border-sky-500/30">Manual Enciclopédico</span>
+                    Plataforma Core Suite v5.1 <span class="text-xs bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded-full border border-sky-500/30">Manual Enciclopédico</span>
                 </h1>
-                <p class="text-xs text-slate-400">Padrão OnOrca / AIDD v4.0 • 10 Capítulos de Arquitetura, Engenharia e Operação</p>
+                <p class="text-xs text-slate-400">Padrão OnOrca / AIDD v5.1 • 10 Capítulos de Arquitetura, Engenharia e Operação</p>
             </div>
         </div>
 
@@ -63,7 +63,7 @@
             <a href="#cap3" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800/80 hover:text-white transition">3. Protocolo Manchester & SLA</a>
             <a href="#cap4" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800/80 hover:text-white transition">4. Prontuário PEP & Prescrições</a>
             <a href="#cap5" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800/80 hover:text-white transition">5. Bloco & Escala Cirúrgica</a>
-            <a href="#cap6" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800/80 hover:text-white transition">6. Farmácia Hospitalar & Lotes</a>
+            <a href="#cap6" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800/80 hover:text-white transition">6. EventBus Core & Lotes</a>
             <a href="#cap7" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800/80 hover:text-white transition">7. Faturamento TISS / TUSS</a>
             <a href="#cap8" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800/80 hover:text-white transition">8. EventBus & Webhooks</a>
             <a href="#cap9" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800/80 hover:text-white transition">9. Servidor MCP Nativo (LLMs)</a>
@@ -78,13 +78,13 @@
             <section id="cap1" class="doc-section space-y-4">
                 <div class="border-b border-slate-800 pb-2">
                     <span class="text-xs font-mono text-sky-400 uppercase tracking-wider font-bold">Capítulo 1</span>
-                    <h2 class="text-2xl font-bold text-slate-100">Visão Geral & MedHealth Core Suite</h2>
+                    <h2 class="text-2xl font-bold text-slate-100">Visão Geral & Plataforma Core Suite</h2>
                 </div>
-                <p>A <strong>MedHealth Core Suite v4.0</strong> é uma plataforma hospitalar e clínica de missão crítica desenvolvida segundo a metodologia <strong>AIDD (AI-Driven Development)</strong>. Ela unifica todas as fatias verticais de um complexo hospitalar de alta complexidade em uma arquitetura monolítica modular de alto desempenho, com <strong>zero dependências externas</strong> em tempo de execução.</p>
+                <p>A <strong>Plataforma Core Suite v5.1</strong> é uma plataforma hospitalar e clínica de missão crítica desenvolvida segundo a metodologia <strong>AIDD (AI-Driven Development)</strong>. Ela unifica todas as fatias verticais de um complexo hospitalar de alta complexidade em uma arquitetura monolítica modular de alto desempenho, com <strong>zero dependências externas</strong> em tempo de execução.</p>
                 <div class="grid grid-cols-3 gap-3 pt-2">
                     <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
                         <div class="text-sky-400 font-bold text-base mb-1">5 Verticais</div>
-                        <div class="text-xs text-slate-400">Triagem, PEP, Centro Cirúrgico, Farmácia e Faturamento TISS integrados via EventBus.</div>
+                        <div class="text-xs text-slate-400">Triagem, PEP, Gestão de Contratos, Farmácia e Faturamento TISS integrados via EventBus.</div>
                     </div>
                     <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
                         <div class="text-emerald-400 font-bold text-base mb-1">16 MCP Tools</div>
@@ -107,12 +107,12 @@
                 <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto">
                     <div class="mermaid">
                     graph TD
-                        A[Triagem Manchester] -->|triagem_urgencia| E((EventBus Core))
-                        B[PEP Clínico] -->|prescricao_nova| E
-                        C[Centro Cirúrgico] -->|cirurgia_finalizada| E
+                        A[Orquestrador de Domínio] -->|triagem_urgencia| E((EventBus Core))
+                        B[Gestão Financeira] -->|prescricao_nova| E
+                        C[Gestão de Contratos] -->|cirurgia_finalizada| E
                         E -->|Aloca Leito Emergência| A
-                        E -->|Gera Ordem Dispensação| D[Farmácia Hospitalar]
-                        E -->|Gera Guia Faturamento| F[Faturamento TISS/TUSS]
+                        E -->|Gera Ordem Dispensação| D[EventBus Core]
+                        E -->|Gera Guia Faturamento| F[Outbox Worker]
                         E -->|HMAC SHA256| W[Webhook Dispatcher]
                     </div>
                 </div>
@@ -175,14 +175,14 @@
                     <span class="text-xs font-mono text-sky-400 uppercase tracking-wider font-bold">Capítulo 4</span>
                     <h2 class="text-2xl font-bold text-slate-100">Prontuário Eletrônico (PEP) & Prescrições</h2>
                 </div>
-                <p>O Prontuário Eletrônico centraliza as notas de evolução diária, hipóteses diagnósticas com codificação CID-10 e prescrições médicas. A emissão de prescrição ativa um evento cross-domain assíncrono que reserva os fármacos na Farmácia Hospitalar.</p>
+                <p>O Prontuário Eletrônico centraliza as notas de evolução diária, hipóteses diagnósticas com codificação CID-10 e prescrições médicas. A emissão de prescrição ativa um evento cross-domain assíncrono que reserva os fármacos na EventBus Core.</p>
             </section>
 
             <!-- CAPÍTULO 5 -->
             <section id="cap5" class="doc-section space-y-4">
                 <div class="border-b border-slate-800 pb-2">
                     <span class="text-xs font-mono text-sky-400 uppercase tracking-wider font-bold">Capítulo 5</span>
-                    <h2 class="text-2xl font-bold text-slate-100">Centro Cirúrgico & Escala de Salas</h2>
+                    <h2 class="text-2xl font-bold text-slate-100">Gestão de Contratos & Escala de Salas</h2>
                 </div>
                 <p>Controle do bloco cirúrgico com controle de 5 salas simultâneas, equipe de cirurgiões e anestesistas, e rastreamento de Órteses, Próteses e Materiais Especiais (OPME). O encerramento do ato cirúrgico aciona automaticamente o módulo de Faturamento TISS.</p>
             </section>
@@ -191,7 +191,7 @@
             <section id="cap6" class="doc-section space-y-4">
                 <div class="border-b border-slate-800 pb-2">
                     <span class="text-xs font-mono text-sky-400 uppercase tracking-wider font-bold">Capítulo 6</span>
-                    <h2 class="text-2xl font-bold text-slate-100">Farmácia Hospitalar & Gestão de Lotes</h2>
+                    <h2 class="text-2xl font-bold text-slate-100">EventBus Core & Gestão de Lotes</h2>
                 </div>
                 <p>Rastreabilidade completa de medicamentos por lote, validade, categoria de controle especial (Portaria 344/98) e medicamentos termolábeis (2-8°C). Alertas automáticos de reposição quando o saldo atinge o estoque mínimo de segurança.</p>
             </section>
@@ -202,7 +202,7 @@
                     <span class="text-xs font-mono text-sky-400 uppercase tracking-wider font-bold">Capítulo 7</span>
                     <h2 class="text-2xl font-bold text-slate-100">Faturamento Hospitalar TISS / TUSS</h2>
                 </div>
-                <p>Emissão de guias de cobrança padronizadas TISS com a Terminologia Unificada da Saúde Suplementar (TUSS). Controle de ciclo de vida financeiro: <code>gerada → autorizada → faturada → liquidada</code>, prevenindo glosas hospitalares.</p>
+                <p>Emissão de guias de cobrança padronizadas TISS com a Terminologia Unificada da Saúde Suplementar (TUSS). Controle de ciclo de vida financeiro: <code>gerada → autorizada → faturada → liquidada</code>, prevenindo glosas empresariais.</p>
             </section>
 
             <!-- CAPÍTULO 8 -->
@@ -220,7 +220,7 @@
                     <span class="text-xs font-mono text-sky-400 uppercase tracking-wider font-bold">Capítulo 9</span>
                     <h2 class="text-2xl font-bold text-slate-100">Servidor MCP Nativo (Model Context Protocol)</h2>
                 </div>
-                <p>O MedHealth expõe 16 ferramentas nativas JSON-RPC 2.0 via protocolo MCP, permitindo que agentes LLM realizem consultas, triagens, prescrições e auditorias de forma autônoma e segura.</p>
+                <p>O AIDD Enterprise expõe 16 ferramentas nativas JSON-RPC 2.0 via protocolo MCP, permitindo que agentes LLM realizem consultas, triagens, prescrições e auditorias de forma autônoma e segura.</p>
             </section>
 
             <!-- CAPÍTULO 10 -->
@@ -331,7 +331,7 @@
                         <div class="p-4 bg-slate-900/60 rounded-xl border border-slate-800">
                             <div class="text-purple-400 font-bold text-sm mb-1">JetBrains Mono</div>
                             <p class="text-slate-400 mb-2">Utilizada para payloads JSON, identificadores de tabela, rotas de API, código e métricas.</p>
-                            <div class="font-mono font-bold text-xs text-emerald-400">GET /api/triagem/pacientes</div>
+                            <div class="font-mono font-bold text-xs text-emerald-400">GET /api/financeiro/contas</div>
                             <div class="font-mono text-[11px] text-slate-300">{"status": 200, "latencia_ms": 1.2}</div>
                         </div>
                     </div>
@@ -436,16 +436,16 @@ button, .btn { white-space: nowrap !important; flex-shrink: 0 !important; displa
         }
 
         const SPOTLIGHT_COMMANDS = [
-            { id: 'nav-app', cat: 'Navegação', title: 'Super-App Clínico (Home)', desc: 'Dashboard e painéis hospitalares', iconType: 'app', action: () => { window.location.href = '/'; } },
+            { id: 'nav-app', cat: 'Navegação', title: 'Super-App Clínico (Home)', desc: 'Dashboard e painéis do Super-App', iconType: 'app', action: () => { window.location.href = '/'; } },
             { id: 'nav-docs', cat: 'Navegação', title: 'Swagger Studio (OpenAPI)', desc: 'Documentação interativa REST e live playground', iconType: 'docs', action: () => { window.location.href = '/docs'; } },
             { id: 'nav-wh', cat: 'Navegação', title: 'Webhook Studio', desc: 'Simulador de eventos e logs de webhook', iconType: 'webhooks', action: () => { window.location.href = '/webhooks'; } },
             { id: 'nav-mcp', cat: 'Navegação', title: 'MCP Native Server Portal', desc: '16 Ferramentas JSON-RPC para Claude Desktop e LLMs', iconType: 'mcp', action: () => { window.location.href = '/mcp'; } },
-            { id: 'cap-1', cat: 'Capítulos do Guia', title: 'Capítulo 1: Visão Geral & MedHealth Core Suite', desc: 'Arquitetura e escopo geral', iconType: 'chapter', action: () => { window.location.hash = '#cap1'; } },
+            { id: 'cap-1', cat: 'Capítulos do Guia', title: 'Capítulo 1: Visão Geral & Plataforma Core Suite', desc: 'Arquitetura e escopo geral', iconType: 'chapter', action: () => { window.location.hash = '#cap1'; } },
             { id: 'cap-2', cat: 'Capítulos do Guia', title: 'Capítulo 2: Arquitetura AIDD v4 Monólito Modular', desc: 'Estrutura de pastas e Clean Arch', iconType: 'chapter', action: () => { window.location.hash = '#cap2'; } },
             { id: 'cap-3', cat: 'Capítulos do Guia', title: 'Capítulo 3: Protocolo Manchester & SLAs', desc: 'Classificação de risco de P1 a P5', iconType: 'chapter', action: () => { window.location.hash = '#cap3'; } },
             { id: 'cap-4', cat: 'Capítulos do Guia', title: 'Capítulo 4: Prontuário PEP & Prescrições Digitais', desc: 'Histórico clínico e auditoria', iconType: 'chapter', action: () => { window.location.hash = '#cap4'; } },
             { id: 'cap-5', cat: 'Capítulos do Guia', title: 'Capítulo 5: Bloco & Escala Cirúrgica', desc: 'Fases cirúrgicas e tempo de sala', iconType: 'chapter', action: () => { window.location.hash = '#cap5'; } },
-            { id: 'cap-6', cat: 'Capítulos do Guia', title: 'Capítulo 6: Farmácia Hospitalar & Lotes', desc: 'Rastreabilidade de validade e alertas', iconType: 'chapter', action: () => { window.location.hash = '#cap6'; } },
+            { id: 'cap-6', cat: 'Capítulos do Guia', title: 'Capítulo 6: EventBus Core & Lotes', desc: 'Rastreabilidade de validade e alertas', iconType: 'chapter', action: () => { window.location.hash = '#cap6'; } },
             { id: 'cap-7', cat: 'Capítulos do Guia', title: 'Capítulo 7: Faturamento TISS / TUSS', desc: 'Guias e ciclo financeiro hospitalar', iconType: 'chapter', action: () => { window.location.hash = '#cap7'; } },
             { id: 'cap-8', cat: 'Capítulos do Guia', title: 'Capítulo 8: EventBus & Webhook Dispatcher', desc: 'Assinatura HMAC SHA-256 e retentativas', iconType: 'chapter', action: () => { window.location.hash = '#cap8'; } },
             { id: 'cap-9', cat: 'Capítulos do Guia', title: 'Capítulo 9: Servidor MCP Nativo (JSON-RPC)', desc: '16 Tools para agentes autônomos', iconType: 'chapter', action: () => { window.location.hash = '#cap9'; } },

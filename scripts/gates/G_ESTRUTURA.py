@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-AIDD v4.1 Enterprise — GATE DETERMINÍSTICO DE ESTRUTURA (G_ESTRUTURA)
+AIDD v5.1 Enterprise — GATE DETERMINÍSTICO DE ESTRUTURA (G_ESTRUTURA)
 =============================================================================
 Valida layout do projeto, presença do Shared Kernel, módulos desacoplados,
 manifesto estruturado, AST Anti-Acoplamento e Zero Connection Leak.
@@ -43,7 +43,7 @@ class StructureGate:
 
     def run(self) -> int:
         print("=" * 80)
-        print("🏗️  [GATE G_ESTRUTURA v4.1] Auditoria de Arquitetura e Layout do Projeto")
+        print("🏗️  [GATE G_ESTRUTURA v5.1] Auditoria de Arquitetura e Layout do Projeto")
         print(f"📁 Diretório Alvo: {self.root}")
         print("=" * 80)
 
@@ -183,7 +183,7 @@ class StructureGate:
         print("=" * 80)
 
         if self.errors:
-            print("❌ [BLOQUEADO]: Estrutura do projeto não atende aos requisitos AIDD v4.1 Enterprise.")
+            print("❌ [BLOQUEADO]: Estrutura do projeto não atende aos requisitos AIDD v5.1 Enterprise.")
             return 1
 
         print("🏆 [APROVADO]: Layout estrutural 100% em conformidade com Clean Architecture Modular!")

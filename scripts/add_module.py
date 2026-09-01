@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-AIDD v4.1 Enterprise — GERADOR DE FATIAS VERTICAIS (add_module.py)
+AIDD v5.1 Enterprise — GERADOR DE FATIAS VERTICAIS (add_module.py)
 =============================================================================
 Gera uma fatia vertical completa, isolada e desacoplada com:
 1. models.py (Schema SQLite WAL com índices e timestamps)
@@ -58,7 +58,7 @@ def criar_modulo(nome_modulo: str, descricao: str = "", target_dir: str = "."):
     comp_dir = os.path.join(src_dir, "static", "components")
     test_dir = os.path.join(target_dir, "tests", "unit")
 
-    print(f"🚀 [AIDD v4.1] Gerando fatia vertical completa para o módulo: '{slug}'...")
+    print(f"🚀 [AIDD v5.1] Gerando fatia vertical completa para o módulo: '{slug}'...")
     print(f"📁 Destino: {module_dir}")
 
     os.makedirs(module_dir, exist_ok=True)
@@ -122,6 +122,7 @@ Serviço de regras de negócio Full CRUD, paginação, métricas e eventos para 
 
 import json
 from typing import Optional, List, Dict, Any
+from core.database import append_audit_log
 
 
 class {pascal}Service:
@@ -189,6 +190,9 @@ class {pascal}Service:
                 "dados": dados_dict
             }}
 
+            # WORM Audit Hash Chain: registro imutável encadeado com SHA-256
+            append_audit_log(conn.cursor(), "{slug}_criado", payload)
+
             # Transactional Outbox Pattern: grava o evento na MESMA transação da
             # mutação, garantindo entrega at-least-once mesmo se o processo cair
             # antes do EventBus.emit() abaixo ser disparado.
@@ -227,6 +231,7 @@ class {pascal}Service:
                 "status": novo_status
             }}
 
+            append_audit_log(conn.cursor(), "{slug}_atualizado", payload)
             self.db.enqueue_outbox_event(conn, "{slug}_atualizado", payload)
             conn.commit()
 
@@ -241,6 +246,7 @@ class {pascal}Service:
             if not row:
                 return {{"sucesso": False, "erro": "Item não encontrado"}}
             conn.execute("UPDATE mod_{slug} SET deletado_em = CURRENT_TIMESTAMP, ativo = 0 WHERE id = ?", (item_id,))
+            append_audit_log(conn.cursor(), "{slug}_deletado", {{"id": item_id}})
             self.db.enqueue_outbox_event(conn, "{slug}_deletado", {{"id": item_id}})
             conn.commit()
 
@@ -585,7 +591,7 @@ def test_validacao_titulo_obrigatorio_{slug}(test_env):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="AIDD v4.1 — Gerador de Módulos Desacoplados")
+    parser = argparse.ArgumentParser(description="AIDD v5.1 — Gerador de Módulos Desacoplados")
     parser.add_argument("nome", help="Nome do módulo (ex: faturamento, pedidos, crm)")
     parser.add_argument("--descricao", "-d", default="", help="Descrição da fatia vertical")
     parser.add_argument("--dir", default=".", help="Diretório raiz do projeto alvo")

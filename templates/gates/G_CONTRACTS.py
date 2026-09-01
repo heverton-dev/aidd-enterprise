@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-AIDD v4.1 / v5.0 Enterprise — GATE DETERMINÍSTICO DE CONTRATOS OPENAPI & MCP (G_CONTRACTS)
+AIDD v5.1 / v5.0 Enterprise — GATE DETERMINÍSTICO DE CONTRATOS OPENAPI & MCP (G_CONTRACTS)
 =============================================================================
 Valida a conformidade de 100% das rotas registradas no RouteRegistry com o padrão
 OpenAPI 3.1, ferramentas expostas no MCP Server, integridade dos 4 Portais e Snapshot SHA-256.

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-AIDD v4.1 Enterprise — GATE DETERMINÍSTICO DE QUALIDADE & IMPECCABLE UI (G_QUALIDADE)
+AIDD v5.1 Enterprise — GATE DETERMINÍSTICO DE QUALIDADE & IMPECCABLE UI (G_QUALIDADE)
 =============================================================================
 Valida compilação estática (py_compile), varredura AST anti-stubs vazios,
 e Linter de Acessibilidade & Impeccable UI (WCAG 2.1, zero alerts, modais customizados).
@@ -20,7 +20,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 
 def verificar(target_dir: str = "."):
-    print("[GATE G_QUALIDADE v4.1] Validando sintaxe estática, AST anti-stubs e Linter Impeccable UI...")
+    print("[GATE G_QUALIDADE v5.1] Validando sintaxe estática, AST anti-stubs e Linter Impeccable UI...")
     target_dir = os.path.abspath(target_dir)
     erros = []
 

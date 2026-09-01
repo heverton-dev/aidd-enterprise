@@ -1,14 +1,14 @@
 # Análise Técnica, Posicionamento Realista e Roadmap de Superação (v4 -> v5 / v6)
 
 > **Documento:** Posicionamento Factual, Limitações Inerentes e Estratégia de Evolução Arquitetural.  
-> **Framework:** AIDD Master Pack (Versão Atual: v4.1.0 Enterprise Anti-Fail).  
+> **Framework:** AIDD Master Pack (Versão Atual: v5.1.0 Enterprise Anti-Fail).  
 > **Objetivo:** Estabelecer com clareza matemática o que o pacote entrega hoje, suas fronteiras técnicas reais e o roadmap concreto para superar cada limitação nas versões v5 e v6.
 
 ---
 
-## 1. O Que o Pacote v4.1 É (Posicionamento Factual)
+## 1. O Que o Pacote v5.1 É (Posicionamento Factual)
 
-O **AIDD v4.1** é um **Motor Determinístico de Composição Arquitetural e Scaffolding Agêntico**. Ele atua como uma fábrica de software estruturado que:
+O **AIDD v5.1** é um **Motor Determinístico de Composição Arquitetural e Scaffolding Agêntico**. Ele atua como uma fábrica de software estruturado que:
 1. Converte linguagem natural em especificações técnicas (SPEC em 3 níveis) e fatias verticais desacopladas (Clean Architecture).
 2. Fornece persistência concorrente (SQLite WAL), contratos documentados (OpenAPI 3.1 & Swagger), interface de IA (Model Context Protocol - MCP) e interface web (Impeccable UI).
 3. Garante qualidade matemática através de **7 Quality Gates bloqueantes** (exit code 0), testes unitários com pytest e auditoria OWASP com nota A+.
@@ -19,7 +19,7 @@ O **AIDD v4.1** é um **Motor Determinístico de Composição Arquitetural e Sca
 
 Para operar com rigor de engenharia, é imperativo reconhecer as **6 fronteiras técnicas reais** da versão atual:
 
-| # | Limitação Técnica Real | Impacto Prático na Versão v4.1 |
+| # | Limitação Técnica Real | Impacto Prático na Versão v5.1 |
 | :---: | :--- | :--- |
 | **1** | **Profundidade de Regras de Negócio (CRUD vs Domínio Complexo)** | O gerador entrega a infraestrutura Full CRUD perfeita, mas lógicas de negócio altamente específicas (ex: cálculo tributário interestadual, conciliação contábil) exigem programação complementar. |
 | **2** | **Persistência Local Single-Node (SQLite WAL)** | Excelente para MVPs, ferramentas internas e sistemas de até ~2.500 requisições/segundo. Não suporta escalabilidade distribuída multi-região. |
@@ -79,7 +79,7 @@ Para operar com rigor de engenharia, é imperativo reconhecer as **6 fronteiras 
 
 ## 4. Matriz Comparativa de Maturidade por Versão
 
-| Recurso / Dimensão | Versão v4.1 (Atual) | Versão v5.0 (Planejada) | Versão v6.0 (Visão de Futuro) |
+| Recurso / Dimensão | Versão v5.1 (Atual) | Versão v5.0 (Planejada) | Versão v6.0 (Visão de Futuro) |
 | :--- | :--- | :--- | :--- |
 | **Arquitetura** | Fatias Verticais Monolíticas | Fatias Híbridas (Monólito ou Microsserviço) | Malha de Serviços Agênticos Distribuídos |
 | **Banco de Dados** | SQLite WAL Concorrente | SQLite / PostgreSQL / Supabase | Bancos Distribuídos + Sharding |

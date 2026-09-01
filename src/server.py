@@ -16,6 +16,8 @@ PORT = 3000
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "suite.db")
 db = Database(f"sqlite:///{DB_PATH}")
+from core.token_revocation import TokenRevocationList
+TokenRevocationList.configure(db)
 events = EventBus()
 webhook_dispatcher = WebhookDispatcher(db)
 mcp_engine = LogisticaMCPServer(DB_PATH)
@@ -765,7 +767,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
-            doc = registry.generate_openapi_json("Logística Hub Suite v4.0", "4.0.0")
+            doc = registry.generate_openapi_json("Logística Hub Suite v5.1", "4.0.0")
             self.wfile.write(json.dumps(doc, ensure_ascii=False, indent=2).encode("utf-8"))
             return
 
@@ -773,7 +775,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
-            html = registry.get_swagger_html("Logística Hub Suite v4.0 — API Reference Studio")
+            html = registry.get_swagger_html("Logística Hub Suite v5.1 — API Reference Studio")
             self.wfile.write(html.encode("utf-8"))
             return
 
@@ -781,7 +783,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
-            html = webhook_dispatcher.get_studio_html("Logística Hub Suite v4.0 — Webhook Configuration Studio")
+            html = webhook_dispatcher.get_studio_html("Logística Hub Suite v5.1 — Webhook Configuration Studio")
             self.wfile.write(html.encode("utf-8"))
             return
 
@@ -930,7 +932,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     socketserver.ThreadingTCPServer.allow_reuse_address = True
     with socketserver.ThreadingTCPServer(("0.0.0.0", PORT), AppHandler) as httpd:
-        print(f"[*] Logística Hub v4.0 - Servidor Ativo: http://localhost:{PORT}")
+        print(f"[*] Logística Hub v5.1 - Servidor Ativo: http://localhost:{PORT}")
         print(f"[*] Swagger Studio OpenAPI 3.1: http://localhost:{PORT}/docs")
         print(f"[*] Webhook Studio v4: http://localhost:{PORT}/webhooks")
         print(f"[*] Portal MCP AI Engine: http://localhost:{PORT}/mcp")

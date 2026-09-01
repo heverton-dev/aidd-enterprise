@@ -748,12 +748,11 @@ def compose_suite(target_dir: str, suite_name: str, modules: list):
             shutil.copyfile(src, os.path.join(target_scripts_dir, s))
             print(f"  [+] Script: {s}")
 
-    # 10. Copiar Arquivos de Produção, Deploy, Nginx & Governança ORCA ADE
-    for prod_f in ["Dockerfile", "docker-compose.yml", "deploy.sh", "AGENTS.md", "CLAUDE.md", "GEMINI.md"]:
+    # 10. Copiar Arquivos de Produção, Deploy & Nginx
+    for prod_f in ["Dockerfile", "docker-compose.yml", "deploy.sh"]:
         src = os.path.join(templates_v2, prod_f)
         if os.path.isfile(src):
             shutil.copyfile(src, os.path.join(target_dir, prod_f))
-            print(f"  [+] Governança & Deploy: {prod_f}")
 
     # Nginx
     nginx_src = os.path.join(templates_v2, "nginx")

@@ -14,11 +14,11 @@ mkdir C:\Users\trcnologia\Desktop\fire-test-v5
 cd C:\Users\trcnologia\Desktop\fire-test-v5
 
 # 2. Clonar o repositório três vezes — uma por harness
-git clone https://github.com/heverton-dev/aidd-master-pack.git mimo-test
-git clone https://github.com/heverton-dev/aidd-master-pack.git opencode-test
-git clone https://github.com/heverton-dev/aidd-master-pack.git claude-test
+git clone --branch v5.1.0 https://github.com/heverton-dev/aidd-master-pack.git mimo-test
+git clone --branch v5.1.0 https://github.com/heverton-dev/aidd-master-pack.git opencode-test
+git clone --branch v5.1.0 https://github.com/heverton-dev/aidd-master-pack.git claude-test
 
-# 3. Verificar que o clone trouxe a tag v5.0.0 e a branch main atualizada
+# 3. Verificar que o clone trouxe a tag v5.1.0 e a branch main atualizada
 cd mimo-test    && git log --oneline -5 && cd ..
 cd opencode-test && git log --oneline -5 && cd ..
 cd claude-test   && git log --oneline -5 && cd ..

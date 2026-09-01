@@ -94,7 +94,7 @@
 
 ```text
 ================================================================================
-BATERIA DE TESTES AUTOMATIZADOS HOMOLOGADOS (v5.0.0):
+BATERIA DE TESTES AUTOMATIZADOS HOMOLOGADOS (v5.1.0):
    - DatabaseAdapter & Outbox Proxy:  13 testes unitários PASS (1 skip docker)
    - EventBus Driver & Redis Streams:  4 testes unitários PASS (1 skip redis live)
    - JobQueue Resiliente & DLQ:        7 testes unitários PASS
@@ -107,4 +107,4 @@ BATERIA DE TESTES AUTOMATIZADOS HOMOLOGADOS (v5.0.0):
 ================================================================================
 ```
 
-*Matriz Atômica de Qualidade homologada, versionada e vinculada à tag v5.0.0 no repositório oficial.*
+*Matriz Atômica de Qualidade homologada, versionada e vinculada à tag v5.1.0 no repositório oficial.*

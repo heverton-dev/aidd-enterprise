@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logística & Frota Inteligente — Enterprise Suite v4.0</title>
+    <title>Logistica & Frota Inteligente — Enterprise Suite v4.0</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -31,7 +33,7 @@
         .btn-primary { background: var(--primary); border-color: var(--primary); }
 
         .app-switcher { display: flex; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 10px; padding: 0.25rem; gap: 0.25rem; }
-        .tab-btn { padding: 0.45rem 1rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; color: var(--muted); border: none; background: none; cursor: pointer; transition: all 0.15s; }
+        .tab-btn { padding: 0.45rem 1rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; color: var(--muted); border: none; background: none; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 0.4rem; }
         .tab-btn.active { background: rgba(59, 130, 246, 0.2); color: var(--primary-light); }
 
         main { max-width: 1300px; width: 100%; margin: 0 auto; padding: 2.5rem 1.5rem; flex: 1; }
@@ -54,7 +56,6 @@
         .st-blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
         .st-orange { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
 
-        /* MODAL */
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(12px); display: none; align-items: center; justify-content: center; z-index: 100; }
         .modal-body { background: #050b18; border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 480px; padding: 2rem; display: flex; flex-direction: column; gap: 1.2rem; }
         .modal-title { font-size: 1.2rem; font-weight: 800; color: #fff; }
@@ -69,16 +70,31 @@
     <header>
         <div class="brand-title">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-            <span>Logística & Frota Inteligente</span>
-            <span class="badge-ver">Suite v4.0</span>
+            <span>Logistica & Frota Inteligente</span>
+            <span class="badge-ver">Enterprise Suite v4.0</span>
         </div>
 
         <div class="app-switcher">
-            <button class="tab-btn active" onclick="trocarModulo('frotas')">🚛 Frotas</button>
-            <button class="tab-btn" onclick="trocarModulo('entregas')">📦 Entregas & Rastreio</button>
-            <button class="tab-btn" onclick="trocarModulo('wms')">🏭 WMS Estoque</button>
-            <button class="tab-btn" onclick="trocarModulo('financeiro')">💵 Fretes Financeiro</button>
-            <button class="tab-btn" onclick="trocarModulo('incidentes')">🚨 Incidentes SLA</button>
+            <button class="tab-btn active" onclick="trocarModulo('frotas')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                Frotas
+            </button>
+            <button class="tab-btn" onclick="trocarModulo('entregas')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                Entregas & Rastreio
+            </button>
+            <button class="tab-btn" onclick="trocarModulo('wms')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                WMS Estoque
+            </button>
+            <button class="tab-btn" onclick="trocarModulo('financeiro')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Fretes Financeiro
+            </button>
+            <button class="tab-btn" onclick="trocarModulo('incidentes')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Incidentes SLA
+            </button>
         </div>
 
         <div style="display: flex; gap: 0.8rem;">
@@ -89,67 +105,65 @@
     </header>
 
     <main>
-        <!-- KPI METRICS -->
         <div class="kpi-grid">
             <div class="kpi-card">
-                <span class="kpi-title">Veículos na Frota</span>
-                <span class="kpi-val" id="kpi-veiculos">2 Ativos</span>
+                <span class="kpi-title">Veiculos na Frota</span>
+                <span class="kpi-val" id="kpi-veiculos">3 Ativos</span>
             </div>
             <div class="kpi-card">
-                <span class="kpi-title">Fretes em Trânsito</span>
+                <span class="kpi-title">Fretes em Transito</span>
                 <span class="kpi-val" id="kpi-entregas">R$ 22.700</span>
             </div>
             <div class="kpi-card">
-                <span class="kpi-title">Saldo Líquido</span>
-                <span class="kpi-val" id="kpi-saldo" style="color: #34d399;">R$ 5.080</span>
+                <span class="kpi-title">Saldo Liquido</span>
+                <span class="kpi-val" id="kpi-saldo" style="color: #34d399;">R$ 4.400</span>
             </div>
             <div class="kpi-card">
-                <span class="kpi-title">Armazém WMS</span>
-                <span class="kpi-val" id="kpi-wms">1.650 Itens</span>
+                <span class="kpi-title">Armazem WMS</span>
+                <span class="kpi-val" id="kpi-wms">1.830 Itens</span>
             </div>
         </div>
 
-        <!-- CONTEÚDO DINÂMICO DOS MÓDULOS -->
         <div id="module-container"></div>
     </main>
 
-    <!-- MODAL NOVO VEÍCULO -->
+    <!-- MODAL NOVO VEICULO -->
     <div class="modal" id="modal-veiculo">
         <div class="modal-body">
-            <div class="modal-title">Novo Veículo na Frota</div>
+            <div class="modal-title">Cadastrar Novo Veiculo</div>
             <div class="form-group">
                 <label>Placa</label>
                 <input type="text" id="v-placa" placeholder="ex: BRA2E19">
             </div>
             <div class="form-group">
-                <label>Modelo do Caminhão</label>
+                <label>Modelo do Caminhao</label>
                 <input type="text" id="v-modelo" placeholder="ex: Scania R450 6x2">
             </div>
             <div class="form-group">
-                <label>Motorista Responsável</label>
-                <input type="text" id="v-motorista" placeholder="ex: João da Silva">
+                <label>Motorista Responsavel</label>
+                <input type="text" id="v-motorista" placeholder="ex: Joao da Silva">
             </div>
             <div class="form-group">
-                <label>Capacidade (KG)</label>
+                <label>Capacidade de Carga (KG)</label>
                 <input type="number" id="v-cap" placeholder="32000">
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1rem;">
                 <button class="btn" onclick="fecharModal('modal-veiculo')">Cancelar</button>
-                <button class="btn btn-primary" onclick="salvarVeiculo()">Cadastrar Veículo</button>
+                <button class="btn btn-primary" onclick="salvarVeiculo()">Cadastrar Veiculo</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL NOVA ENTREGA -->
+    <!-- MODAL NOVA REMESSA -->
     <div class="modal" id="modal-entrega">
         <div class="modal-body">
-            <div class="modal-title">Nova Remessa de Entrega</div>
+            <div class="modal-title">Criar Nova Remessa de Entrega</div>
             <div class="form-group">
-                <label>Destinatário / Empresa</label>
-                <input type="text" id="e-dest" placeholder="ex: BioMed Indústria">
+                <label>Destinatario / Empresa</label>
+                <input type="text" id="e-dest" placeholder="ex: BioMed Industria">
             </div>
             <div class="form-group">
-                <label>Cidade / UF</label>
+                <label>Cidade e UF de Destino</label>
                 <input type="text" id="e-cidade" placeholder="ex: Campinas/SP">
             </div>
             <div class="form-group">
@@ -182,17 +196,17 @@
             if (moduloAtual === 'frotas') {
                 const res = await fetch('/api/frotas/veiculos');
                 const veics = await res.json();
-                document.getElementById('kpi-veiculos').innerText = veics.length + ' Veículos';
+                document.getElementById('kpi-veiculos').innerText = veics.length + ' Veiculos';
 
                 container.innerHTML = `
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-title">Frota de Veículos & Caminhões</div>
-                            <button class="btn btn-primary" onclick="abrirModal('modal-veiculo')">+ Novo Veículo</button>
+                            <div class="card-title">Frota de Veiculos & Caminhoes</div>
+                            <button class="btn btn-primary" onclick="abrirModal('modal-veiculo')">+ Novo Veiculo</button>
                         </div>
                         <table>
                             <thead>
-                                <tr><th>PLACA</th><th>MODELO</th><th>MOTORISTA</th><th>CAPACIDADE</th><th>STATUS</th><th>AÇÕES</th></tr>
+                                <tr><th>PLACA</th><th>MODELO</th><th>MOTORISTA</th><th>CAPACIDADE</th><th>STATUS</th><th>ACOES</th></tr>
                             </thead>
                             <tbody>
                                 ${veics.map(v => `
@@ -203,7 +217,7 @@
                                         <td>${v.capacidade_kg.toLocaleString()} kg</td>
                                         <td><span class="badge-st ${v.status === 'disponivel' ? 'st-green' : (v.status === 'em_rota' ? 'st-blue' : 'st-orange')}">${v.status.toUpperCase()}</span></td>
                                         <td>
-                                            <button class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="alternarStatusVeiculo(${v.id})">Alterar Status</button>
+                                            <button class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="alternarStatusVeiculo(${v.id})">Alternar Status</button>
                                         </td>
                                     </tr>
                                 `).join('')}
@@ -223,7 +237,7 @@
                         </div>
                         <table>
                             <thead>
-                                <tr><th>RASTREIO</th><th>DESTINATÁRIO</th><th>CIDADE</th><th>VALOR FRETE</th><th>STATUS</th><th>AÇÃO</th></tr>
+                                <tr><th>RASTREIO</th><th>DESTINATARIO</th><th>CIDADE</th><th>VALOR FRETE</th><th>STATUS</th><th>ACAO</th></tr>
                             </thead>
                             <tbody>
                                 ${entregas.map(e => `
@@ -249,11 +263,11 @@
                 container.innerHTML = `
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-title">Armazém WMS & Localização de Paletes</div>
+                            <div class="card-title">Armazem WMS & Localizacao de Paletes</div>
                         </div>
                         <table>
                             <thead>
-                                <tr><th>SKU</th><th>DESCRIÇÃO</th><th>POSIÇÃO</th><th>QUANTIDADE</th><th>VALOR UNIT.</th></tr>
+                                <tr><th>SKU</th><th>DESCRICAO</th><th>POSICAO</th><th>QUANTIDADE</th><th>VALOR UNIT.</th></tr>
                             </thead>
                             <tbody>
                                 ${itens.map(i => `
@@ -280,7 +294,7 @@
                         </div>
                         <table>
                             <thead>
-                                <tr><th>TIPO</th><th>DESCRIÇÃO</th><th>VALOR</th><th>VENCIMENTO</th><th>STATUS</th></tr>
+                                <tr><th>TIPO</th><th>DESCRICAO</th><th>VALOR</th><th>VENCIMENTO</th><th>STATUS</th></tr>
                             </thead>
                             <tbody>
                                 ${fretes.map(f => `
@@ -307,7 +321,7 @@
                         </div>
                         <table>
                             <thead>
-                                <tr><th>PROTOCOLO</th><th>TÍTULO</th><th>VEÍCULO</th><th>PRIORIDADE</th><th>SLA</th><th>STATUS</th></tr>
+                                <tr><th>PROTOCOLO</th><th>TITULO</th><th>VEICULO</th><th>PRIORIDADE</th><th>SLA</th><th>STATUS</th></tr>
                             </thead>
                             <tbody>
                                 ${incs.map(i => `

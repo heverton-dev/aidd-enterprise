@@ -473,8 +473,8 @@ def cmd_plan(prompt: str, base_dir: str = ".", auto_apply: bool = False):
 
     os.makedirs(target_path, exist_ok=True)
 
-    # 1. Gerar SPEC-ARQUITETURA.md
-    spec_content = f"""# Especificação Técnica de Arquitetura (SPEC / PRD)
+    # 1. Gerar SPEC-ARQUITETURA.md em 3 Níveis Estruturados
+    spec_content = f"""# Especificação Técnica de Arquitetura em 3 Níveis (SPEC / PRD)
 
 **Projeto:** {suite_title}  
 **Diretório:** `{target_path}`  
@@ -483,31 +483,49 @@ def cmd_plan(prompt: str, base_dir: str = ".", auto_apply: bool = False):
 
 ---
 
-## 1. Fatias Verticais Mapeadas
+## NÍVEL 1: ESPECIFICAÇÃO DE NEGÓCIO & REGRAS DE DOMÍNIO
 """
     for m in found_modules:
         spec_content += f"""
-### Módulo: `{m}`
-- **Entidades:** `{m.capitalize()}Model` (ID, Titulo, Dados JSON, Timestamps, Ativo)
-- **Serviço:** `{m.capitalize()}Service` com Full CRUD e emissão de eventos
-- **Rotas OpenAPI:** `GET /api/{m}`, `GET /api/{m}/obter`, `POST /api/{m}/criar`, `POST /api/{m}/atualizar`, `POST /api/{m}/deletar`
-- **UI:** Componente desacoplado em `src/static/components/{m}.html`
-- **Testes Unitários:** `tests/unit/test_{m}.py` com pytest
+### Domínio / Subdomínio: `{m.upper()}`
+- **Entidade Principal:** `{m.capitalize()}` (identificador, título descritivo, status de ciclo de vida e carga útil JSON).
+- **Casos de Uso Primários:** Cadastrar, Consultar por ID, Listar com Filtro/Busca, Atualizar Campos e Excluir com Soft-Delete.
+- **Eventos de Domínio:** Publicação obrigatória de `{m}_criado`, `{m}_atualizado` e `{m}_deletado` no `EventBus`.
+- **Auditoria:** Rastreabilidade temporal com campos `criado_em`, `atualizado_em` e `deletado_em`.
 """
 
     spec_content += """
 ---
 
-## 2. Shared Kernel & Segurança
-- **Banco de Dados:** SQLite 3 WAL Mode (`src/core/database.py`)
-- **Mensageria:** EventBus Pub/Sub em memória (`src/core/events.py`)
-- **Segurança:** Autenticação JWT HS256 e Headers OWASP (`src/core/security.py`)
-- **APIs & MCP:** Swagger Studio em `/docs` e Servidor Universal MCP em `/mcp`
+## NÍVEL 2: ESPECIFICAÇÃO DE BACK-END, PERSISTÊNCIA & CONTRATOS
+"""
+    for m in found_modules:
+        spec_content += f"""
+### Contratos de API & MCP: `{m}`
+- **Rotas REST:**
+  - `GET /api/{m}/listar`: Retorna coleção filtrada e paginada.
+  - `GET /api/{m}/metricas`: Retorna KPIs agregados (total, ativos, concluídos, taxa de conversão).
+  - `GET /api/{m}/obter?id=N`: Retorna registro único ativo.
+  - `POST /api/{m}/criar`: Insere novo registro e emite evento.
+  - `POST /api/{m}/atualizar`: Altera dados do registro.
+  - `POST /api/{m}/deletar`: Marca exclusão lógica (soft-delete).
+- **Ferramentas MCP (JSON-RPC 2.0):** `mod_{m}_listar`, `mod_{m}_criar`, `mod_{m}_obter`, `mod_{m}_atualizar`, `mod_{m}_deletar`.
+- **Persistência SQLite WAL:** Tabela `mod_{m}` com índices de status e exclusão.
+"""
+
+    spec_content += """
+---
+
+## NÍVEL 3: ESPECIFICAÇÃO DE FRONT-END, DESIGN SYSTEM & UX
+- **Design System:** Padrão Impeccable UI com Tailwind CSS, paleta Slate/Indigo e SVGs Lucide.
+- **Componentes:** Componente visual isolado em `src/static/components/<modulo>.html` para cada fatia vertical.
+- **Acessibilidade WCAG 2.1:** Botões com `type="button"`, `aria-label`, foco visível e zero diálogos nativos (`alert`).
+- **Dashboard Super-App:** Header unificado, cards de KPIs no topo, tabela paginada com busca em tempo real e modais de Full CRUD.
 
 ---
 
-## 3. Próximo Passo: Aprovação e Execução
-Execute `python scripts/aidd.py apply --dir "{target_path}"` para compor o código e disparar os 7 Quality Gates.
+## PRÓXIMO PASSO: APROVAÇÃO E EXECUÇÃO
+Execute `python scripts/aidd.py apply --dir "{target_path}"` para compor o código e homologar os 7 Quality Gates.
 """
     spec_path = os.path.join(target_path, "SPEC-ARQUITETURA.md")
     with open(spec_path, "w", encoding="utf-8") as f:

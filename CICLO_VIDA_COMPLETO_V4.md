@@ -1,4 +1,4 @@
-# Ciclo de Vida Completo do AIDD Master Pack v4.1 (Nível Ultra)
+# Ciclo de Vida Completo do AIDD Master Pack v4.1 (Nível Ultra — 12 Pilares Formação.DEV)
 
 ## 1. Visão Geral do Ciclo
 
@@ -23,26 +23,30 @@
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ FASE 1.5: ESPECIFICAÇÃO & ALINHAMENTO ARQUITETURAL (SPEC / PLAN GATE)       │
-│ 1. Geração de SPEC-ARQUITETURA.md e PLANO-EXECUCAO-ESTRUTURADO.json         │
-│ 2. Revisão Interativa: Usuário aprova ou ajusta fatias e entidades          │
-│ 3. Gatilho de Aprovação: $ python scripts/aidd.py apply --dir <pasta>       │
+│ FASE 1.5: ESPECIFICAÇÃO & ALINHAMENTO ARQUITETURAL EM 3 NÍVEIS (SPEC GATE)  │
+│ 1. Geração de SPEC-ARQUITETURA.md (Negócio, Backend, Frontend/UX)           │
+│ 2. Geração do Manifesto PLANO-EXECUCAO-ESTRUTURADO.json                     │
+│ 3. Revisão Interativa: Usuário aprova ou ajusta fatias e entidades          │
+│ 4. Gatilho de Aprovação: $ python scripts/aidd.py apply --dir <pasta>       │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ FASE 2: PROCESSAMENTO MECÂNICO (PROCESSING - ELITE AGENTIC ENGINE)          │
 │ 1. Linter AST Anti-Acoplamento & Zero Connection Leak                       │
-│ 2. Scaffolding do Shared Kernel com SQLite WAL + busy_timeout = 5000        │
-│ 3. Controle de Migrações de Schema (_schema_migrations)                     │
-│ 4. Geração Atômica de Fatias Verticais com Seed Fixtures Determinísticas    │
-│ 5. EventBus Pub/Sub com Validação de Contrato de Payload e Tracing UUID     │
-│ 6. Servidor Dinâmico src/server.py com Port Fallback (3000..3025) e CORS    │
-│ 7. Geração de Testes com Asserção Forte de Mutação de Estado                │
-│ 8. Linter de Acessibilidade & Impeccable UI (WCAG 2.1)                      │
-│ 9. Snapshot SHA-256 de Contratos OpenAPI e MCP                              │
-│ 10. Execução dos 7 Quality Gates com Limpeza Automática de Cache            │
-│ 11. Benchmark Concorrente ($ python scripts/aidd.py bench -n 100)           │
+│ 2. Scaffolding do Shared Kernel com SQLite WAL + Soft-Delete + busy_timeout │
+│ 3. Monad Result Pattern (Result.ok / Result.fail) e JobQueue em Background  │
+│ 4. Controle de Migrações de Schema (_schema_migrations)                     │
+│ 5. Geração Atômica de Fatias Verticais com Seed Fixtures Determinísticas    │
+│ 6. EventBus Pub/Sub com Validação de Contrato de Payload e Tracing UUID     │
+│ 7. Servidor Dinâmico src/server.py com Port Fallback (3000..3025) e CORS    │
+│ 8. Geração de Testes com Asserção Forte de Mutação de Estado                │
+│ 9. Linter de Acessibilidade & Impeccable UI (WCAG 2.1)                      │
+│ 10. Snapshot SHA-256 de Contratos OpenAPI e MCP                             │
+│ 11. Sincronização Multi-IDE (.cursor/rules, .claude, .agent)                │
+│ 12. Grafo de Memória CONTEXTO-PROJETO.md                                    │
+│ 13. Execução dos 7 Quality Gates com Limpeza Automática de Cache            │
+│ 14. Benchmark Concorrente ($ python scripts/aidd.py bench -n 100)           │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
                                        ▼
@@ -54,16 +58,19 @@
 
 ---
 
-## 2. Detalhamento das Diretrizes de Elite (Nível Ultra)
+## 2. Detalhamento dos 12 Pilares Formação.DEV Implementados
 
-| # | Diretriz de Elite | Risco Eliminado | Arquivo Validador |
+| # | Pilar Estrutural | Risco Eliminado | Arquivo Principal |
 | :---: | :--- | :--- | :--- |
-| **1** | **Linter AST Anti-Acoplamento** | Módulos importando diretamente código de outros módulos. | `G_ESTRUTURA.py` |
-| **2** | **Zero Connection Leak** | Conexões SQLite abertas sem context manager. | `G_ESTRUTURA.py` |
-| **3** | **Snapshot SHA-256 de Contratos** | Quebra acidental de contratos de API e ferramentas MCP. | `G_CONTRACTS.py` |
-| **4** | **Linter Impeccable UI & WCAG 2.1** | Componentes com diálogos nativos (`alert`) ou botões sem type. | `G_QUALIDADE.py` |
-| **5** | **Testes de Mutação Forte** | Falsos-positivos em testes unitários de CRUD. | `add_module.py` |
-| **6** | **Benchmark de Carga (`aidd bench`)** | Degradação de performance sob concorrência local. | `aidd.py` |
-| **7** | **Auto-Remediação (`aidd heal`)** | Arquivos corrompidos ou manifestos dessincronizados. | `aidd.py` |
-| **8** | **Port Fallback & CORS Nativo** | Conflito de portas e bloqueio de clientes frontend externos. | `compose_suite.py` |
-| **9** | **Injeção Cirúrgica de Contexto** | Desperdício de tokens em prompts de subagentes. | `SKILL.md` |
+| **1** | **Result Pattern** | Falhas 500 e exceções não tratadas por agentes. | `src/core/result.py` |
+| **2** | **Value Objects Ricos** | Tipos primitivos crus e entidades anêmicas. | `src/shared/utils/validators.py` |
+| **3** | **Auditoria & Soft-Delete** | Exclusão física acidental de dados. | `models.py` / `services.py` |
+| **4** | **SPEC em 3 Níveis** | Alucinação e retrabalho de escopo. | `SPEC-ARQUITETURA.md` |
+| **5** | **Tabela Paginada & Filtros** | Travamento de UI com listas longas. | `services.py` / Componente HTML |
+| **6** | **RBAC no Kernel** | Acesso indevido a rotas administrativas. | `src/core/security.py` |
+| **7** | **Templates de Subagentes** | Contextos sobrecarregados e lentidão. | `templates/agents/*.md` |
+| **8** | **Multi-IDE Rules Sync** | Falta de governança em IDEs variadas. | `.cursor/`, `.claude/`, `.agent/` |
+| **9** | **Busca Instantânea Local** | Queries pesadas e lentas no banco. | `services.py` (`busca`) |
+| **10** | **Grafo de Memória do Projeto** | Perda de contexto em novas sessões de IA. | `CONTEXTO-PROJETO.md` |
+| **11** | **Fila de Jobs Assíncronos** | Timeouts HTTP em tarefas demoradas. | `src/core/jobs.py` |
+| **12** | **Cards de KPIs no Topo** | Telas cruas sem visão executiva. | `services.obter_metricas()` |

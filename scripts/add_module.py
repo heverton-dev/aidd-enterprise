@@ -89,16 +89,18 @@ def init_schema(conn: sqlite3.Connection):
             status TEXT DEFAULT 'ativo',
             ativo INTEGER DEFAULT 1,
             criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deletado_em TIMESTAMP DEFAULT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_{slug}_ativo ON mod_{slug}(ativo);
         CREATE INDEX IF NOT EXISTS idx_{slug}_status ON mod_{slug}(status);
+        CREATE INDEX IF NOT EXISTS idx_{slug}_deletado ON mod_{slug}(deletado_em);
     """)
     conn.commit()
 
     # Seed Fixtures Determinísticas (se a tabela estiver vazia)
     cur = conn.cursor()
-    cur.execute("SELECT count(*) FROM mod_{slug}")
+    cur.execute("SELECT count(*) FROM mod_{slug} WHERE deletado_em IS NULL")
     if cur.fetchone()[0] == 0:
         conn.executemany("""
             INSERT INTO mod_{slug} (titulo, descricao, dados_json, status, ativo)
@@ -115,7 +117,7 @@ def init_schema(conn: sqlite3.Connection):
     # 2. services.py
     services_code = f'''# -*- coding: utf-8 -*-
 """
-Serviço de regras de negócio Full CRUD e publicação de eventos para o módulo '{slug}'.
+Serviço de regras de negócio Full CRUD, paginação, métricas e eventos para o módulo '{slug}'.
 """
 
 import json
@@ -127,22 +129,40 @@ class {pascal}Service:
         self.db = db
         self.events = events
 
-    def listar(self, apenas_ativos: bool = True, status: Optional[str] = None) -> List[Dict[str, Any]]:
+    def listar(self, apenas_ativos: bool = True, status: Optional[str] = None, busca: Optional[str] = None, pagina: int = 1, limite: int = 50) -> List[Dict[str, Any]]:
         with self.db.get_connection() as conn:
-            query = "SELECT * FROM mod_{slug} WHERE 1=1"
+            query = "SELECT * FROM mod_{slug} WHERE deletado_em IS NULL"
             params = []
             if apenas_ativos:
                 query += " AND ativo = 1"
             if status:
                 query += " AND status = ?"
                 params.append(status)
+            if busca:
+                query += " AND (titulo LIKE ? OR descricao LIKE ?)"
+                params.extend([f"%{{busca}}%", f"%{{busca}}%"])
             query += " ORDER BY id DESC"
+            offset = max(0, (pagina - 1) * limite)
+            query += " LIMIT ? OFFSET ?"
+            params.extend([limite, offset])
             rows = conn.execute(query, params).fetchall()
             return [dict(r) for r in rows]
 
+    def obter_metricas(self) -> Dict[str, Any]:
+        with self.db.get_connection() as conn:
+            total = conn.execute("SELECT count(*) FROM mod_{slug} WHERE deletado_em IS NULL").fetchone()[0]
+            ativos = conn.execute("SELECT count(*) FROM mod_{slug} WHERE deletado_em IS NULL AND ativo = 1").fetchone()[0]
+            concluidos = conn.execute("SELECT count(*) FROM mod_{slug} WHERE deletado_em IS NULL AND status = 'concluido'").fetchone()[0]
+            return {{
+                "total": total,
+                "ativos": ativos,
+                "concluidos": concluidos,
+                "taxa_conclusao": round((concluidos / total * 100) if total > 0 else 0.0, 1)
+            }}
+
     def obter_por_id(self, item_id: int) -> Optional[Dict[str, Any]]:
         with self.db.get_connection() as conn:
-            row = conn.execute("SELECT * FROM mod_{slug} WHERE id = ?", (item_id,)).fetchone()
+            row = conn.execute("SELECT * FROM mod_{slug} WHERE id = ? AND deletado_em IS NULL", (item_id,)).fetchone()
             return dict(row) if row else None
 
     def criar(self, titulo: str, dados: Optional[Dict[str, Any]] = None, descricao: str = "", status: str = "ativo") -> Dict[str, Any]:
@@ -177,7 +197,7 @@ class {pascal}Service:
 
     def atualizar(self, item_id: int, titulo: Optional[str] = None, dados: Optional[Dict[str, Any]] = None, descricao: Optional[str] = None, status: Optional[str] = None) -> Dict[str, Any]:
         with self.db.get_connection() as conn:
-            row = conn.execute("SELECT * FROM mod_{slug} WHERE id = ?", (item_id,)).fetchone()
+            row = conn.execute("SELECT * FROM mod_{slug} WHERE id = ? AND deletado_em IS NULL", (item_id,)).fetchone()
             if not row:
                 return {{"sucesso": False, "erro": "Item não encontrado"}}
 
@@ -210,10 +230,10 @@ class {pascal}Service:
 
     def deletar(self, item_id: int) -> Dict[str, Any]:
         with self.db.get_connection() as conn:
-            row = conn.execute("SELECT * FROM mod_{slug} WHERE id = ?", (item_id,)).fetchone()
+            row = conn.execute("SELECT * FROM mod_{slug} WHERE id = ? AND deletado_em IS NULL", (item_id,)).fetchone()
             if not row:
                 return {{"sucesso": False, "erro": "Item não encontrado"}}
-            conn.execute("DELETE FROM mod_{slug} WHERE id = ?", (item_id,))
+            conn.execute("UPDATE mod_{slug} SET deletado_em = CURRENT_TIMESTAMP, ativo = 0 WHERE id = ?", (item_id,))
             conn.commit()
 
         if self.events:
@@ -255,6 +275,18 @@ def registrar_rotas(service: Any = None):
     def listar(params):
         status = params.get("status", [None])[0] if isinstance(params.get("status"), list) else params.get("status")
         return service.listar(status=status) if service else []
+
+    @registry.get(
+        "/api/{slug}/metricas",
+        summary="Obter métricas e KPIs do módulo {slug}",
+        tags=[tag_name],
+        description="Retorna indicadores quantitativos agregados para dashboards executivos.",
+        responses={{
+            "200": {{"description": "Métricas consolidadas", "content": {{"application/json": {{"example": {{"total": 10, "ativos": 8, "concluidos": 2, "taxa_conclusao": 20.0}}}}}}}}
+        }}
+    )
+    def metricas(params):
+        return service.obter_metricas() if service else {{"total": 0, "ativos": 0, "concluidos": 0, "taxa_conclusao": 0.0}}
 
     @registry.get(
         "/api/{slug}/obter",

@@ -671,7 +671,7 @@ def compose_suite(target_dir: str, suite_name: str, modules: list):
     open(os.path.join(shared_utils_dir, "__init__.py"), "w", encoding="utf-8").close()
 
     # 2. Copiar Shared Kernel Core
-    core_files = ["database.py", "events.py", "openapi.py", "security.py", "webhooks.py", "mcp_server.py"]
+    core_files = ["database.py", "events.py", "openapi.py", "security.py", "webhooks.py", "mcp_server.py", "result.py", "jobs.py"]
     for cf in core_files:
         src = os.path.join(templates_v2, cf)
         dst = os.path.join(core_dir, cf)
@@ -777,7 +777,7 @@ def compose_suite(target_dir: str, suite_name: str, modules: list):
             shutil.copyfile(src, os.path.join(target_dir, prod_f))
             print(f"  [+] Governança & Deploy: {prod_f}")
 
-    # Nginx
+    # Nginx Shield & SSL
     nginx_src = os.path.join(templates_v2, "nginx")
     nginx_dst = os.path.join(target_dir, "nginx")
     if os.path.isdir(nginx_src):
@@ -788,6 +788,57 @@ def compose_suite(target_dir: str, suite_name: str, modules: list):
             os.makedirs(d_dir, exist_ok=True)
             for f in files:
                 shutil.copyfile(os.path.join(root, f), os.path.join(d_dir, f))
+        print("  [+] Nginx Shield & Configurações copiadas!")
+
+    # 11. Gerar Sincronização Multi-IDE de Rules (.cursor, .claude, .agent)
+    cursor_rules_dir = os.path.join(target_dir, ".cursor", "rules")
+    claude_dir = os.path.join(target_dir, ".claude")
+    agent_rules_dir = os.path.join(target_dir, ".agent", "rules")
+    os.makedirs(cursor_rules_dir, exist_ok=True)
+    os.makedirs(claude_dir, exist_ok=True)
+    os.makedirs(agent_rules_dir, exist_ok=True)
+
+    rules_content = f"""# Governança Anti-Falha e Regras de Ouro — {suite_name}
+
+1. **Zero Acoplamento:** Módulos em `src/modules/` comunicam-se exclusivamente via `EventBus` pub/sub. Proibido import direto entre módulos irmãos.
+2. **Clean Architecture:** Toda fatia possui `models.py`, `services.py`, `routes.py`, UI isolada e testes unitários.
+3. **Persistência Segura:** SQLite WAL com `busy_timeout=5000` e parametrização de queries (`?`).
+4. **Impeccable UI:** SVGs Lucide, modais customizados, toasts assíncronos e conformidade WCAG 2.1.
+5. **Quality Gates:** Homologação obrigatória (exit 0) em todos os 7 gates mecânicos (`python scripts/aidd.py audit --report`).
+"""
+    with open(os.path.join(cursor_rules_dir, "aidd_rules.mdc"), "w", encoding="utf-8") as f:
+        f.write(rules_content)
+    with open(os.path.join(claude_dir, "CLAUDE.md"), "w", encoding="utf-8") as f:
+        f.write(rules_content)
+    with open(os.path.join(agent_rules_dir, "rules.md"), "w", encoding="utf-8") as f:
+        f.write(rules_content)
+    print("  [+] Multi-IDE Rules (.cursor, .claude, .agent) sincronizadas!")
+
+    # 12. Gerar Grafo de Memória do Projeto CONTEXTO-PROJETO.md
+    contexto_md = f"""# Grafo de Contexto e Memória do Projeto: {suite_name}
+
+## 1. Visão Geral
+- **Nome:** {suite_name}
+- **Framework:** AIDD Master Pack v4.1 Enterprise Anti-Fail
+- **Banco de Dados:** SQLite Concorrente WAL (`suite.db`)
+- **Portais Ativos:** `/` (Super-App), `/docs` (Swagger Studio), `/mcp` (MCP Server), `/webhooks` (Webhook Studio)
+
+## 2. Fatias Verticais Ativas ({len(clean_modules)})
+"""
+    for m in clean_modules:
+        contexto_md += f"- **Módulo `{m}`**: `src/modules/{m}/` (CRUD, OpenAPI, MCP e testes em `tests/unit/test_{m}.py`)\n"
+
+    contexto_md += """
+## 3. Kernel Compartilhado (Shared Kernel)
+- `database.py`: Conexão SQLite WAL com busy_timeout e controle de migrações.
+- `events.py`: EventBus pub/sub desacoplado com envelope e tracing UUID.
+- `result.py`: Monad Result Pattern (`Result.ok()`, `Result.fail()`).
+- `jobs.py`: Fila de tarefas em background (`JobQueue`).
+- `security.py` & `openapi.py`: Criptografia JWT HS256, RBAC e OpenAPI 3.1.
+"""
+    with open(os.path.join(target_dir, "CONTEXTO-PROJETO.md"), "w", encoding="utf-8") as f:
+        f.write(contexto_md)
+    print("  [+] Grafo de Memória 'CONTEXTO-PROJETO.md' gerado!")
 
     print("\n" + "=" * 80)
     print(f"🏆 [SUCESSO]: Suíte Enterprise '{suite_name}' 100% Composta!")

@@ -1,41 +1,49 @@
 ---
 name: aidd-master-pack-v4
-version: 4.0.0
-description: AIDD v4.0 — Cross-Project Enterprise Monolith Suite (Unificação de Fatias Verticais Cross-Domain com EventBus, Webhooks, Swagger Studio OpenAPI 3.1, Servidor Nativo MCP e Super-App UI).
+version: 4.1.0
+description: AIDD v4.1 — Enterprise Suite Engine com Fatias Verticais Isoladas, EventBus Cross-Domain, Webhooks HMAC, OpenAPI 3.1 Swagger Studio, MCP Nativo e Bateria de Quality Gates Rígidos Anti-Atalhos.
 ---
 
-# 🌐 AIDD Master Pack v4.0 — Cross-Project Enterprise Architecture
+# 🌐 AIDD Master Pack v4.1 — Enterprise Modular Architecture
 
-O **AIDD v4.0** é o framework de engenharia agêntica para construção de **Suítes Empresariais Cross-Project** e **Monólitos Modulares de Alta Performance**. Ele une múltiplos domínios de negócio com isolamento de Clean Architecture, comunicação assíncrona por eventos, conformidade de segurança OWASP, documentação interativa ao vivo e conectividade total com modelos de IA.
+O **AIDD v4.1** é o framework definitivo de engenharia agêntica para construção de **Suítes Empresariais Cross-Project** e **Monólitos Modulares de Alta Performance**. Ele une múltiplos domínios de negócio com isolamento de Clean Architecture, comunicação assíncrona por eventos, conformidade de segurança OWASP, documentação interativa ao vivo, conectividade MCP para IAs e **Quality Gates Mecânicos Rígidos** que impedem qualquer atalho ou geração incompleta.
 
 ---
 
-## 🏆 As 4 Regras de Ouro do AIDD v4
+## 🏆 As 4 Regras de Ouro do AIDD v4.1
 
-1. **Clean Architecture & Isolamento de Fatias Verticais:** Cada domínio de negócio (`crm`, `erp`, `logistica`, `helpdesk`, `wms`, `membros`, `catalogo`) é estruturado como uma fatia vertical independente com seus próprios modelos, regras e rotas, comunicando-se exclusivamente via `EventBus` pub/sub.
-2. **Full CRUD Diligente em 100% dos Módulos:** Toda entidade possui Create, Read, Update e Delete totalmente funcionais, persistidos no banco de dados SQLite WAL, com modais no front-end, feedback via Toasts e confirmações táteis.
+1. **Clean Architecture & Fatias Verticais Isoladas (`src/modules/<dominio>/`):** Cada domínio de negócio (`crm`, `erp`, `logistica`, `helpdesk`, `wms`, `membros`, `catalogo`) é estruturado como uma fatia vertical independente com `models.py`, `services.py`, `routes.py`, comunicando-se exclusivamente via `EventBus` pub/sub. Monólitos sem fatias verticais são bloqueados pelo gate `G_ESTRUTURA`.
+2. **Full CRUD Diligente com 100% de Testes Unitários:** Toda entidade possui Create, Read, Update e Delete totalmente funcionais, persistidos no banco de dados SQLite WAL, com modais no front-end e suíte completa de testes unitários com pytest em `tests/unit/test_<modulo>.py`.
 3. **Quad-Pillars da Sincronização:**
    - **Super-App Front-End Impeccable:** Header de linha única, scrollbars de 4px, zero emojis, ícones vetoriais SVG Lucide, sem diálogos nativos de SO.
-   - **Swagger Studio & OpenAPI 3.1 Nativo (`/docs`):** Todas as rotas registradas com esquemas de entrada/saída e testador de requisições ao vivo.
+   - **Swagger Studio & OpenAPI 3.1 Nativo (`/docs`):** Todas as rotas registradas com esquemas de entrada/saída via `RouteRegistry` dinâmico.
    - **Disparadores de Webhook em Tempo Real:** Disparo assíncrono com assinatura HMAC para cada evento de domínio.
    - **Servidor Nativo Universal MCP (`/mcp`):** Exposição de 100% das operações como ferramentas JSON-RPC 2.0 para Claude Desktop, Cursor e Antigravity.
-4. **Economia Agêntica de Tokens:** Zero execução de comandos desnecessários no chat principal. Uso de scripts determinísticos locais para compilação, testes e gates de qualidade.
+4. **Governança por Gates Rígidos Determinísticos:** A entrega só é autorizada após aprovação com exit 0 de todos os gates:
+   - `G_ESTRUTURA.py` (validação de fatias verticais e governança)
+   - `G_QUALIDADE.py` (compilação sintática sem erros)
+   - `G_TESTES.py` (execução obrigatória de testes com pytest)
+   - `G_CONTRACTS.py` (validação de contratos OpenAPI e MCP)
+   - `G_SEGREDOS.py` (scanner de entropia de Shannon anti-vazamento)
+   - `G_HARNESS_COMPAT.py` (compatibilidade multi-harness nativa)
 
 ---
 
-## 🚀 Comandos Principais do AIDD v4
+## 🚀 Comandos Principais da CLI `aidd.py`
 
 ```bash
 # 1. Compor uma nova Suite Cross-Project com múltiplos domínios
-python scripts/compose_suite.py <caminho_destino> <nome_suite> crm erp helpdesk logistica
+python scripts/aidd.py compose <caminho_destino> <nome_suite> crm erp helpdesk logistica
 
 # 2. Adicionar uma nova fatia vertical com Full CRUD, testes e eventos
-python scripts/add_module.py faturamento
+python scripts/aidd.py add-module faturamento -d "Faturamento e Boletos"
 
-# 3. Executar os Gates Determinísticos de Qualidade e Segurança
-python scripts/gates/G_QUALIDADE.py
-python scripts/gates/G_SEGURANCA.py
+# 3. Executar a Bateria Completa de Testes Unitários
+python scripts/aidd.py test
 
-# 4. Iniciar o servidor da suíte unificada
+# 4. Executar os Gates Determinísticos e gerar Relatório Factual Auditado
+python scripts/aidd.py audit --report
+
+# 5. Iniciar o servidor da suíte unificada
 python src/server.py
 ```

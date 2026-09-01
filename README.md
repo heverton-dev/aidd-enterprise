@@ -1,20 +1,21 @@
-# 📦 AIDD Master Pack v4.0 (Enterprise Cross-Project Suite)
+# 📦 AIDD Master Pack v4.1 (Enterprise Modular Suite)
 
-> **O Framework Definitivo para Monólitos Modulares, Clean Architecture e Integração Agêntica de Domínios de Negócio.**
+> **O Framework Definitivo para Monólitos Modulares, Clean Architecture, Fatias Verticais e Governança Anti-Atalhos por Gates Rígidos.**
 
 ---
 
 ## 🏛️ Visão Geral
 
-A versão **4.0 (Cross-Project)** eleva o ecossistema AIDD ao nível corporativo de alta performance. Ela permite pegar múltiplos projetos independentes (CRM, ERP, Helpdesk, Logística, Catálogo, Membros) e unificá-los em uma única suíte empresarial robusta:
+A versão **4.1 (Enterprise Anti-Fail)** eleva o ecossistema AIDD ao nível máximo de robustez e determinismo. Ela resolve definitivamente as falhas de geração em IAs ao impor regras mecânicas inegociáveis:
 
-- **Isolamento de Domínios (Vertical Slices):** Sem acoplamento espaguete entre módulos.
-- **EventBus Assíncrono:** Integração entre módulos orientada a eventos em tempo real.
-- **Diligência Full CRUD:** Criação, leitura, atualização e exclusão em todas as fatias.
-- **Swagger Studio OpenAPI 3.1 (`/docs`):** Documentação viva com testador ao vivo.
-- **Model Context Protocol (`/mcp`):** 100% das operações exportadas para agentes de IA (Claude, Cursor, Antigravity).
-- **Webhooks com HMAC:** Notificação para microsserviços e integrações externas.
+- **Isolamento de Domínios (Vertical Slices):** Cada domínio de negócio reside em seu próprio pacote (`src/modules/<dominio>/`) com `models.py`, `services.py`, `routes.py`, testes `pytest` e componente UI.
+- **EventBus Assíncrono:** Integração desacoplada orientada a eventos em tempo real.
+- **Diligência Full CRUD:** Criação, Leitura, Atualização e Exclusão com testes unitários em 100% dos módulos.
+- **Swagger Studio OpenAPI 3.1 (`/docs`):** Registro dinâmico com testador de rotas ao vivo.
+- **Model Context Protocol (`/mcp`):** Ferramentas JSON-RPC 2.0 prontas para Claude, Cursor, Antigravity e OpenHands.
+- **Webhooks com HMAC SHA-256:** Notificação com assinatura digital para microsserviços.
 - **Impeccable Design System:** Super-App UI com 4px scrollbars, header de linha única e zero emojis.
+- **Suíte de Gates Rígidos:** `G_ESTRUTURA`, `G_QUALIDADE`, `G_TESTES`, `G_CONTRACTS`, `G_SEGREDOS`, `G_HARNESS_COMPAT`.
 
 ---
 
@@ -23,16 +24,22 @@ A versão **4.0 (Cross-Project)** eleva o ecossistema AIDD ao nível corporativo
 ```
 aidd-master-pack-v4/
 ├── scripts/
-│   ├── aidd.py               # Micro-CLI de automação
-│   ├── compose_suite.py      # Motor de Composição Cross-Project
-│   ├── add_module.py         # Gerador atômico de fatias verticais
-│   └── gates/                # Quality & Security Gates determinísticos
+│   ├── aidd.py               # CLI unificada (init, add-module, compose, test, audit, deploy)
+│   ├── compose_suite.py      # Motor de Composição Enterprise Modular
+│   ├── add_module.py         # Gerador atômico de Fatias Verticais
+│   ├── provision_project.py  # Provisionador de projetos modulares
+│   └── gates/                # Suíte de Quality Gates Rígidos
+│       ├── G_ESTRUTURA.py
+│       ├── G_QUALIDADE.py
+│       ├── G_TESTES.py
+│       ├── G_CONTRACTS.py
+│       ├── G_SEGREDOS.py
+│       └── G_HARNESS_COMPAT.py
 ├── templates/
-│   ├── rules/                # Regras determinísticas (01_regras, 02_slices, 03_impeccable, 04_cross_project)
-│   └── v2/                   # Shared Kernel & Componentes UI
-├── examples/
-│   ├── enterprise-suite-v4/  # Suíte Corporativa Unificada de 5 Domínios
-│   └── logistica-hub-v4/     # Suíte Logística & Frotas com 20 Tools MCP
+│   ├── gates/                # Templates dos Quality Gates
+│   ├── rules/                # Regras determinísticas (01_layers, 02_golden_rules, 03_impeccable, 04_cross_project)
+│   └── v2/                   # Shared Kernel, MCP Server, OpenAPI & UI Components
+├── examples/                 # Suítes de referência enterprise
 ├── README.md
 └── SKILL.md
 ```
@@ -42,13 +49,18 @@ aidd-master-pack-v4/
 ## 🚀 Como Iniciar
 
 ```bash
-# Iniciar a suite de referência
-cd examples/logistica-hub-v4
-python src/server.py
+# 1. Compor uma nova Suite Enterprise (ex: CRM, ERP, Helpdesk, Logística)
+python scripts/aidd.py compose ./minha-suite "Minha Suite" crm erp helpdesk logistica
 
-# Acessar os portais
-# - Aplicação Web: http://localhost:3000
-# - Swagger Studio: http://localhost:3000/docs
-# - Guia Oficial: http://localhost:3000/docs/guia
-# - Portal MCP: http://localhost:3000/mcp
+# 2. Entrar na pasta da suite
+cd minha-suite
+
+# 3. Rodar a bateria de testes unitários
+python scripts/aidd.py test
+
+# 4. Executar os Gates de Qualidade e gerar Relatório Factual
+python scripts/aidd.py audit --report
+
+# 5. Iniciar a aplicação
+python src/server.py
 ```

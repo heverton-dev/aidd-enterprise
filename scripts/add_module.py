@@ -179,16 +179,21 @@ class {pascal}Service:
                 """,
                 (titulo_limpo, descricao.strip(), json.dumps(dados_dict, ensure_ascii=False), status)
             )
-            conn.commit()
             novo_id = cur.lastrowid
 
-        payload = {{
-            "id": novo_id,
-            "titulo": titulo_limpo,
-            "descricao": descricao,
-            "status": status,
-            "dados": dados_dict
-        }}
+            payload = {{
+                "id": novo_id,
+                "titulo": titulo_limpo,
+                "descricao": descricao,
+                "status": status,
+                "dados": dados_dict
+            }}
+
+            # Transactional Outbox Pattern: grava o evento na MESMA transação da
+            # mutação, garantindo entrega at-least-once mesmo se o processo cair
+            # antes do EventBus.emit() abaixo ser disparado.
+            self.db.enqueue_outbox_event(conn, "{slug}_criado", payload)
+            conn.commit()
 
         if self.events:
             self.events.emit("{slug}_criado", payload)
@@ -214,14 +219,16 @@ class {pascal}Service:
                 """,
                 (novo_titulo, nova_desc, novos_dados, novo_status, item_id)
             )
-            conn.commit()
 
-        payload = {{
-            "id": item_id,
-            "titulo": novo_titulo,
-            "descricao": nova_desc,
-            "status": novo_status
-        }}
+            payload = {{
+                "id": item_id,
+                "titulo": novo_titulo,
+                "descricao": nova_desc,
+                "status": novo_status
+            }}
+
+            self.db.enqueue_outbox_event(conn, "{slug}_atualizado", payload)
+            conn.commit()
 
         if self.events:
             self.events.emit("{slug}_atualizado", payload)
@@ -234,6 +241,7 @@ class {pascal}Service:
             if not row:
                 return {{"sucesso": False, "erro": "Item não encontrado"}}
             conn.execute("UPDATE mod_{slug} SET deletado_em = CURRENT_TIMESTAMP, ativo = 0 WHERE id = ?", (item_id,))
+            self.db.enqueue_outbox_event(conn, "{slug}_deletado", {{"id": item_id}})
             conn.commit()
 
         if self.events:

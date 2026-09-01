@@ -104,7 +104,12 @@ def cmd_compose(args):
         from compose_suite import compose_suite
     except ImportError:
         from scripts.compose_suite import compose_suite
-    compose_suite(args.target_dir, args.suite_name, args.modulos or ["crm", "erp", "helpdesk", "logistica"])
+    compose_suite(
+        args.target_dir,
+        args.suite_name,
+        args.modulos or ["crm", "erp", "helpdesk", "logistica"],
+        db_engine=getattr(args, "db", "sqlite")
+    )
 
 
 def cmd_add_module(args):
@@ -650,6 +655,7 @@ def main():
     p_comp.add_argument("target_dir", help="Diretório de destino")
     p_comp.add_argument("suite_name", help="Nome da suíte empresarial")
     p_comp.add_argument("modulos", nargs="*", default=["crm", "erp", "helpdesk", "logistica"], help="Lista de módulos")
+    p_comp.add_argument("--db", choices=["sqlite", "postgres"], default="sqlite", help="Motor de persistência (default: sqlite)")
 
     # add-module
     p_mod = subparsers.add_parser("add-module", help="Gera nova fatia vertical desacoplada")

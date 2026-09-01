@@ -30,7 +30,7 @@ except ImportError:
     from scripts.add_module import criar_modulo, slugify, pascal_case
 
 
-def generate_modular_server_code(suite_name: str, module_slugs: list) -> str:
+def generate_modular_server_code(suite_name: str, module_slugs: list, db_engine: str = "sqlite") -> str:
     """Gera o código-fonte do servidor dinâmico server.py que carrega todos os módulos."""
     imports_lines = []
     init_schema_calls = []
@@ -84,6 +84,7 @@ if CURRENT_DIR not in sys.path:
 
 from core.database import Database
 from core.events import EventBus
+from core.outbox_worker import OutboxWorker
 from core.openapi import RouteRegistry
 from core.webhooks import WebhookDispatcher
 from core.security import SecurityService, JWTService
@@ -94,10 +95,12 @@ __IMPORTS__
 
 PORT = int(os.environ.get("PORT", 3000))
 STATIC_DIR = os.path.join(CURRENT_DIR, "static")
-DB_PATH = os.path.join(CURRENT_DIR, "..", "suite.db")
+__DB_INIT__
 
-db = Database(f"sqlite:///{DB_PATH}")
+db = Database(__DB_URL_EXPR__)
 events = EventBus()
+outbox_worker = OutboxWorker(db, events)
+outbox_worker.start()
 webhook_dispatcher = WebhookDispatcher(db)
 registry = RouteRegistry()
 mcp_server = MCPServer(DB_PATH)
@@ -372,6 +375,15 @@ def run_server():
 if __name__ == "__main__":
     run_server()
 """
+    if db_engine == "postgres":
+        db_init_str = (
+            "DATABASE_URL_EXEMPLO = \"postgresql://aidd_user:CHANGE_ME@localhost:5432/aidd_suite\""
+        )
+        db_url_expr_str = "os.environ.get(\"DATABASE_URL\", DATABASE_URL_EXEMPLO)"
+    else:
+        db_init_str = "DB_PATH = os.path.join(CURRENT_DIR, \"..\", \"suite.db\")"
+        db_url_expr_str = "f\"sqlite:///{DB_PATH}\""
+
     return (
         template
         .replace("__SUITE_NAME__", suite_name)
@@ -380,6 +392,8 @@ if __name__ == "__main__":
         .replace("__SERVICE_INITS__", service_inits_str)
         .replace("__ROUTES_REGS__", routes_regs_str)
         .replace("__MCP_TOOL_REGS__", mcp_tool_regs_str)
+        .replace("__DB_INIT__", db_init_str)
+        .replace("__DB_URL_EXPR__", db_url_expr_str)
     )
 
 
@@ -628,13 +642,15 @@ __INITIAL_LOADS__
     )
 
 
-def compose_suite(target_dir: str, suite_name: str, modules: list):
+def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: str = "sqlite"):
     """Motor principal de composição cross-project."""
     target_dir = os.path.abspath(target_dir)
+    db_engine = (db_engine or "sqlite").lower()
     print("=" * 80)
-    print(f"🚀 [AIDD v4.1 Enterprise] Composição de Suíte Modular Cross-Project: {suite_name}")
+    print(f"🚀 [AIDD v5.0 Enterprise] Composição de Suíte Modular Cross-Project: {suite_name}")
     print(f"📁 Diretório de Destino: {target_dir}")
     print(f"📦 Fatias Verticais:     {', '.join(modules)}")
+    print(f"🗄️  Motor de Persistência: {db_engine}")
     print("=" * 80)
 
     SKILL_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -671,7 +687,7 @@ def compose_suite(target_dir: str, suite_name: str, modules: list):
     open(os.path.join(shared_utils_dir, "__init__.py"), "w", encoding="utf-8").close()
 
     # 2. Copiar Shared Kernel Core
-    core_files = ["database.py", "events.py", "openapi.py", "security.py", "webhooks.py", "mcp_server.py", "result.py", "jobs.py"]
+    core_files = ["database.py", "events.py", "outbox_worker.py", "openapi.py", "security.py", "webhooks.py", "mcp_server.py", "result.py", "jobs.py"]
     for cf in core_files:
         src = os.path.join(templates_v2, cf)
         dst = os.path.join(core_dir, cf)
@@ -735,7 +751,7 @@ def compose_suite(target_dir: str, suite_name: str, modules: list):
         criar_modulo(mod, target_dir=target_dir)
 
     # 5. Gerar Servidor Monolítico Modular src/server.py
-    server_code = generate_modular_server_code(suite_name, clean_modules)
+    server_code = generate_modular_server_code(suite_name, clean_modules, db_engine=db_engine)
     with open(os.path.join(src_dir, "server.py"), "w", encoding="utf-8") as f:
         f.write(server_code)
     print("  [+] Servidor dinâmico 'src/server.py' gerado com sucesso!")
@@ -752,6 +768,8 @@ def compose_suite(target_dir: str, suite_name: str, modules: list):
 
     # 7. Gerar requirements.txt
     req_content = "pytest>=7.4.0\nrequests>=2.31.0\n"
+    if db_engine == "postgres":
+        req_content += "psycopg2-binary>=2.9.9\n"
     with open(os.path.join(target_dir, "requirements.txt"), "w", encoding="utf-8") as f:
         f.write(req_content)
     print("  [+] Manifesto 'requirements.txt' gerado!")

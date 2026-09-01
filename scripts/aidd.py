@@ -23,6 +23,7 @@ import json
 import time
 import datetime
 import platform
+import re
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -331,9 +332,71 @@ def cmd_status(args):
         print(f"Banco SQLite:  Ativo ({size_kb:.1f} KB)")
 
 
+def parse_natural_language_intent(prompt: str, base_dir: str = "."):
+    """Converte instrução em linguagem natural em composição determinística de módulos."""
+    ensure_environment()
+    prompt_lower = prompt.lower()
+    
+    # Dicionário de domínios reconhecidos
+    KNOWN_DOMAINS = [
+        "crm", "erp", "faturamento", "financeiro", "vendas", "helpdesk",
+        "suporte", "logistica", "estoque", "membros", "cursos", "catalogo",
+        "produtos", "pedidos", "whatsapp", "afiliados", "assinaturas", "fiscal",
+        "analytics", "lead", "leads", "campanhas", "marketing", "tickets"
+    ]
+    
+    found_modules = []
+    for d in KNOWN_DOMAINS:
+        if re.search(r'\b' + d + r'\b', prompt_lower):
+            slug = "crm" if d in ["lead", "leads"] else ("helpdesk" if d in ["suporte", "tickets"] else d)
+            if slug not in found_modules:
+                found_modules.append(slug)
+                
+    if not found_modules:
+        # Extrair substantivos principais se nenhum domínio padrão for encontrado
+        words = re.findall(r'\b[a-zA-Z]{4,}\b', prompt_lower)
+        stop_words = {"crie", "uma", "aplicacao", "aplicativo", "sistema", "para", "com", "suite", "modulo", "faca", "gere"}
+        found_modules = [w for w in words if w not in stop_words][:4]
+
+    if not found_modules:
+        found_modules = ["principal", "configuracao"]
+
+    # Gerar nome do projeto
+    slug_name = "-".join(found_modules[:3]) + "-suite"
+    target_path = os.path.join(base_dir, f"app_{slug_name}")
+    suite_title = " ".join(m.capitalize() for m in found_modules) + " Suite"
+
+    print("=" * 80)
+    print("🗣️  [AIDD NL-PARSER] Entrada em Linguagem Natural Detectada:")
+    print(f"   Prompt: '{prompt}'")
+    print(f"   ➔ Módulos Extraídos: {', '.join(found_modules)}")
+    print(f"   ➔ Destino Alvo:      {target_path}")
+    print(f"   ➔ Nome da Suite:     {suite_title}")
+    print("=" * 80)
+
+    try:
+        from compose_suite import compose_suite
+    except ImportError:
+        from scripts.compose_suite import compose_suite
+
+    compose_suite(target_path, suite_title, found_modules)
+
+
 def main():
+    # Se o usuário passou um prompt livre em linguagem natural como primeiro argumento
+    known_cmds = {"setup", "init", "compose", "add-module", "test", "audit", "deploy", "status", "-h", "--help"}
+    if len(sys.argv) > 1 and sys.argv[1] not in known_cmds:
+        raw_prompt = " ".join(sys.argv[1:])
+        parse_natural_language_intent(raw_prompt)
+        return
+
     parser = argparse.ArgumentParser(description="AIDD Framework CLI — Dividir para Conquistar (v4.1 Enterprise)")
     subparsers = parser.add_subparsers(dest="command", help="Comando a executar")
+
+    # prompt (comando explícito de linguagem natural)
+    p_prompt = subparsers.add_parser("prompt", help="Gera aplicação a partir de prompt em linguagem natural")
+    p_prompt.add_argument("texto", help="Instrução em linguagem natural (ex: 'Crie um CRM e ERP de faturamento')")
+    p_prompt.add_argument("--dir", default=".", help="Diretório base de destino")
 
     # setup
     subparsers.add_parser("setup", help="Executa diagnóstico completo e instalação automática de dependências")
@@ -380,6 +443,7 @@ def main():
         sys.exit(1)
 
     cmds = {
+        "prompt": lambda a: parse_natural_language_intent(a.texto, getattr(a, "dir", ".")),
         "setup": cmd_setup,
         "init": cmd_init,
         "compose": cmd_compose,

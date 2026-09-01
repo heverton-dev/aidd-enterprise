@@ -43,11 +43,11 @@ def generate_modular_server_code(suite_name: str, module_slugs: list, db_engine:
         pascal = pascal_case(mod)
         imports_lines.append(f"from modules.{slug}.models import init_schema as init_{slug}_schema")
         imports_lines.append(f"from modules.{slug}.services import {pascal}Service")
-        imports_lines.append(f"from modules.{slug}.routes import registrar_rotas as reg_{slug}_routes")
+        imports_lines.append(f"from modules.{slug}.routes import registrar_rotas as reg_{slug}_routes, registry as registry_{slug}")
 
         init_schema_calls.append(f"    init_{slug}_schema(conn)")
         service_inits.append(f"service_{slug} = {pascal}Service(db, events)")
-        routes_regs.append(f"reg_{slug}_routes(service_{slug})")
+        routes_regs.append(f"reg_{slug}_routes(service_{slug})\nregistry.include_registry(registry_{slug})")
         mcp_tool_regs.append(f"mcp_server.register_module_tools('{slug}', '{pascal}')")
 
     imports_str = "\n".join(imports_lines)
@@ -85,6 +85,7 @@ if CURRENT_DIR not in sys.path:
 from core.database import Database
 from core.events import EventBus
 from core.outbox_worker import OutboxWorker
+from core.jobs import JobQueue
 from core.openapi import RouteRegistry
 from core.webhooks import WebhookDispatcher
 from core.security import SecurityService, JWTService
@@ -101,6 +102,7 @@ db = Database(__DB_URL_EXPR__)
 events = EventBus()
 outbox_worker = OutboxWorker(db, events)
 outbox_worker.start()
+job_queue = JobQueue(db=db)
 webhook_dispatcher = WebhookDispatcher(db)
 registry = RouteRegistry()
 mcp_server = MCPServer(DB_PATH)
@@ -196,6 +198,34 @@ def post_webhooks(data):
         cur = conn.execute("INSERT INTO webhooks (url, secret, eventos, ativo) VALUES (?, ?, ?, 1)", (url, secret, evs))
         conn.commit()
         return {"sucesso": True, "id": cur.lastrowid}
+
+# 6.5 Rotas de Background Jobs & Dead Letter Queue (DLQ)
+@registry.get(
+    "/api/jobs",
+    summary="Listar Jobs em Background (Painel DLQ)",
+    tags=["7. Background Jobs & DLQ"],
+    description="Retorna o estado persistido das tarefas assíncronas: ENFILEIRADO, PROCESSANDO, CONCLUIDO, AGUARDANDO_RETRY ou DLQ.",
+    responses={"200": {"description": "Lista de jobs"}}
+)
+def get_jobs(params):
+    return job_queue.list_jobs()
+
+@registry.post(
+    "/api/jobs/reprocessar",
+    summary="Reprocessar Job em DLQ",
+    tags=["7. Background Jobs & DLQ"],
+    description="Reencaminha manualmente um job (tipicamente em DLQ) para a fila, zerando o contador de tentativas.",
+    body_schema=[
+        {"name": "id", "type": "string", "req": True, "desc": "ID do job a reprocessar"}
+    ],
+    body_example={"id": "b3f1..."},
+    responses={"200": {"description": "Job reencaminhado"}}
+)
+def post_jobs_reprocessar(data):
+    job_id = data.get("id")
+    if not job_id:
+        return {"sucesso": False, "erro": "id é obrigatório"}
+    return job_queue.reprocessar(job_id)
 
 
 # 7. Handler HTTP com OWASP Security Headers

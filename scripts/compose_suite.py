@@ -34,6 +34,7 @@ def generate_modular_server_code(suite_name: str, module_slugs: list, db_engine:
     """Gera o código-fonte do servidor dinâmico server.py que carrega todos os módulos."""
     imports_lines = []
     init_schema_calls = []
+    rls_init_calls = []
     service_inits = []
     routes_regs = []
     mcp_tool_regs = []
@@ -47,6 +48,7 @@ def generate_modular_server_code(suite_name: str, module_slugs: list, db_engine:
         imports_lines.append(f"from modules.{slug}.routes import registrar_rotas as reg_{slug}_routes")
 
         init_schema_calls.append(f"    init_{slug}_schema(conn)")
+        rls_init_calls.append(f"    enable_rls_tenant(conn, '{slug}')")
         service_inits.append(f"service_{slug} = {pascal}Service(db, events)")
         # NOTA: RouteRegistry agora é um Singleton (ver templates/v2/openapi.py) —
         # o registry local de cada módulo já É o mesmo objeto do servidor, então
@@ -59,6 +61,7 @@ def generate_modular_server_code(suite_name: str, module_slugs: list, db_engine:
 
     imports_str = "\n".join(imports_lines)
     init_schemas_str = "\n".join(init_schema_calls)
+    rls_init_str = "\n".join(rls_init_calls)
     service_inits_str = "\n".join(service_inits)
     routes_regs_str = "\n".join(routes_regs)
     mcp_tool_regs_str = "\n".join(mcp_tool_regs)
@@ -91,7 +94,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 if CURRENT_DIR not in sys.path:
     sys.path.insert(0, CURRENT_DIR)
 
-from core.database import Database
+from core.database import Database, enable_rls_tenant, set_tenant
 from core.events import EventBus
 from core.outbox_worker import OutboxWorker
 from core.jobs import JobQueue
@@ -149,6 +152,10 @@ _oidc_pending_states = {}
 with db.get_connection() as conn:
 __INIT_SCHEMAS__
 
+# 1.2 Habilitar Row Level Security (RLS) para cada módulo
+with db.get_connection() as conn:
+__RLS_INIT__
+
 # 1.5 Workers de background (Outbox e Jobs) só iniciam DEPOIS do schema pronto
 outbox_worker = OutboxWorker(db, events)
 outbox_worker.start()
@@ -184,8 +191,9 @@ __WEBHOOK_EVENT_REGS__
 )
 def post_login(data):
     email = data.get("email", "admin@empresa.com")
-    token = JWTService.encode({"sub": email, "role": "admin", "name": "Administrador Suite"})
-    payload = {"email": email, "role": "admin"}
+    tenant_id = data.get("tenant_id", "default")
+    token = JWTService.encode({"sub": email, "role": "admin", "name": "Administrador Suite", "tenant_id": tenant_id})
+    payload = {"email": email, "role": "admin", "tenant_id": tenant_id}
     events.emit("usuario_autenticado", payload)
     webhook_dispatcher.disparar("auth.login_sucesso", payload)
     return {
@@ -193,7 +201,7 @@ def post_login(data):
         "token": token,
         "tipo": "Bearer",
         "expira_em": 86400,
-        "usuario": {"email": email, "role": "admin", "nome": "Administrador Suite"}
+        "usuario": {"email": email, "role": "admin", "nome": "Administrador Suite", "tenant_id": tenant_id}
     }
 
 @registry.get(
@@ -364,11 +372,23 @@ def get_circuit_breakers(params):
     ]
 
 
-# 7. Handler HTTP com OWASP Security Headers + Instrumentação Prometheus
+# 7. Handler HTTP com OWASP Security Headers + Instrumentação Prometheus + RLS Tenant Context
 class AppHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         self._last_status_code = 200
         super().__init__(*args, directory=STATIC_DIR, **kwargs)
+
+    def _set_rls_tenant_context(self):
+        """Extrai tenant_id do JWT (header Authorization) e configura o contexto
+        RLS para isolamento multi-tenant automático em todas as queries."""
+        from core.database import _RLS_TENANT_CONTEXT
+        auth = self.headers.get('Authorization', '')
+        if auth:
+            ok, payload, _ = JWTService.decode(auth)
+            if ok and payload and payload.get('tenant_id'):
+                _RLS_TENANT_CONTEXT.tenant_id = payload['tenant_id']
+                return
+        _RLS_TENANT_CONTEXT.tenant_id = None
 
     def send_response(self, code, message=None):
         self._last_status_code = code
@@ -392,6 +412,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         path_only = self.path.split("?")[0]
         corr_id = self.headers.get('X-Correlation-ID', uuid.uuid4().hex)
         correlation_id_var.set(corr_id)
+        self._set_rls_tenant_context()
         logger.info(f"Iniciando requisição GET para {path_only}")
         try:
             self._handle_get()
@@ -407,6 +428,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         path_only = self.path.split("?")[0]
         corr_id = self.headers.get('X-Correlation-ID', uuid.uuid4().hex)
         correlation_id_var.set(corr_id)
+        self._set_rls_tenant_context()
         logger.info(f"Iniciando requisição POST para {path_only}")
         try:
             self._handle_post()
@@ -633,6 +655,7 @@ if __name__ == "__main__":
         .replace("__SUITE_NAME__", suite_name)
         .replace("__IMPORTS__", imports_str)
         .replace("__INIT_SCHEMAS__", init_schemas_str)
+        .replace("__RLS_INIT__", rls_init_str)
         .replace("__SERVICE_INITS__", service_inits_str)
         .replace("__ROUTES_REGS__", routes_regs_str)
         .replace("__MCP_TOOL_REGS__", mcp_tool_regs_str).replace("__WEBHOOK_EVENT_REGS__", webhook_event_regs_str)

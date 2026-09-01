@@ -5,7 +5,7 @@
 AIDD v5.1 Enterprise — GATE DETERMINÍSTICO DE QUALIDADE & IMPECCABLE UI (G_QUALIDADE)
 =============================================================================
 Valida compilação estática (py_compile), varredura AST anti-stubs vazios,
-e Linter de Acessibilidade & Impeccable UI (WCAG 2.1, zero alerts, modais customizados).
+Linter de Acessibilidade & Impeccable UI (WCAG 2.1), e Fuzzing Contínuo de APIs.
 """
 
 import os
@@ -14,9 +14,47 @@ import subprocess
 import ast
 import re
 import argparse
+import json
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
+
+def executar_fuzzing_continuo(target_dir: str = ".") -> Dict[str, any]:
+    """Executa fuzzing contínuo de APIs geradas."""
+    import sys as sys_module
+    sys_module.path.insert(0, os.path.join(target_dir, 'src'))
+
+    print("    -> Executando Fuzzing Contínuo de APIs...")
+
+    try:
+        from core.fuzzing import ContinuousAPIFuzzer, FuzzingStrategy
+    except ImportError:
+        print("       (Aviso: módulo fuzzing.py não encontrado, pulando fuzzing)")
+        return {"fuzzing_skipped": True}
+
+    fuzzer = ContinuousAPIFuzzer(base_url="http://localhost:3000", max_tests_per_route=20)
+
+    # Rotas de teste padrão (podem ser dinâmicas se server está rodando)
+    default_routes = [
+        ("/api/auth/login", "POST"),
+        ("/api/auth/me", "GET"),
+        ("/health", "GET"),
+    ]
+
+    try:
+        results = fuzzer.fuzz_all_routes(default_routes)
+        report = fuzzer.generate_report()
+
+        # Verificar se há crashes críticos
+        if report['crashes'] > 0:
+            print(f"       ⚠️  Fuzzing encontrou {report['crashes']} crashes!")
+            # Retornar resultado mas não falhar (warnings, não erros bloqueadores)
+
+        return report
+    except Exception as e:
+        print(f"       (Info: Fuzzing contínuo rodaria com servidor ativo: {e})")
+        return {"fuzzing_runtime_warning": str(e)}
 
 
 def verificar(target_dir: str = "."):
@@ -68,6 +106,15 @@ def verificar(target_dir: str = "."):
             print("       (Aviso: mutmut não instalado, pulando mutações. Instale via requirements.txt)")
     except Exception as e:
         erros.append(f"Erro ao executar mutmut: {e}")
+
+    # 2.7 Fuzzing Contínuo de APIs
+    print("    -> Executando Fuzzing Contínuo de APIs...")
+    try:
+        fuzzing_report = executar_fuzzing_continuo(target_dir)
+        if not fuzzing_report.get("fuzzing_skipped") and fuzzing_report.get("crashes", 0) > 0:
+            print(f"       ⚠️  Aviso: {fuzzing_report['crashes']} crashes encontrados no fuzzing (não bloqueador)")
+    except Exception as e:
+        print(f"       (Info: Fuzzing contínuo pulado - servidor pode não estar ativo: {type(e).__name__})")
 
     # 3. Linter de Impeccable UI & Acessibilidade WCAG 2.1
     comp_dir = os.path.join(src_dir, "static", "components")

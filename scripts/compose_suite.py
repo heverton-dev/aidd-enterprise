@@ -1526,6 +1526,12 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
                 shutil.copyfile(os.path.join(gates_dir, g), os.path.join(target_gates_dir, g))
                 print(f"  [+] Quality Gate: {g}")
 
+    # 8.5 Copiar módulo de Fuzzing Contínuo
+    fuzzing_src = os.path.join(templates_v2, "..", "..", "src", "core", "fuzzing.py")
+    if os.path.isfile(fuzzing_src):
+        shutil.copyfile(fuzzing_src, os.path.join(core_dir, "fuzzing.py"))
+        print(f"  [+] Fuzzing Contínuo: fuzzing.py")
+
     # 9. Copiar Scripts de Automação
     for s in ["aidd.py", "add_module.py", "compose_suite.py", "openapi_to_ts.py", "scaffold_infra.py"]:
         src = os.path.join(scripts_dir, s)

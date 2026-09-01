@@ -332,19 +332,28 @@ class RouteRegistry:
 
         body { background: var(--bg-body); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* TOPBAR */
+        /* TOPBAR (IMPECCABLE SINGLE LINE NON-BREAKING) */
         header {
+            min-height: 56px;
             height: 56px;
             background: rgba(3, 7, 18, 0.95);
             backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 1.8rem;
+            padding: 0 1.5rem;
             flex-shrink: 0;
             z-index: 50;
+            gap: 1rem;
+            white-space: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
         }
+        header::-webkit-scrollbar { display: none; }
+        .brand-title { flex-shrink: 0; white-space: nowrap; }
         .brand-title { font-weight: 800; font-size: 0.95rem; color: #fff; display: flex; align-items: center; gap: 0.6rem; }
         .badge-ver { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: var(--primary-light); font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 9999px; }
 

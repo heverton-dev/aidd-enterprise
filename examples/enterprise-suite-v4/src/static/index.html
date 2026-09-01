@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Suite — AIDD v4.0 Cross-Project</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #030712;
+            --surface: rgba(17, 24, 39, 0.85);
+            --border: rgba(255, 255, 255, 0.08);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --accent-gold: #f59e0b;
+            --danger: #ef4444;
+            --success: #10b981;
+            --purple: #a855f7;
+            --text: #f9fafb;
+            --muted: #9ca3af;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 50% -20%, rgba(59, 130, 246, 0.25), transparent 60%),
+                radial-gradient(circle at 100% 40%, rgba(168, 85, 247, 0.15), transparent 50%);
+            background-attachment: fixed;
+            padding: 1.5rem 3rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1.2rem;
+            margin-bottom: 2rem;
+        }
+        .brand { display: flex; align-items: center; gap: 0.8rem; font-size: 1.3rem; font-weight: 800; }
+        .app-switcher {
+            display: flex;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 0.3rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            gap: 0.3rem;
+        }
+        .app-tab {
+            padding: 0.5rem 1.1rem;
+            border-radius: 8px;
+            font-size: 0.84rem;
+            font-weight: 700;
+            cursor: pointer;
+            color: var(--muted);
+            border: none;
+            background: none;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .app-tab.active { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
+        .btn { padding: 0.55rem 1.1rem; border-radius: 8px; font-weight: 700; font-size: 0.84rem; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: #fff; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; }
+        .btn:hover { background: rgba(255,255,255,0.1); }
+        .btn-primary { background: var(--primary); border-color: var(--primary); }
+
+        .banner-cross {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 0.9rem 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.88rem;
+        }
+
+        /* VISTAS ESPECÍFICAS */
+        .app-view { display: none; }
+        .app-view.active { display: block; }
+
+        /* KANBAN CRM */
+        .kanban { display: grid; grid-template-columns: repeat(5, minmax(240px, 1fr)); gap: 1.2rem; }
+        .column { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem; min-height: 480px; }
+        .lead-card { background: rgba(31, 41, 55, 0.8); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 0.8rem; cursor: grab; }
+
+        /* TABELA ERP */
+        table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+        th, td { padding: 1rem 1.2rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+        th { font-weight: 700; color: var(--muted); text-transform: uppercase; font-size: 0.78rem; }
+
+        /* HELPDESK */
+        .ticket-list { display: flex; flex-direction: column; gap: 0.8rem; }
+        .ticket-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
+
+        .toast { position: fixed; bottom: 2rem; right: 2rem; background: rgba(17, 24, 39, 0.95); border: 1px solid var(--border); padding: 1rem 1.5rem; border-radius: 12px; display: none; z-index: 200; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            AIDD Enterprise Suite v4.0
+        </div>
+
+        <!-- APP SWITCHER CENTRAL -->
+        <div class="app-switcher">
+            <button class="app-tab active" onclick="trocarApp('crm')">CRM Vendas</button>
+            <button class="app-tab" onclick="trocarApp('erp')">ERP Financeiro</button>
+            <button class="app-tab" onclick="trocarApp('helpdesk')">Helpdesk SLA</button>
+            <button class="app-tab" onclick="trocarApp('membros')">Cursos VIP</button>
+            <button class="app-tab" onclick="trocarApp('catalogo')">Catálogo</button>
+        </div>
+
+        <div style="display: flex; gap: 0.8rem;">
+            <a href="/docs/guia" class="btn" style="border-color: rgba(59,130,246,0.5); color: #93c5fd;">Docs OnOrca</a>
+            <a href="/docs" target="_blank" class="btn btn-primary">Swagger /docs</a>
+        </div>
+    </header>
+
+    <div class="banner-cross">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span><strong>Cross-Domain Ativo:</strong> Arrastar um lead para <em>Fechado / Ganho</em> no CRM gera automaticamente uma <strong>Receita no ERP</strong> e dispara Webhooks para o n8n!</span>
+        </div>
+        <span style="background: rgba(16,185,129,0.2); color: #6ee7b7; padding: 0.2rem 0.6rem; border-radius: 9999px; font-weight: 800; font-size: 0.75rem;">EVENTBUS ONLINE</span>
+    </div>
+
+    <!-- VISTA 1: CRM -->
+    <div id="view-crm" class="app-view active">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 style="font-size: 1.4rem; font-weight: 800;">Pipeline de Vendas (Kanban Drag & Drop)</h2>
+            <button class="btn btn-primary" onclick="criarLeadRapido()">+ Lead VIP</button>
+        </div>
+        <div class="kanban" id="kanban-crm">Carregando CRM...</div>
+    </div>
+
+    <!-- VISTA 2: ERP -->
+    <div id="view-erp" class="app-view">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 style="font-size: 1.4rem; font-weight: 800;">Fluxo de Caixa & DRE em Tempo Real</h2>
+            <div id="resumo-erp-box" style="font-weight: 800; color: #10b981;"></div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>DESCRIÇÃO</th>
+                    <th>TIPO</th>
+                    <th>CATEGORIA</th>
+                    <th>VALOR</th>
+                    <th>VENCIMENTO</th>
+                    <th>STATUS (1-CLIQUE)</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-erp">Carregando ERP...</tbody>
+        </table>
+    </div>
+
+    <!-- VISTA 3: HELPDESK -->
+    <div id="view-helpdesk" class="app-view">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 style="font-size: 1.4rem; font-weight: 800;">Fila de Chamados & Cronômetro de SLA</h2>
+            <button class="btn btn-primary" onclick="abrirTicketRapido()">+ Chamado P1</button>
+        </div>
+        <div class="ticket-list" id="lista-helpdesk">Carregando Helpdesk...</div>
+    </div>
+
+    <!-- VISTA 4: MEMBROS -->
+    <div id="view-membros" class="app-view">
+        <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 1.5rem;">Área de Membros & Cursos</h2>
+        <div id="grade-cursos" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;"></div>
+    </div>
+
+    <!-- VISTA 5: CATÁLOGO -->
+    <div id="view-catalogo" class="app-view">
+        <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 1.5rem;">Catálogo de Produtos</h2>
+        <div id="grade-produtos" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;"></div>
+    </div>
+
+    <div class="toast" id="toast">
+        <span id="toast-text" style="font-weight: 700; font-size: 0.9rem;">Notificação</span>
+    </div>
+
+    <script>
+        let leadArrastado = null;
+
+        function showToast(m) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-text').innerText = m;
+            t.style.display = 'block';
+            setTimeout(() => { t.style.display = 'none'; }, 4000);
+        }
+
+        function trocarApp(app) {
+            document.querySelectorAll('.app-tab').forEach((b, i) => {
+                b.classList.toggle('active', b.innerText.toLowerCase().includes(app));
+            });
+            document.querySelectorAll('.app-view').forEach(v => {
+                v.classList.remove('active');
+            });
+            document.getElementById('view-' + app).classList.add('active');
+
+            if (app === 'crm') carregarCRM();
+            if (app === 'erp') carregarERP();
+            if (app === 'helpdesk') carregarHelpdesk();
+            if (app === 'membros') carregarMembros();
+            if (app === 'catalogo') carregarCatalogo();
+        }
+
+        /* CRM */
+        async function carregarCRM() {
+            const data = await fetch('/api/crm/pipeline').then(r => r.json());
+            const k = document.getElementById('kanban-crm');
+            k.innerHTML = Object.entries(data).map(([stKey, col]) => `
+                <div class="column" ondragover="event.preventDefault()" ondrop="soltarLead(event, '${stKey}')">
+                    <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.8rem; color: #93c5fd; display: flex; justify-content: space-between;">
+                        <span>${col.nome}</span>
+                        <span>${col.itens.length}</span>
+                    </div>
+                    ${col.itens.map(l => `
+                        <div class="lead-card" draggable="true" ondragstart="leadArrastado = ${l.id}">
+                            <div style="font-weight: 700; font-size: 0.92rem;">${l.nome}</div>
+                            <div style="color: var(--muted); font-size: 0.8rem;">${l.empresa || 'Empresa'}</div>
+                            <div style="font-weight: 800; color: #10b981; margin-top: 0.5rem;">R$ ${l.valor_estimado.toFixed(2)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+        }
+
+        async function soltarLead(e, novoSt) {
+            if (leadArrastado) {
+                await fetch('/api/crm/pipeline/mover', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ lead_id: leadArrastado, novo_status: novoSt })
+                });
+                if (novoSt === 'ganho') {
+                    showToast('🎉 Lead GANHO! Conta a Receber criada automaticamente no ERP!');
+                } else {
+                    showToast('Lead movido para ' + novoSt.toUpperCase());
+                }
+                carregarCRM();
+                leadArrastado = null;
+            }
+        }
+
+        async function criarLeadRapido() {
+            await fetch('/api/crm/leads/salvar', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    nome: 'Novo Cliente Corp #' + Math.floor(Math.random()*100),
+                    email: 'corp@empresa.com',
+                    telefone: '11999998888',
+                    empresa: 'Holding S.A.',
+                    valor_estimado: 50000.0,
+                    status: 'novo'
+                })
+            });
+            carregarCRM();
+        }
+
+        /* ERP */
+        async function carregarERP() {
+            const [resumo, contas] = await Promise.all([
+                fetch('/api/erp/fluxo-caixa').then(r => r.json()),
+                fetch('/api/erp/contas').then(r => r.json())
+            ]);
+            document.getElementById('resumo-erp-box').innerText = 'Saldo Realizado: R$ ' + resumo.saldo_realizado.toFixed(2);
+            document.getElementById('tabela-erp').innerHTML = contas.map(c => `
+                <tr>
+                    <td style="font-weight: 700;">${c.descricao}</td>
+                    <td style="color: ${c.tipo === 'receita' ? '#10b981' : '#ef4444'}; font-weight: 800;">${c.tipo.toUpperCase()}</td>
+                    <td>${c.categoria}</td>
+                    <td style="font-weight: 800;">R$ ${c.valor.toFixed(2)}</td>
+                    <td>${c.data_vencimento}</td>
+                    <td><button class="btn" onclick="alternarERP(${c.id})">${c.status.toUpperCase()}</button></td>
+                </tr>
+            `).join('');
+        }
+
+        async function alternarERP(id) {
+            await fetch('/api/erp/contas/alternar-status', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id })
+            });
+            carregarERP();
+        }
+
+        /* HELPDESK */
+        async function carregarHelpdesk() {
+            const tickets = await fetch('/api/helpdesk/tickets').then(r => r.json());
+            document.getElementById('lista-helpdesk').innerHTML = tickets.map(t => `
+                <div class="ticket-card">
+                    <div>
+                        <span style="background: rgba(239,68,68,0.2); color: #f87171; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 800; font-size: 0.75rem;">${t.prioridade}</span>
+                        <span style="font-weight: 800; margin-left: 0.5rem;">${t.protocolo}</span>
+                        <h4 style="margin-top: 0.3rem;">${t.assunto}</h4>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span style="color: #60a5fa; font-weight: 800;">SLA: ${t.sla_limite_horas}h</span>
+                        <button class="btn" onclick="avancarTicket(${t.id})">${t.status.toUpperCase()}</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function avancarTicket(id) {
+            await fetch('/api/helpdesk/tickets/avancar-status', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id })
+            });
+            carregarHelpdesk();
+        }
+
+        async function abrirTicketRapido() {
+            await fetch('/api/helpdesk/tickets/salvar', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    assunto: 'Instabilidade no Checkout #' + Math.floor(Math.random()*100),
+                    descricao: 'Chamado aberto via Suíte Integrada',
+                    cliente_nome: 'Gestor Corp',
+                    cliente_email: 'gestor@empresa.com',
+                    prioridade: 'P1'
+                })
+            });
+            carregarHelpdesk();
+        }
+
+        /* MEMBROS & CATÁLOGO */
+        async function carregarMembros() {
+            const cursos = await fetch('/api/membros/cursos').then(r => r.json());
+            document.getElementById('grade-cursos').innerHTML = cursos.map(c => `
+                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; padding: 1.2rem;">
+                    <img src="${c.thumbnail}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 8px; margin-bottom: 0.8rem;">
+                    <div style="font-weight: 800;">${c.titulo}</div>
+                    <div style="color: var(--muted); font-size: 0.85rem; margin-top: 0.3rem;">${c.descricao}</div>
+                </div>
+            `).join('');
+        }
+
+        async function carregarCatalogo() {
+            const prods = await fetch('/api/catalogo/produtos').then(r => r.json());
+            document.getElementById('grade-produtos').innerHTML = prods.map(p => `
+                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;">
+                    <div style="font-weight: 800; font-size: 1.1rem;">${p.nome}</div>
+                    <div style="color: var(--muted); font-size: 0.85rem; margin: 0.5rem 0;">${p.descricao}</div>
+                    <div style="font-size: 1.2rem; font-weight: 800; color: #10b981;">R$ ${p.preco.toFixed(2)}</div>
+                </div>
+            `).join('');
+        }
+
+        window.onload = () => carregarCRM();
+    </script>
+</body>
+</html>

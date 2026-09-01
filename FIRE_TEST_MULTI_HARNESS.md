@@ -28,9 +28,11 @@ cd claude-test   && git log --oneline -5 && cd ..
 
 ## PARTE 1 — INPUT PADRÃO (Idêntico nos 3 Harnesses)
 
-O prompt abaixo é o **input canônico** a ser entregue a cada harness. **Copie e cole sem alterar uma vírgula.**
+O prompt abaixo é o **input canônico** a ser entregue a cada harness em PT-BR ou EN. **Copie e cole sem alterar uma vírgula.**
 
 ---
+
+### Versão PT-BR
 
 ```
 Você é um engenheiro sênior operando o AIDD Master Pack v5.1.
@@ -57,7 +59,7 @@ python scripts/aidd.py scaffold-infra --dir ./app
 PASSO 6 — EXPORTAÇÃO DO FRONT-END NEXT.JS:
 python scripts/aidd.py export-frontend --dir ./app --stack nextjs
 
-PASSO 7 — INICIAR O SERVIDOR E CONFIRMAR OS 4 PORTAIS:
+PASSO 7 — INICIAR O SERVIDOR E CONFIRMAR OS 5 PORTAIS:
 python ./app/src/server.py
 (Confirme que as URLs abaixo respondem com HTTP 200:)
 - http://localhost:3000/
@@ -71,6 +73,46 @@ Não pule etapas. Não resuma. Execute e reporte tudo.
 ```
 
 ---
+
+### English Version
+
+```
+You are a senior engineer operating the AIDD Master Pack v5.1.
+
+Your working directory is: [SEE TABLE BELOW PER HARNESS]
+
+Execute EXACTLY the following commands in order, reporting the result of each one:
+
+STEP 1 — SUITE COMPOSITION:
+python scripts/aidd.py compose ./app "Plataforma SaaS Suite" financeiro contratos --db sqlite
+
+STEP 2 — FULL AUDIT OF ALL 7 QUALITY GATES:
+python scripts/aidd.py audit --report --dir ./app
+
+STEP 3 — RUN THE FULL TEST SUITE:
+python scripts/aidd.py test --dir ./app
+
+STEP 4 — LOAD BENCHMARK:
+python scripts/aidd.py bench -n 100 --dir ./app
+
+STEP 5 — IaC INFRASTRUCTURE GENERATION:
+python scripts/aidd.py scaffold-infra --dir ./app
+
+STEP 6 — NEXT.JS FRONT-END EXPORT:
+python scripts/aidd.py export-frontend --dir ./app --stack nextjs
+
+STEP 7 — START SERVER AND CONFIRM ALL 5 PORTALS:
+python ./app/src/server.py
+(Confirm the following URLs respond with HTTP 200:)
+- http://localhost:3000/
+- http://localhost:3000/docs
+- http://localhost:3000/webhooks
+- http://localhost:3000/mcp
+- http://localhost:3000/metrics
+
+After each step, report: status (PASS/FAIL), elapsed time in ms and any deviation from expected behavior.
+Do not skip steps. Do not summarize. Execute and report everything.
+```
 
 ### Diretório de Trabalho por Harness
 

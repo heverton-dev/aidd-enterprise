@@ -52,18 +52,21 @@ aidd-master-pack-v4/
 # 0. Diagnóstico e Inicialização Automática do Ambiente (Executa Pre-Flight e instala dependências)
 python scripts/aidd.py setup
 
-# 1. Compor uma nova Suite Enterprise (ex: CRM, ERP, Helpdesk, Logística)
-python scripts/aidd.py compose ./minha-suite "Minha Suite" crm erp helpdesk logistica
+# 1. Planejamento Arquitetural em Linguagem Natural (Fase 1.5)
+python scripts/aidd.py plan "Crie um CRM, ERP e Faturamento"
 
-# 2. Entrar na pasta da suite
-cd minha-suite
+# 2. Executar plano aprovado (Fase 2)
+python scripts/aidd.py apply --dir ./app_crm-erp-faturamento-suite
 
 # 3. Rodar a bateria de testes unitários
-python scripts/aidd.py test
+python scripts/aidd.py test --dir ./app_crm-erp-faturamento-suite
 
-# 4. Executar os Gates de Qualidade e gerar Relatório Factual
-python scripts/aidd.py audit --report
+# 4. Executar os 7 Gates de Qualidade e gerar Relatório Factual
+python scripts/aidd.py audit --report --dir ./app_crm-erp-faturamento-suite
 
-# 5. Iniciar a aplicação
-python src/server.py
+# 5. Executar Benchmark de Concorrência e Latência
+python scripts/aidd.py bench -n 100 --dir ./app_crm-erp-faturamento-suite
+
+# 6. Iniciar a aplicação
+python app_crm-erp-faturamento-suite/src/server.py
 ```

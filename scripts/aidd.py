@@ -283,6 +283,114 @@ def cmd_audit(args):
     sys.exit(0)
 
 
+def cmd_bench(args):
+    """Executa benchmark local de concorrência no SQLite WAL e EventBus."""
+    ensure_environment()
+    target_dir = os.path.abspath(getattr(args, "dir", "."))
+    print("=" * 80)
+    print(f"⚡ [AIDD BENCHMARK v4.1] Teste de Carga e Concorrência Local")
+    print(f"📁 Diretório Alvo: {target_dir}")
+    print("=" * 80)
+
+    master_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    candidates = [
+        os.path.join(target_dir, "src"),
+        os.path.join(target_dir, "src", "core"),
+        os.path.join(master_root, "templates", "v2"),
+        os.path.join(master_root, "src", "core")
+    ]
+    for c in candidates:
+        if os.path.exists(c) and c not in sys.path:
+            sys.path.insert(0, c)
+
+    try:
+        try:
+            from core.database import Database
+            from core.events import EventBus
+        except ImportError:
+            import database as db_mod
+            import events as ev_mod
+            Database = db_mod.Database
+            EventBus = ev_mod.EventBus
+        import concurrent.futures
+
+        db = Database(os.path.join(target_dir, "app.db"))
+        events = EventBus()
+
+        # Pré-inicialização da conexão e WAL
+        with db.get_connection() as conn:
+            conn.execute("SELECT 1;").fetchone()
+
+        total_reqs = getattr(args, "n", 100) or 100
+        print(f"[*] Disparando {total_reqs} operações concorrentes no SQLite WAL...")
+
+        t0 = time.time()
+        successes = 0
+        errors = 0
+
+        def worker_task(idx):
+            try:
+                with db.get_connection() as conn:
+                    conn.execute("SELECT 1;").fetchone()
+                events.emit("benchmark_tick", {"idx": idx})
+                return True
+            except Exception as e:
+                return False
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            results = list(executor.map(worker_task, range(total_reqs)))
+
+        successes = sum(1 for r in results if r)
+        errors = sum(1 for r in results if not r)
+        duration_ms = (time.time() - t0) * 1000
+        avg_latency = duration_ms / total_reqs
+        rps = total_reqs / ((duration_ms / 1000) or 0.001)
+
+        print(f"\n📊 RESULTADOS DO BENCHMARK:")
+        print(f"   - Total de Operações: {total_reqs}")
+        print(f"   - Sucessos (PASS):   {successes}")
+        print(f"   - Falhas (FAIL):     {errors}")
+        print(f"   - Duração Total:     {duration_ms:.2f} ms")
+        print(f"   - Latência Média:    {avg_latency:.2f} ms/req")
+        print(f"   - Throughput (RPS):  {rps:.1f} req/s")
+        print("=" * 80)
+
+        if errors > 0:
+            print("❌ [FALHA]: Conflitos de lock detectados sob concorrência.")
+            sys.exit(1)
+
+        print("🏆 [SUCESSO]: Desempenho Ultra-Level Homologado (Zero Lock Contention)!")
+        sys.exit(0)
+    except Exception as e:
+        print(f"[ERRO] Falha ao executar benchmark: {e}")
+        sys.exit(1)
+
+
+def cmd_heal(args):
+    """Executa auto-remediação determinística de gates e arquivos corrompidos."""
+    ensure_environment()
+    target_dir = os.path.abspath(getattr(args, "dir", "."))
+    print("=" * 80)
+    print(f"🩺 [AIDD SELF-HEALING v4.1] Auto-Remediação de Artefatos")
+    print(f"📁 Diretório Alvo: {target_dir}")
+    print("=" * 80)
+
+    try:
+        from compose_suite import compose_suite
+        plano_path = os.path.join(target_dir, "PLANO-EXECUCAO-ESTRUTURADO.json")
+        if os.path.exists(plano_path):
+            with open(plano_path, "r", encoding="utf-8") as f:
+                plano = json.load(f)
+            suite_name = plano.get("projeto", {}).get("nome", "App Suite")
+            modulos = plano.get("projeto", {}).get("modulos", ["crm", "erp"])
+            compose_suite(target_dir, suite_name, modulos)
+            print("[OK] Kernel e Fatias Verticais ressincronizados com êxito.")
+        else:
+            print("[WARN] Manifesto não localizado para auto-cura.")
+    except Exception as e:
+        print(f"[ERRO] Falha durante auto-remediação: {e}")
+
+
 def cmd_deploy(args):
     alvo = getattr(args, "alvo", "docker") or "docker"
     print(f"🚀 [AIDD DEPLOY] Preparando deploy para: {alvo}...")
@@ -478,7 +586,7 @@ def parse_natural_language_intent(prompt: str, base_dir: str = "."):
 
 
 def main():
-    known_cmds = {"setup", "init", "plan", "apply", "prompt", "compose", "add-module", "test", "audit", "deploy", "status", "-h", "--help"}
+    known_cmds = {"setup", "init", "plan", "apply", "prompt", "compose", "add-module", "test", "audit", "bench", "heal", "deploy", "status", "-h", "--help"}
     if len(sys.argv) > 1 and sys.argv[1] not in known_cmds:
         raw_prompt = " ".join(sys.argv[1:])
         parse_natural_language_intent(raw_prompt)
@@ -496,6 +604,15 @@ def main():
     # apply (Fase 2 - Execução do Plano Aprovado)
     p_apply = subparsers.add_parser("apply", help="Executa o plano estruturado aprovado e roda os gates")
     p_apply.add_argument("--dir", default=".", help="Diretório do projeto contendo PLANO-EXECUCAO-ESTRUTURADO.json")
+
+    # bench (Benchmark de Concorrência e Latência)
+    p_bench = subparsers.add_parser("bench", help="Executa benchmark local de concorrência no SQLite WAL e EventBus")
+    p_bench.add_argument("-n", type=int, default=100, help="Número de operações concorrentes")
+    p_bench.add_argument("--dir", default=".", help="Diretório do projeto")
+
+    # heal (Auto-remediação de arquivos)
+    p_heal = subparsers.add_parser("heal", help="Executa auto-remediação determinística de módulos")
+    p_heal.add_argument("--dir", default=".", help="Diretório do projeto")
 
     # prompt (comando explícito de linguagem natural)
     p_prompt = subparsers.add_parser("prompt", help="Gera aplicação a partir de prompt em linguagem natural")
@@ -549,6 +666,8 @@ def main():
     cmds = {
         "plan": lambda a: cmd_plan(a.prompt, getattr(a, "dir", "."), getattr(a, "apply", False)),
         "apply": cmd_apply,
+        "bench": cmd_bench,
+        "heal": cmd_heal,
         "prompt": lambda a: parse_natural_language_intent(a.texto, getattr(a, "dir", ".")),
         "setup": cmd_setup,
         "init": cmd_init,

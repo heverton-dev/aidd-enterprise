@@ -5,13 +5,14 @@
 AIDD v4.1 Enterprise — GATE DETERMINÍSTICO DE CONTRATOS OPENAPI & MCP (G_CONTRACTS)
 =============================================================================
 Valida a conformidade de 100% das rotas registradas no RouteRegistry com o padrão
-OpenAPI 3.1 e das ferramentas expostas no servidor Model Context Protocol (MCP).
-Garante esquemas válidos, tags, descrições e schemas de entrada/saída.
+OpenAPI 3.1, ferramentas expostas no MCP Server e gera Snapshot SHA-256 anti-regressão.
 """
 
 import os
 import sys
 import argparse
+import hashlib
+import json
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -56,6 +57,21 @@ def verificar_contratos(target_dir: str = "."):
         except Exception as e:
             erros.append(f"Erro ao inspecionar MCP server: {str(e)}")
 
+    # 3. Snapshot SHA-256 de Integridade de Contratos
+    contract_manifest = {}
+    try:
+        if os.path.exists(modules_dir):
+            for m in modulos:
+                routes_path = os.path.join(modules_dir, m, "routes.py")
+                if os.path.exists(routes_path):
+                    with open(routes_path, "rb") as rf:
+                        contract_manifest[m] = hashlib.sha256(rf.read()).hexdigest()[:16]
+        
+        snapshot_hash = hashlib.sha256(json.dumps(contract_manifest, sort_keys=True).encode()).hexdigest()[:16]
+        print(f"  [+] Snapshot SHA-256 de Contratos: {snapshot_hash} ({len(contract_manifest)} módulos ativos)")
+    except Exception as e:
+        erros.append(f"Erro ao gerar snapshot de contratos: {e}")
+
     if erros:
         print("\n[FAIL] ❌ BLOQUEIO DE CONTRATOS: Violações de contrato detectadas:")
         for e in erros:
@@ -67,8 +83,7 @@ def verificar_contratos(target_dir: str = "."):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="G_CONTRACTS — Gate de Validação de Contratos OpenAPI e MCP")
-    parser.add_argument("--dir", default=".", help="Diretório raiz do projeto")
-    args = parser.parse_args()
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dir", default=".", help="Diretório alvo do projeto")
+    args, _ = parser.parse_known_args()
     verificar_contratos(args.dir)

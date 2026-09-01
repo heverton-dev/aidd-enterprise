@@ -366,10 +366,10 @@ def registrar_rotas(service: Any = None):
             <p class="text-xs text-slate-400">{desc}</p>
         </div>
         <div class="flex items-center gap-2">
-            <button onclick="carregar{pascal}()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Recarregar dados">
+            <button type="button" onclick="carregar{pascal}()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Recarregar dados" aria-label="Recarregar dados">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
             </button>
-            <button onclick="abrirModalNovo('{slug}')" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-lg shadow-sky-600/20">
+            <button type="button" onclick="abrirModalNovo('{slug}')" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-lg shadow-sky-600/20" aria-label="Criar novo {pascal}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 <span>Novo {pascal}</span>
             </button>
@@ -479,6 +479,7 @@ def test_fluxo_completo_crud_{slug}(test_env):
     assert eventos[1][0] == "atualizado"
 
     item_mod = service.obter_por_id(novo_id)
+    assert item["titulo"] != item_mod["titulo"]
     assert item_mod["titulo"] == "Item Teste {pascal} Atualizado"
     assert item_mod["status"] == "concluido"
 

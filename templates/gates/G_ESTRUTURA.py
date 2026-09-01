@@ -5,14 +5,14 @@
 AIDD v4.1 Enterprise — GATE DETERMINÍSTICO DE ESTRUTURA (G_ESTRUTURA)
 =============================================================================
 Valida layout do projeto, presença do Shared Kernel, módulos desacoplados,
-manifesto estruturado e suíte de testes. Falha imediatamente se houver atalhos
-monolíticos ou arquivos estruturais faltantes.
+manifesto estruturado, AST Anti-Acoplamento e Zero Connection Leak.
 """
 
 import os
 import sys
 import json
 import argparse
+import ast
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -73,6 +73,7 @@ class StructureGate:
             )
 
         # 3. Módulos / Fatias Verticais
+        mod_dirs = []
         if os.path.isdir(modules_dir):
             mod_dirs = [
                 d for d in os.listdir(modules_dir)
@@ -131,6 +132,48 @@ class StructureGate:
                 f"Arquivos de Teste em tests/unit/ ({len(test_files)} encontrados)",
                 "Nenhum arquivo de teste 'test_*.py' encontrado"
             )
+
+        # 7. Linter AST Anti-Acoplamento Cross-Module & Zero Connection Leak
+        coupling_violations = []
+        connection_leaks = []
+        if os.path.isdir(modules_dir) and mod_dirs:
+            for m in mod_dirs:
+                mod_path = os.path.join(modules_dir, m)
+                for root_f, _, files in os.walk(mod_path):
+                    for f in files:
+                        if f.endswith(".py"):
+                            f_path = os.path.join(root_f, f)
+                            try:
+                                with open(f_path, "r", encoding="utf-8", errors="ignore") as py_f:
+                                    content = py_f.read()
+                                    tree = ast.parse(content, filename=f_path)
+                                    for node in ast.walk(tree):
+                                        if isinstance(node, ast.Import):
+                                            for alias in node.names:
+                                                for other in mod_dirs:
+                                                    if other != m and alias.name.startswith(f"modules.{other}"):
+                                                        coupling_violations.append(f"{m}/{f} -> {alias.name}")
+                                        elif isinstance(node, ast.ImportFrom):
+                                            if node.module:
+                                                for other in mod_dirs:
+                                                    if other != m and (node.module == f"modules.{other}" or node.module.startswith(f"modules.{other}.")):
+                                                        coupling_violations.append(f"{m}/{f} -> {node.module}")
+
+                                    if "sqlite3.connect(" in content and "with " not in content and "def " in content and "init_schema" not in content:
+                                        connection_leaks.append(f"{m}/{f}")
+                            except Exception:
+                                pass
+
+        self.check(
+            len(coupling_violations) == 0,
+            "Linter AST Anti-Acoplamento Cross-Module (Zero Acoplamento Direto)",
+            f"Violações de import detectadas: {', '.join(coupling_violations)}"
+        )
+        self.check(
+            len(connection_leaks) == 0,
+            "Scanner Anti-Vazamento de Conexões SQLite (Zero Connection Leak)",
+            f"Conexões sem context manager detectadas: {', '.join(connection_leaks)}"
+        )
 
         print("\n" + "=" * 80)
         print(f"📊 RESUMO DO GATE G_ESTRUTURA:")

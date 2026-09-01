@@ -63,6 +63,12 @@ python scripts/aidd.py test
 # 6. Executar os Gates Determinísticos e gerar Relatório Factual Auditado
 python scripts/aidd.py audit --report
 
-# 7. Iniciar o servidor da suíte unificada
+# 7. Executar Benchmark Concorrente de Carga e Latência
+python scripts/aidd.py bench -n 100
+
+# 8. Executar Auto-Remediação de Módulos e Manifestos
+python scripts/aidd.py heal
+
+# 9. Iniciar o servidor da suíte unificada
 python src/server.py
 ```

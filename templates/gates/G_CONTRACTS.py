@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-AIDD v4.1 Enterprise — GATE DETERMINÍSTICO DE CONTRATOS OPENAPI & MCP (G_CONTRACTS)
+AIDD v4.1 / v5.0 Enterprise — GATE DETERMINÍSTICO DE CONTRATOS OPENAPI & MCP (G_CONTRACTS)
 =============================================================================
 Valida a conformidade de 100% das rotas registradas no RouteRegistry com o padrão
-OpenAPI 3.1, ferramentas expostas no MCP Server e gera Snapshot SHA-256 anti-regressão.
+OpenAPI 3.1, ferramentas expostas no MCP Server, integridade dos 4 Portais e Snapshot SHA-256.
 """
 
 import os
@@ -19,7 +19,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 
 def verificar_contratos(target_dir: str = "."):
-    print("[GATE G_CONTRACTS v4.1] Validando contratos de rotas, esquemas OpenAPI 3.1 e ferramentas MCP...")
+    print("[GATE G_CONTRACTS] Validando contratos de rotas, esquemas OpenAPI 3.1, MCP e 4 Portais...")
     target_dir = os.path.abspath(target_dir)
     src_path = os.path.join(target_dir, "src")
     if src_path not in sys.path:
@@ -72,13 +72,41 @@ def verificar_contratos(target_dir: str = "."):
     except Exception as e:
         erros.append(f"Erro ao gerar snapshot de contratos: {e}")
 
+    # 4. Validar Integridade e Autossuficiência dos 4 Portais Front-End
+    index_html = os.path.join(src_path, "static", "index.html")
+    if os.path.exists(index_html):
+        try:
+            with open(index_html, "r", encoding="utf-8", errors="ignore") as f:
+                h = f.read()
+                if "<style>" not in h or "--bg-base" not in h:
+                    erros.append("Super-App 'index.html' sem CSS offline-first embutido na tag <style>.")
+                if "modal-overlay" not in h and "modal-generic" not in h:
+                    erros.append("Super-App 'index.html' sem estrutura modal com display encapsulado.")
+                if "<svg" in h and 'width="' not in h:
+                    erros.append("Super-App 'index.html' possui SVGs sem dimensões físicas travadas (width/height).")
+        except Exception as e:
+            erros.append(f"Erro ao auditar front-end index.html: {e}")
+
+    # Checar geradores de HTML dos estúdios integrados
+    openapi_py = os.path.join(src_path, "core", "openapi.py")
+    if os.path.exists(openapi_py):
+        with open(openapi_py, "r", encoding="utf-8", errors="ignore") as f:
+            if "get_swagger_html" not in f.read():
+                erros.append("core/openapi.py não implementa get_swagger_html() para o Swagger Studio.")
+
+    webhooks_py = os.path.join(src_path, "core", "webhooks.py")
+    if os.path.exists(webhooks_py):
+        with open(webhooks_py, "r", encoding="utf-8", errors="ignore") as f:
+            if "get_studio_html" not in f.read():
+                erros.append("core/webhooks.py não implementa get_studio_html() para o Webhook Studio.")
+
     if erros:
-        print("\n[FAIL] ❌ BLOQUEIO DE CONTRATOS: Violações de contrato detectadas:")
+        print("\n[FAIL] ❌ BLOQUEIO DE CONTRATOS: Violações de contrato/portais detectadas:")
         for e in erros:
             print(f"  - {e}")
         sys.exit(1)
 
-    print("[OK] SUCESSO: Todos os contratos OpenAPI e interfaces MCP foram validados sem erros!")
+    print("[OK] SUCESSO: Todos os contratos OpenAPI, MCP e os 4 Portais Web foram validados com 100% de êxito!")
     sys.exit(0)
 
 

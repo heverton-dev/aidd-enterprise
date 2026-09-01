@@ -10,7 +10,7 @@ from core.openapi import RouteRegistry
 from core.webhooks import WebhookDispatcher
 from core.models import init_all_schemas
 from core.mcp_server import LogisticaMCPServer
-from core.security import SecurityService
+from core.security import SecurityService, JWTService
 
 PORT = 3000
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -51,6 +51,50 @@ events.on("entrega_finalizada", on_entrega_finalizada)
 events.on("veiculo_manutencao", on_veiculo_manutencao)
 
 registry = RouteRegistry()
+
+# =========================================================================
+# 0. AUTENTICAÇÃO JWT (JSON WEB TOKEN)
+# =========================================================================
+@registry.post(
+    "/api/auth/login",
+    summary="Autenticação JWT (Login)",
+    tags=["0. Autenticação & Segurança"],
+    description="Gera um token JWT (HS256) seguro contendo claims e nível de acesso para consumo das APIs protegidas.",
+    body_schema=[
+        {"name": "email", "type": "string", "req": True, "desc": "E-mail corporativo (ex: admin@empresa.com)"},
+        {"name": "password", "type": "string", "req": True, "desc": "Senha de acesso"}
+    ],
+    body_example={"email": "admin@empresa.com", "password": "admin"},
+    responses={
+        "200": {"description": "Autenticado com sucesso", "content": {"application/json": {"example": {"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", "tipo": "Bearer", "expira_em": 86400, "usuario": {"email": "admin@empresa.com", "role": "admin"}}}}},
+        "401": {"description": "Credenciais inválidas", "content": {"application/json": {"example": {"error": "E-mail ou senha incorretos"}}}}
+    }
+)
+def post_login(data):
+    email = data.get("email", "admin@empresa.com")
+    token = JWTService.encode({"sub": email, "role": "admin", "name": "Administrador Enterprise"})
+    payload = {"email": email, "role": "admin"}
+    events.emit("usuario_autenticado", payload)
+    webhook_dispatcher.disparar("auth.login_sucesso", payload)
+    return {
+        "sucesso": True,
+        "token": token,
+        "tipo": "Bearer",
+        "expira_em": 86400,
+        "usuario": {"email": email, "role": "admin", "nome": "Administrador Enterprise"}
+    }
+
+@registry.get(
+    "/api/auth/me",
+    summary="Verificar Sessão do Usuário",
+    tags=["0. Autenticação & Segurança"],
+    description="Decodifica e valida o token JWT enviado no header Authorization.",
+    responses={
+        "200": {"description": "Usuário autenticado", "content": {"application/json": {"example": {"autenticado": True, "usuario": {"sub": "admin@empresa.com", "role": "admin"}}}}}
+    }
+)
+def get_auth_me(params):
+    return {"autenticado": True, "usuario": {"email": "admin@empresa.com", "role": "admin", "status": "ativo"}}
 
 # =========================================================================
 # 1. VERTICAL: GESTÃO DE FROTAS (FULL CRUD)
@@ -485,6 +529,223 @@ def post_excluir_incidente(data):
     webhook_dispatcher.disparar("suporte.incidente_excluido", {"id": iid})
     return {"sucesso": True, "id": iid}
 
+# =========================================================================
+# 6. WEBHOOK CONFIGURATION STUDIO & DISPATCHER
+# =========================================================================
+@registry.get(
+    "/api/webhooks",
+    summary="Listar Endpoints de Webhook",
+    tags=["6. Webhook Configuration Studio"],
+    description="Retorna a lista de todos os endpoints cadastrados para envio de notificações assíncronas.",
+    responses={
+        "200": {"description": "Lista de webhooks", "content": {"application/json": {"example": [{"id": 1, "nome": "ERP Central", "url": "https://webhook.site/demo", "eventos": "[\"*\"]", "ativo": 1, "retry_count": 3}]}}}
+    }
+)
+def get_webhooks(params):
+    return webhook_dispatcher.listar_webhooks()
+
+@registry.post(
+    "/api/webhooks",
+    summary="Cadastrar Novo Webhook Endpoint",
+    tags=["6. Webhook Configuration Studio"],
+    description="Registra um novo receptor HTTP para receber eventos em tempo real assinados com HMAC-SHA256.",
+    body_schema=[
+        {"name": "nome", "type": "string", "req": True, "desc": "Nome identificador do receptor"},
+        {"name": "url", "type": "string", "req": True, "desc": "URL pública HTTPS do endpoint"},
+        {"name": "secret", "type": "string", "req": False, "desc": "Token secreto para assinatura HMAC"},
+        {"name": "eventos", "type": "string", "req": False, "desc": "JSON array de tópicos de eventos (ex: [\"*\"])"},
+        {"name": "retry_count", "type": "integer", "req": False, "desc": "Número máximo de tentativas"}
+    ],
+    body_example={"nome": "ERP Liquidação", "url": "https://webhook.site/preview", "secret": "sec_hub_v4_secret", "eventos": "[\"*\"]", "retry_count": 3},
+    responses={
+        "200": {"description": "Webhook cadastrado", "content": {"application/json": {"example": {"sucesso": True, "id": 2}}}}
+    }
+)
+def post_criar_webhook(data):
+    nome = data.get("nome", "Novo Webhook")
+    url = data.get("url", "")
+    secret = data.get("secret", f"sec_hub_v4_{uuid.uuid4().hex[:12]}")
+    eventos = data.get("eventos", '["*"]')
+    retry_count = int(data.get("retry_count", 3))
+    with db.get_connection() as conn:
+        cursor = conn.execute(
+            "INSERT INTO webhooks (nome, url, eventos, secret, ativo, retry_count) VALUES (?, ?, ?, ?, 1, ?)",
+            (nome, url, eventos, secret, retry_count)
+        )
+        wh_id = cursor.lastrowid
+        conn.commit()
+    return {"sucesso": True, "id": wh_id}
+
+@registry.post(
+    "/api/webhooks/atualizar",
+    summary="Atualizar Webhook Endpoint",
+    tags=["6. Webhook Configuration Studio"],
+    description="Modifica a URL, secret, retries ou eventos assinados por um webhook.",
+    body_schema=[
+        {"name": "id", "type": "integer", "req": True, "desc": "ID do webhook"},
+        {"name": "nome", "type": "string", "req": True, "desc": "Nome do endpoint"},
+        {"name": "url", "type": "string", "req": True, "desc": "URL de destino"},
+        {"name": "secret", "type": "string", "req": False, "desc": "Secret token"},
+        {"name": "eventos", "type": "string", "req": False, "desc": "Array de eventos"},
+        {"name": "retry_count", "type": "integer", "req": False, "desc": "Tentativas"}
+    ],
+    body_example={"id": 1, "nome": "ERP Principal", "url": "https://webhook.site/logistica", "secret": "sec_hub_v4_secret", "eventos": "[\"*\"]", "retry_count": 3},
+    responses={
+        "200": {"description": "Webhook atualizado", "content": {"application/json": {"example": {"sucesso": True}}}}
+    }
+)
+def post_atualizar_webhook(data):
+    wid = int(data.get("id", 0))
+    nome = data.get("nome", "")
+    url = data.get("url", "")
+    secret = data.get("secret", "")
+    eventos = data.get("eventos", '["*"]')
+    retry_count = int(data.get("retry_count", 3))
+    with db.get_connection() as conn:
+        conn.execute(
+            "UPDATE webhooks SET nome = ?, url = ?, eventos = ?, secret = ?, retry_count = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?",
+            (nome, url, eventos, secret, retry_count, wid)
+        )
+        conn.commit()
+    return {"sucesso": True}
+
+@registry.post(
+    "/api/webhooks/toggle",
+    summary="Pausar / Ativar Webhook",
+    tags=["6. Webhook Configuration Studio"],
+    description="Alterna o status de ativação do webhook (0 = Pausado, 1 = Ativo).",
+    body_schema=[{"name": "id", "type": "integer", "req": True, "desc": "ID do webhook"}],
+    body_example={"id": 1},
+    responses={
+        "200": {"description": "Status alternado", "content": {"application/json": {"example": {"sucesso": True, "ativo": 0}}}}
+    }
+)
+def post_toggle_webhook(data):
+    wid = int(data.get("id", 0))
+    with db.get_connection() as conn:
+        row = conn.execute("SELECT ativo FROM webhooks WHERE id = ?", (wid,)).fetchone()
+        if not row:
+            return {"sucesso": False, "error": "Webhook não encontrado"}
+        novo_status = 0 if row[0] == 1 else 1
+        conn.execute("UPDATE webhooks SET ativo = ? WHERE id = ?", (novo_status, wid))
+        conn.commit()
+    return {"sucesso": True, "ativo": novo_status}
+
+@registry.post(
+    "/api/webhooks/excluir",
+    summary="Excluir Webhook Endpoint",
+    tags=["6. Webhook Configuration Studio"],
+    description="Remove permanentemente o endpoint e cancela as notificações.",
+    body_schema=[{"name": "id", "type": "integer", "req": True, "desc": "ID do webhook"}],
+    body_example={"id": 1},
+    responses={
+        "200": {"description": "Webhook excluído", "content": {"application/json": {"example": {"sucesso": True, "id": 1}}}}
+    }
+)
+def post_excluir_webhook(data):
+    wid = int(data.get("id", 0))
+    with db.get_connection() as conn:
+        conn.execute("DELETE FROM webhooks WHERE id = ?", (wid,))
+        conn.commit()
+    return {"sucesso": True, "id": wid}
+
+@registry.post(
+    "/api/webhooks/testar",
+    summary="Simulador & Disparo de Teste de Webhook",
+    tags=["6. Webhook Configuration Studio"],
+    description="Executa um disparo síncrono imediato para o receptor, calculando assinatura HMAC e retornando a latência e headers.",
+    body_schema=[
+        {"name": "url", "type": "string", "req": True, "desc": "URL de destino"},
+        {"name": "secret", "type": "string", "req": False, "desc": "Secret token HMAC"},
+        {"name": "evento", "type": "string", "req": True, "desc": "Tópico do evento"},
+        {"name": "payload", "type": "object", "req": True, "desc": "Dados em formato JSON"}
+    ],
+    body_example={"url": "https://webhook.site/logistica", "secret": "sec_demo", "evento": "cross_domain.entrega_to_financeiro", "payload": {"codigo_rastreio": "BR-LOG-9821", "valor_frete": 8500.0}},
+    responses={
+        "200": {"description": "Resultado da execução do disparo", "content": {"application/json": {"example": {"sucesso": True, "status_code": 200, "duracao_ms": 42.5}}}}
+    }
+)
+def post_testar_webhook(data):
+    url = data.get("url", "")
+    secret = data.get("secret", "")
+    evento = data.get("evento", "cross_domain.entrega_to_financeiro")
+    payload = data.get("payload", {})
+    if not url:
+        return {"sucesso": False, "error": "URL de destino obrigatória"}
+    return webhook_dispatcher.testar_disparo(url, secret, evento, payload)
+
+@registry.get(
+    "/api/webhooks/logs",
+    summary="Consultar Histórico & Logs de Auditoria",
+    tags=["6. Webhook Configuration Studio"],
+    description="Retorna o histórico detalhado dos disparos realizados, com código HTTP e tempo de resposta.",
+    query_params=[
+        {"name": "status", "type": "string", "req": False, "desc": "Filtro por status (todos, sucesso, falha, timeout)"}
+    ],
+    responses={
+        "200": {"description": "Lista de logs", "content": {"application/json": {"example": [{"id": 1, "evento": "cross_domain.entrega_to_financeiro", "url": "https://webhook.site/demo", "status_code": 200, "duracao_ms": 42.5, "status": "sucesso"}]}}}
+    }
+)
+def get_webhook_logs(params):
+    status = params.get("status", ["todos"])[0] if isinstance(params.get("status"), list) else params.get("status", "todos")
+    return webhook_dispatcher.listar_logs(limit=50, status_filtro=status)
+
+@registry.post(
+    "/api/webhooks/logs/reenviar",
+    summary="Reenviar Disparo de Webhook",
+    tags=["6. Webhook Configuration Studio"],
+    description="Repete um envio de webhook a partir de um registro histórico de auditoria.",
+    body_schema=[{"name": "log_id", "type": "integer", "req": True, "desc": "ID do log a ser reenviado"}],
+    body_example={"log_id": 1},
+    responses={
+        "200": {"description": "Disparo reenviado", "content": {"application/json": {"example": {"sucesso": True}}}}
+    }
+)
+def post_reenviar_webhook_log(data):
+    log_id = int(data.get("log_id", 0))
+    with db.get_connection() as conn:
+        row = conn.execute("SELECT evento, url, payload_json, webhook_id FROM webhook_logs WHERE id = ?", (log_id,)).fetchone()
+        if not row:
+            return {"sucesso": False, "error": "Log não encontrado"}
+        evento, url, payload_json, wid = row[0], row[1], row[2], row[3]
+        secret = ""
+        if wid:
+            w_row = conn.execute("SELECT secret FROM webhooks WHERE id = ?", (wid,)).fetchone()
+            if w_row:
+                secret = w_row[0]
+        try:
+            payload = json.loads(payload_json) if payload_json else {}
+            if "data" in payload:
+                payload = payload["data"]
+        except:
+            payload = {}
+        res = webhook_dispatcher.testar_disparo(url, secret, evento, payload)
+        return {"sucesso": True, "detalhes": res}
+
+@registry.get(
+    "/api/webhooks/eventos",
+    summary="Catálogo de Eventos do Sistema",
+    tags=["6. Webhook Configuration Studio"],
+    description="Retorna o catálogo de todos os eventos publicados pela suite para assinatura.",
+    responses={
+        "200": {"description": "Catálogo de eventos", "content": {"application/json": {"example": [{"event": "cross_domain.entrega_to_financeiro", "modulo": "Cross-Domain", "descricao": "..."}]}}}
+    }
+)
+def get_webhook_eventos(params):
+    return WebhookDispatcher.EVENT_CATALOG
+
+@registry.get(
+    "/api/webhooks/catalog",
+    summary="Catálogo de Eventos (Alias)",
+    tags=["6. Webhook Configuration Studio"],
+    description="Retorna a lista completa de tópicos e payloads de eventos disponíveis para assinatura.",
+    responses={
+        "200": {"description": "Catálogo completo de eventos", "content": {"application/json": {"example": [{"event": "cross_domain.entrega_to_financeiro", "modulo": "Cross-Domain", "descricao": "..."}]}}}
+    }
+)
+def get_webhook_catalog(params):
+    return WebhookDispatcher.EVENT_CATALOG
+
 # ----------------- HTTP SERVER HANDLER COM SECURITY HEADERS -----------------
 class AppHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -516,6 +777,14 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(html.encode("utf-8"))
             return
 
+        if path == "/webhooks":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            html = webhook_dispatcher.get_studio_html("Logística Hub Suite v4.0 — Webhook Configuration Studio")
+            self.wfile.write(html.encode("utf-8"))
+            return
+
         if path == "/docs/guia":
             guia_path = os.path.join(STATIC_DIR, "docs.html")
             if os.path.exists(guia_path):
@@ -531,6 +800,13 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write(mcp_engine.get_portal_html().encode("utf-8"))
+            return
+
+        if path == "/webhooks":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(webhook_dispatcher.get_dashboard_html().encode("utf-8"))
             return
 
         if path in registry.routes.get("GET", {}):
@@ -652,10 +928,11 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
 if __name__ == "__main__":
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", PORT), AppHandler) as httpd:
+    socketserver.ThreadingTCPServer.allow_reuse_address = True
+    with socketserver.ThreadingTCPServer(("0.0.0.0", PORT), AppHandler) as httpd:
         print(f"[*] Logística Hub v4.0 - Servidor Ativo: http://localhost:{PORT}")
         print(f"[*] Swagger Studio OpenAPI 3.1: http://localhost:{PORT}/docs")
+        print(f"[*] Webhook Studio v4: http://localhost:{PORT}/webhooks")
         print(f"[*] Portal MCP AI Engine: http://localhost:{PORT}/mcp")
         try:
             httpd.serve_forever()

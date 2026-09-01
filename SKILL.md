@@ -29,24 +29,40 @@ O **AIDD v4.1** é o framework definitivo de engenharia agêntica para construç
 
 ---
 
+## 💬 Protocolo Conversacional de Criação (Zero Atrito para o Usuário)
+
+Quando o usuário solicita a criação de uma aplicação em linguagem natural no chat:
+1. **Fase 1.5 (Planejamento & Spec Gate):** O agente executa internamente `python scripts/aidd.py plan "<prompt>"` gerando `SPEC-ARQUITETURA.md` e `PLANO-EXECUCAO-ESTRUTURADO.json` (com status `PLANEJADO`).
+2. **Apresentação ao Usuário:** O agente apresenta um resumo conciso da arquitetura (módulos, rotas, banco WAL, testes) e aguarda confirmação.
+3. **Fase 2 (Processamento & Execução):** Ao receber a aprovação em linguagem natural (ex: *"Aprovado"*, *"Pode criar"*, *"OK"*), o agente executa `python scripts/aidd.py apply --dir <pasta>` em subprocesso e audita com `python scripts/aidd.py audit --report`.
+4. **Entrega Final:** O agente informa a conclusão com os links dos 4 portais (`/`, `/docs`, `/mcp`, `/webhooks`).
+
+---
+
 ## 🚀 Comandos Principais da CLI `aidd.py`
 
 ```bash
 # 0. Diagnóstico e Bootstrap Automático (Pre-Flight, dependências e detecção de ambiente)
 python scripts/aidd.py setup
 
-# 1. Compor uma nova Suite Cross-Project com múltiplos domínios
+# 1. Planejar e gerar especificação arquitetural (Fase 1.5)
+python scripts/aidd.py plan "Crie um CRM e ERP de faturamento"
+
+# 2. Executar plano aprovado (Fase 2)
+python scripts/aidd.py apply --dir ./app_crm-erp-faturamento-suite
+
+# 3. Compor diretamente em modo declarativo
 python scripts/aidd.py compose <caminho_destino> <nome_suite> crm erp helpdesk logistica
 
-# 2. Adicionar uma nova fatia vertical com Full CRUD, testes e eventos
+# 4. Adicionar uma nova fatia vertical com Full CRUD, testes e eventos
 python scripts/aidd.py add-module faturamento -d "Faturamento e Boletos"
 
-# 3. Executar a Bateria Completa de Testes Unitários
+# 5. Executar a Bateria Completa de Testes Unitários
 python scripts/aidd.py test
 
-# 4. Executar os Gates Determinísticos e gerar Relatório Factual Auditado
+# 6. Executar os Gates Determinísticos e gerar Relatório Factual Auditado
 python scripts/aidd.py audit --report
 
-# 5. Iniciar o servidor da suíte unificada
+# 7. Iniciar o servidor da suíte unificada
 python src/server.py
 ```

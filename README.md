@@ -49,6 +49,9 @@ aidd-master-pack-v4/
 ## 🚀 Como Iniciar
 
 ```bash
+# 0. Diagnóstico e Inicialização Automática do Ambiente (Executa Pre-Flight e instala dependências)
+python scripts/aidd.py setup
+
 # 1. Compor uma nova Suite Enterprise (ex: CRM, ERP, Helpdesk, Logística)
 python scripts/aidd.py compose ./minha-suite "Minha Suite" crm erp helpdesk logistica
 

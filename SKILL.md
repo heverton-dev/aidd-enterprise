@@ -32,6 +32,9 @@ O **AIDD v4.1** é o framework definitivo de engenharia agêntica para construç
 ## 🚀 Comandos Principais da CLI `aidd.py`
 
 ```bash
+# 0. Diagnóstico e Bootstrap Automático (Pre-Flight, dependências e detecção de ambiente)
+python scripts/aidd.py setup
+
 # 1. Compor uma nova Suite Cross-Project com múltiplos domínios
 python scripts/aidd.py compose <caminho_destino> <nome_suite> crm erp helpdesk logistica
 

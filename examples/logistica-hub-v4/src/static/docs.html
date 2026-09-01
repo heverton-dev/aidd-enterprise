@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logística Hub Suite v4.0 — Documentação Oficial</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #020617; --sidebar: #050b18; --border: rgba(255,255,255,0.08); --primary: #3b82f6; --text: #f8fafc; --muted: #94a3b8; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+        header { height: 56px; background: rgba(2,6,23,0.95); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; position: sticky; top: 0; z-index: 50; }
+        .btn { padding: 0.45rem 0.9rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: #fff; text-decoration: none; }
+        .layout { display: grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 56px); }
+        aside { background: var(--sidebar); border-right: 1px solid var(--border); padding: 1.5rem 1rem; }
+        main { padding: 3rem 4rem; max-width: 900px; }
+        .nav-item { display: block; padding: 0.6rem 0.8rem; border-radius: 8px; color: #cbd5e1; font-size: 0.86rem; font-weight: 600; text-decoration: none; cursor: pointer; margin-bottom: 0.3rem; }
+        .nav-item:hover, .nav-item.active { background: rgba(59,130,246,0.15); color: #60a5fa; }
+        h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.6rem; color: #fff; }
+        h2 { font-size: 1.4rem; font-weight: 800; margin: 2rem 0 1rem 0; color: #fff; }
+        p, li { font-size: 0.95rem; line-height: 1.7; color: #cbd5e1; }
+        ul { padding-left: 1.4rem; margin-bottom: 1.2rem; }
+        .callout { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.3); border-radius: 10px; padding: 1rem; margin: 1.5rem 0; }
+    </style>
+</head>
+<body>
+    <header>
+        <div style="font-weight: 800; font-size: 1rem;">🚛 Logística Hub Suite v4.0 — Documentação Oficial</div>
+        <div style="display: flex; gap: 0.8rem;">
+            <a href="/" class="btn">Aplicação</a>
+            <a href="/mcp" class="btn" style="border-color: rgba(16,185,129,0.4); color: #34d399;">Portal MCP</a>
+            <a href="/docs" class="btn" style="background: var(--primary); border-color: var(--primary);">Swagger Studio</a>
+        </div>
+    </header>
+
+    <div class="layout">
+        <aside id="nav-list"></aside>
+        <main>
+            <h1 id="p-title">Carregando...</h1>
+            <p id="p-sub" style="color: var(--muted); margin-bottom: 2rem;"></p>
+            <div id="p-content"></div>
+        </main>
+    </div>
+
+    <script>
+        const pages = [{"id": "intro", "cat": "1. Arquitetura da Suíte", "title": "Logística Hub v4.0 — Visão Geral", "subtitle": "Plataforma integrada de gestão de frotas, entregas rastreadas, WMS e faturamento de fretes.", "content": "\n            <div class=\"callout tip\">\n                <p><strong>Padrão Monólito Modular AIDD v4.0:</strong> Sistema desacoplado com EventBus central, banco SQLite WAL e Servidor Nativo MCP.</p>\n            </div>\n            <h2>Os 5 Módulos Integrados</h2>\n            <ul>\n                <li><strong>1. Gestão de Frotas:</strong> Cadastro de caminhões, motoristas, capacidade em KG e status operacional.</li>\n                <li><strong>2. Controle de Entregas & Rastreio:</strong> Remessas com código de rastreamento e cálculo de peso.</li>\n                <li><strong>3. Armazém WMS & Estoque:</strong> Controle de SKUs, posições em paletes e saldos em tempo real.</li>\n                <li><strong>4. Financeiro de Fretes:</strong> Faturamento automático com emissão de receitas na entrega.</li>\n                <li><strong>5. Central de Incidentes & SLA:</strong> Tratamento de panes e sinistros com cronômetro de SLA.</li>\n            </ul>\n        "}, {"id": "cross_domain", "cat": "2. Orquestração & EventBus", "title": "Regras de Negócio Cross-Domain", "subtitle": "Automações entre Frotas, Entregas e Financeiro.", "content": "\n            <h2>Regras Automáticas da Suíte</h2>\n            <ul>\n                <li><strong>Regra 1 (Entrega ➔ Financeiro):</strong> Ao marcar entrega como <code>entregue</code>, o EventBus dispara <code>entrega_concluida</code> e lança a receita de frete liquidada no financeiro.</li>\n                <li><strong>Regra 2 (Frota ➔ Incidentes):</strong> Se um veículo entra em <code>manutencao</code>, abre um chamado P1 no suporte técnico automaticamente.</li>\n            </ul>\n        "}];
+        const nav = document.getElementById('nav-list');
+        nav.innerHTML = pages.map((p, i) => `<a class="nav-item ${i===0?'active':''}" onclick="loadPage(${i})">${p.title}</a>`).join('');
+
+        function loadPage(i) {
+            document.querySelectorAll('.nav-item').forEach((el, idx) => el.classList.toggle('active', idx === i));
+            document.getElementById('p-title').innerText = pages[i].title;
+            document.getElementById('p-sub').innerText = pages[i].subtitle;
+            document.getElementById('p-content').innerHTML = pages[i].content;
+        }
+        window.onload = () => loadPage(0);
+    </script>
+</body>
+</html>

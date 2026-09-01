@@ -406,7 +406,7 @@ if __name__ == "__main__":
 
 
 def generate_superapp_index_html(suite_name: str, module_slugs: list) -> str:
-    """Gera front-end Super-App Impeccable com abas para cada módulo."""
+    """Gera front-end Super-App Impeccable com CSS 100% embutido (offline-first)."""
     tabs_nav = []
     sections = []
     scripts = []
@@ -415,51 +415,99 @@ def generate_superapp_index_html(suite_name: str, module_slugs: list) -> str:
         slug = slugify(mod)
         pascal = pascal_case(mod)
         is_active = (i == 0)
-        active_class = "tab-btn active" if is_active else "tab-btn"
-        hidden_class = "" if is_active else "hidden"
+        active_tab_class = "tab-btn active" if is_active else "tab-btn"
+        active_sec_class = "tab-section active" if is_active else "tab-section"
 
         tabs_nav.append(f'''
-            <button onclick="mudarAba('{slug}')" id="tab-btn-{slug}" class="{active_class} px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-white rounded-xl flex items-center gap-2 transition whitespace-nowrap border border-transparent">
-                <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+            <button type="button" onclick="mudarAba('{slug}')" id="tab-btn-{slug}" class="{active_tab_class}" aria-label="Acessar módulo {pascal}">
+                <span class="tab-indicator"></span>
                 <span>{pascal}</span>
             </button>''')
 
         sections.append(f'''
         <!-- ABA {pascal} -->
-        <section id="sec-{slug}" class="space-y-4 {hidden_class}">
-            <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-5 space-y-4 shadow-xl">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+        <section id="sec-{slug}" class="{active_sec_class}">
+            <!-- CARDS DE KPIS DO MÓDULO -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-title">Total de Registros</span>
+                        <span class="kpi-icon sky">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                        </span>
+                    </div>
+                    <div class="kpi-val" id="kpi-{slug}-total">--</div>
+                    <div class="kpi-sub">Cadastros em {pascal}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-title">Registros Ativos</span>
+                        <span class="kpi-icon emerald">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </span>
+                    </div>
+                    <div class="kpi-val" id="kpi-{slug}-ativos">--</div>
+                    <div class="kpi-sub">Operando normalmente</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-title">Concluídos / Arquivados</span>
+                        <span class="kpi-icon indigo">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        </span>
+                    </div>
+                    <div class="kpi-val" id="kpi-{slug}-concluidos">--</div>
+                    <div class="kpi-sub">Finalizados no período</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-title">Taxa de Conclusão</span>
+                        <span class="kpi-icon amber">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                        </span>
+                    </div>
+                    <div class="kpi-val" id="kpi-{slug}-taxa">--%</div>
+                    <div class="kpi-sub">Eficiência operacional</div>
+                </div>
+            </div>
+
+            <!-- TABELA DE DADOS & OPERAÇÕES -->
+            <div class="panel">
+                <div class="panel-header">
                     <div>
-                        <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
-                            <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
+                        <h2 class="panel-title">
+                            <span class="dot-sky"></span>
                             Gestão de {pascal}
                         </h2>
-                        <p class="text-xs text-slate-400">Operações e registros da fatia vertical {pascal}</p>
+                        <p class="panel-desc">Operações, listagem e ciclo de vida da fatia vertical {pascal}</p>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="carregar{pascal}()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Atualizar">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <div class="panel-actions">
+                        <div class="search-box">
+                            <input type="text" id="busca-{slug}" placeholder="Buscar em {pascal}..." onkeyup="filtrar{pascal}()" class="input-search">
+                        </div>
+                        <button type="button" onclick="carregar{pascal}()" class="btn btn-secondary" title="Recarregar" aria-label="Recarregar dados">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                         </button>
-                        <button onclick="abrirModalNovo('{slug}')" class="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-lg shadow-sky-600/20">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <button type="button" onclick="abrirModalNovo('{slug}')" class="btn btn-primary" aria-label="Criar novo {pascal}">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                             <span>Novo {pascal}</span>
                         </button>
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-950/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
                             <tr>
-                                <th class="p-3">ID</th>
-                                <th class="p-3">Título</th>
-                                <th class="p-3">Status</th>
-                                <th class="p-3">Criado em</th>
-                                <th class="p-3 text-right">Ações</th>
+                                <th style="width: 70px;">ID</th>
+                                <th>Título</th>
+                                <th style="width: 120px;">Status</th>
+                                <th style="width: 170px;">Criado em</th>
+                                <th style="width: 100px; text-align: right;">Ações</th>
                             </tr>
                         </thead>
-                        <tbody id="tabela-{slug}-corpo" class="divide-y divide-slate-800/60 text-slate-300">
-                            <tr><td colspan="5" class="p-4 text-center text-slate-500">Carregando dados...</td></tr>
+                        <tbody id="tabela-{slug}-corpo">
+                            <tr><td colspan="5" class="table-empty">Carregando dados do módulo {pascal}...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -467,125 +515,488 @@ def generate_superapp_index_html(suite_name: str, module_slugs: list) -> str:
         </section>''')
 
         scripts.append(f'''
+        let dados{pascal}Cache = [];
+
         async function carregar{pascal}() {{
             try {{
+                // 1. Carregar Métricas
+                try {{
+                    const mRes = await fetch('/api/{slug}/metricas');
+                    if (mRes.ok) {{
+                        const m = await mRes.json();
+                        document.getElementById('kpi-{slug}-total').textContent = m.total ?? 0;
+                        document.getElementById('kpi-{slug}-ativos').textContent = m.ativos ?? 0;
+                        document.getElementById('kpi-{slug}-concluidos').textContent = m.concluidos ?? 0;
+                        document.getElementById('kpi-{slug}-taxa').textContent = (m.taxa_conclusao ?? 0) + '%';
+                    }}
+                }} catch (e) {{ console.warn('Erro metricas {slug}:', e); }}
+
+                // 2. Carregar Registros
                 const res = await fetch('/api/{slug}');
-                const dados = await res.json();
-                const tbody = document.getElementById('tabela-{slug}-corpo');
-                if (!dados || dados.length === 0) {{
-                    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum registro encontrado.</td></tr>';
-                    return;
-                }}
-                tbody.innerHTML = dados.map(item => `
-                    <tr class="hover:bg-slate-800/40 transition">
-                        <td class="p-3 font-mono text-sky-400">#${{item.id}}</td>
-                        <td class="p-3 font-semibold text-slate-200">${{item.titulo}}</td>
-                        <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase">${{item.status || 'ativo'}}</span></td>
-                        <td class="p-3 text-slate-400 font-mono text-[11px]">${{item.criado_em || '--'}}</td>
-                        <td class="p-3 text-right">
-                            <button onclick="deletarItem('{slug}', ${{item.id}})" class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded text-[11px] font-medium transition">Excluir</button>
-                        </td>
-                    </tr>
-                `).join('');
+                dados{pascal}Cache = await res.json();
+                renderizarTabela{pascal}(dados{pascal}Cache);
             }} catch (e) {{
                 console.error('Erro ao carregar {slug}:', e);
+                mostrarToast('Falha ao carregar registros de {pascal}', 'erro');
             }}
+        }}
+
+        function renderizarTabela{pascal}(lista) {{
+            const tbody = document.getElementById('tabela-{slug}-corpo');
+            if (!lista || lista.length === 0) {{
+                tbody.innerHTML = '<tr><td colspan="5" class="table-empty">Nenhum registro ativo localizado.</td></tr>';
+                return;
+            }}
+            tbody.innerHTML = lista.map(item => `
+                <tr>
+                    <td class="col-id">#${{item.id}}</td>
+                    <td class="col-title">
+                        <div class="item-title">${{escapeHtml(item.titulo)}}</div>
+                        ${{item.descricao ? `<div class="item-desc">${{escapeHtml(item.descricao)}}</div>` : ''}}
+                    </td>
+                    <td><span class="badge badge-status">${{escapeHtml(item.status || 'ativo')}}</span></td>
+                    <td class="col-date">${{escapeHtml(item.criado_em || '--')}}</td>
+                    <td class="col-actions">
+                        <button type="button" onclick="deletarItem('{slug}', ${{item.id}})" class="btn btn-delete" title="Excluir" aria-label="Excluir registro">Excluir</button>
+                    </td>
+                </tr>
+            `).join('');
+        }}
+
+        function filtrar{pascal}() {{
+            const termo = (document.getElementById('busca-{slug}').value || '').toLowerCase();
+            if (!termo) {{
+                renderizarTabela{pascal}(dados{pascal}Cache);
+                return;
+            }}
+            const filtrados = dados{pascal}Cache.filter(i => 
+                (i.titulo && i.titulo.toLowerCase().includes(termo)) ||
+                (i.descricao && i.descricao.toLowerCase().includes(termo))
+            );
+            renderizarTabela{pascal}(filtrados);
         }}''')
 
     tabs_nav_str = "\n".join(tabs_nav)
     sections_str = "\n".join(sections)
     scripts_str = "\n".join(scripts)
-    initial_loads = "\n".join([f"        carregar{pascal_case(m)}();" for m in module_slugs])
+    initial_loads = "\n".join([f"            carregar{pascal_case(m)}();" for m in module_slugs])
 
     html_template = """<!DOCTYPE html>
 <html lang="pt-BR" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>__SUITE_NAME__ — Super-App</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>__SUITE_NAME__ — Super-App Enterprise</title>
     <style>
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: #090d16; }
-        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
-        .tab-btn.active {
-            color: #38bdf8 !important;
-            border: 1px solid rgba(56, 189, 248, 0.35) !important;
-            background: rgba(14, 165, 233, 0.12) !important;
+        :root {
+            --bg-base: #090d16;
+            --bg-surface: #0f172a;
+            --bg-panel: #141e33;
+            --border-subtle: #1e293b;
+            --border-highlight: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-sky: #0ea5e9;
+            --accent-sky-hover: #38bdf8;
+            --accent-emerald: #10b981;
+            --accent-rose: #f43f5e;
+            --accent-amber: #f59e0b;
+            --accent-indigo: #6366f1;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
         }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.5;
+        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: var(--bg-base); }
+        ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 2px; }
+
+        /* HEADER */
+        .topbar {
+            height: 56px;
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid var(--border-subtle);
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: blur(8px);
+        }
+        .topbar-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; }
+        .badge-ver {
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            background: rgba(14, 165, 233, 0.15);
+            color: var(--accent-sky-hover);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+        }
+        .topbar-links { display: flex; align-items: center; gap: 8px; }
+        .topbar-link {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: #1e293b;
+            padding: 6px 12px;
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            border: 1px solid var(--border-highlight);
+            transition: all 0.15s;
+        }
+        .topbar-link:hover { color: #fff; background: #334155; }
+
+        /* TABS */
+        .tabs-nav {
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 8px 24px;
+            position: sticky;
+            top: 56px;
+            z-index: 30;
+            display: flex;
+            justify-content: center;
+            overflow-x: auto;
+        }
+        .tabs-container { display: flex; gap: 8px; max-width: 1200px; width: 100%; }
+        .tab-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s;
+        }
+        .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.03); }
+        .tab-btn.active {
+            color: var(--accent-sky-hover);
+            background: rgba(14, 165, 233, 0.12);
+            border-color: rgba(14, 165, 233, 0.35);
+        }
+        .tab-indicator { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-sky); }
+
+        /* MAIN & SECTIONS */
+        .main-content {
+            flex: 1;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .tab-section { display: none; }
+        .tab-section.active { display: block; }
+
+        /* KPIS GRID */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .kpi-card {
+            background: rgba(20, 30, 51, 0.7);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            backdrop-filter: blur(4px);
+        }
+        .kpi-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .kpi-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .kpi-icon.sky { background: rgba(14, 165, 233, 0.15); color: var(--accent-sky); }
+        .kpi-icon.emerald { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); }
+        .kpi-icon.indigo { background: rgba(99, 102, 241, 0.15); color: var(--accent-indigo); }
+        .kpi-icon.amber { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+        .kpi-val { font-size: 24px; font-weight: 800; color: #fff; line-height: 1.2; }
+        .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+        /* PANEL & TABLE */
+        .panel {
+            background: rgba(20, 30, 51, 0.7);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            margin-bottom: 16px;
+        }
+        .panel-title { font-size: 15px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+        .dot-sky { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-sky); display: inline-block; }
+        .panel-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .panel-actions { display: flex; align-items: center; gap: 8px; }
+        .search-box .input-search {
+            background: #090d16;
+            border: 1px solid var(--border-subtle);
+            color: #fff;
+            padding: 7px 12px;
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            outline: none;
+            width: 180px;
+            transition: all 0.15s;
+        }
+        .search-box .input-search:focus { border-color: var(--accent-sky); width: 220px; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn svg { width: 14px; height: 14px; }
+        .btn-primary { background: var(--accent-sky); color: #fff; }
+        .btn-primary:hover { background: var(--accent-sky-hover); }
+        .btn-secondary { background: #1e293b; color: var(--text-muted); border: 1px solid var(--border-highlight); }
+        .btn-secondary:hover { color: #fff; background: #334155; }
+        .btn-delete {
+            background: rgba(244, 63, 94, 0.12);
+            color: var(--accent-rose);
+            border: 1px solid rgba(244, 63, 94, 0.25);
+            padding: 4px 10px;
+            font-size: 11px;
+            border-radius: 4px;
+        }
+        .btn-delete:hover { background: rgba(244, 63, 94, 0.25); }
+
+        .table-container { width: 100%; overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+        .data-table thead th {
+            background: rgba(9, 13, 22, 0.8);
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .data-table tbody td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+            color: #cbd5e1;
+        }
+        .data-table tbody tr:hover td { background: rgba(255, 255, 255, 0.02); }
+        .col-id { font-family: ui-monospace, monospace; color: var(--accent-sky-hover); font-weight: 600; }
+        .item-title { font-weight: 600; color: #fff; }
+        .item-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .col-date { font-family: ui-monospace, monospace; font-size: 11px; color: var(--text-muted); }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-status { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .table-empty { text-align: center; padding: 24px; color: var(--text-muted); }
+
+        /* MODAL */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-card {
+            background: #0f172a;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            width: 100%;
+            max-width: 440px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-subtle);
+            margin-bottom: 16px;
+        }
+        .modal-title { font-size: 14px; font-weight: 700; color: #fff; }
+        .modal-close { background: transparent; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; }
+        .modal-close:hover { color: #fff; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+        .form-control {
+            width: 100%;
+            background: #090d16;
+            border: 1px solid var(--border-subtle);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            outline: none;
+        }
+        .form-control:focus { border-color: var(--accent-sky); }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-subtle); }
+
+        /* TOAST */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            background: #1e293b;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--border-highlight);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            animation: slideIn 0.2s ease-out;
+        }
+        .toast.sucesso { border-left: 4px solid var(--accent-emerald); }
+        .toast.erro { border-left: 4px solid var(--accent-rose); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     </style>
 </head>
-<body class="bg-[#090d16] text-slate-100 min-h-screen font-sans flex flex-col">
+<body>
     <!-- TOPBAR -->
-    <header class="min-h-[56px] h-14 border-b border-slate-800 bg-[#0f172a]/95 backdrop-blur sticky top-0 z-40 px-6 flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-            <span class="font-extrabold text-sm text-slate-100">__SUITE_NAME__</span>
-            <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">v4.1 Enterprise</span>
+    <header class="topbar">
+        <div class="topbar-brand">
+            <span>__SUITE_NAME__</span>
+            <span class="badge-ver">v4.1 Enterprise</span>
         </div>
-        <div class="flex items-center gap-2">
-            <a href="/docs" target="_blank" class="text-xs text-slate-300 hover:text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">Swagger Studio</a>
-            <a href="/webhooks" target="_blank" class="text-xs text-slate-300 hover:text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">Webhook Studio</a>
-            <a href="/mcp" target="_blank" class="text-xs text-slate-300 hover:text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">MCP Native</a>
+        <div class="topbar-links">
+            <a href="/docs" target="_blank" class="topbar-link">Swagger Studio</a>
+            <a href="/webhooks" target="_blank" class="topbar-link">Webhook Studio</a>
+            <a href="/mcp" target="_blank" class="topbar-link">MCP Native</a>
         </div>
     </header>
 
-    <!-- NAVEGAÇÃO DE ABAS -->
-    <nav class="bg-[#0f172a] border-b border-slate-800 px-6 sticky top-14 z-30 flex items-center justify-center overflow-x-auto">
-        <div class="max-w-7xl w-full flex items-center justify-center gap-2 py-2">
+    <!-- ABAS DE NAVEGAÇÃO -->
+    <nav class="tabs-nav">
+        <div class="tabs-container">
             __TABS_NAV__
         </div>
     </nav>
 
-    <!-- CONTEÚDO -->
-    <main class="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+    <!-- CONTEÚDO DOS MÓDULOS -->
+    <main class="main-content">
         __SECTIONS__
     </main>
 
-    <!-- MODAL GENÉRICO DE CADASTRO -->
-    <div id="modal-generic" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md p-6 space-y-4 shadow-2xl">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 id="modal-titulo" class="text-sm font-bold text-slate-100">Novo Registro</h3>
-                <button onclick="fecharModal()" class="text-slate-400 hover:text-white text-base">&times;</button>
+    <!-- MODAL DE CADASTRO -->
+    <div id="modal-generic" class="modal-overlay" onclick="if(event.target === this) fecharModal()">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-titulo" class="modal-title">Novo Registro</h3>
+                <button type="button" onclick="fecharModal()" class="modal-close" aria-label="Fechar modal">&times;</button>
             </div>
-            <form onsubmit="salvarItemGenerico(event)" class="space-y-3 text-xs">
+            <form onsubmit="salvarItemGenerico(event)">
                 <input type="hidden" id="modal-slug">
-                <div>
-                    <label class="block text-slate-400 mb-1">Título</label>
-                    <input type="text" id="modal-input-titulo" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-100 outline-none focus:border-sky-500">
+                <div class="form-group">
+                    <label for="modal-input-titulo">Título *</label>
+                    <input type="text" id="modal-input-titulo" required placeholder="Digite o título descritivo..." class="form-control">
                 </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Descrição</label>
-                    <textarea id="modal-input-desc" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-100 outline-none focus:border-sky-500"></textarea>
+                <div class="form-group">
+                    <label for="modal-input-desc">Descrição Detalhada</label>
+                    <textarea id="modal-input-desc" rows="3" placeholder="Informações adicionais..." class="form-control"></textarea>
                 </div>
-                <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
-                    <button type="button" onclick="fecharModal()" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-300">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold">Salvar</button>
+                <div class="modal-footer">
+                    <button type="button" onclick="fecharModal()" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Registro</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- TOASTS CONTAINER -->
+    <div id="toast-container" class="toast-container"></div>
+
     <script>
         function mudarAba(slug) {
-            document.querySelectorAll('section[id^="sec-"]').forEach(s => s.classList.add('hidden'));
-            document.querySelectorAll('button[id^="tab-btn-"]').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             const sec = document.getElementById('sec-' + slug);
             const btn = document.getElementById('tab-btn-' + slug);
-            if (sec) sec.classList.remove('hidden');
+            if (sec) sec.classList.add('active');
             if (btn) btn.classList.add('active');
         }
 
         function abrirModalNovo(slug) {
             document.getElementById('modal-slug').value = slug;
-            document.getElementById('modal-titulo').textContent = 'Novo Registro (' + slug + ')';
+            document.getElementById('modal-titulo').textContent = 'Novo Registro (' + slug.toUpperCase() + ')';
             document.getElementById('modal-input-titulo').value = '';
             document.getElementById('modal-input-desc').value = '';
-            document.getElementById('modal-generic').classList.remove('hidden');
+            document.getElementById('modal-generic').classList.add('open');
+            setTimeout(() => document.getElementById('modal-input-titulo').focus(), 50);
         }
 
         function fecharModal() {
-            document.getElementById('modal-generic').classList.add('hidden');
+            document.getElementById('modal-generic').classList.remove('open');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function mostrarToast(msg, tipo = 'sucesso') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + tipo;
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 3500);
         }
 
         async function salvarItemGenerico(e) {
@@ -598,23 +1009,24 @@ def generate_superapp_index_html(suite_name: str, module_slugs: list) -> str:
                 const res = await fetch('/api/' + slug + '/criar', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ titulo, descricao })
+                    body: JSON.stringify({ titulo, descricao, status: 'ativo' })
                 });
                 const data = await res.json();
                 if (data.sucesso) {
                     fecharModal();
+                    mostrarToast('Registro salvo com sucesso!');
                     const fnName = 'carregar' + slug.charAt(0).toUpperCase() + slug.slice(1);
                     if (window[fnName]) window[fnName]();
                 } else {
-                    alert('Erro: ' + (data.erro || 'Falha ao salvar'));
+                    mostrarToast('Erro ao salvar: ' + (data.erro || 'Falha na operação'), 'erro');
                 }
             } catch (err) {
-                alert('Erro na requisição: ' + err);
+                mostrarToast('Erro na requisição: ' + err, 'erro');
             }
         }
 
         async function deletarItem(slug, id) {
-            if (!confirm('Deseja realmente remover este registro?')) return;
+            if (!confirm('Deseja realmente remover o registro #' + id + '?')) return;
             try {
                 const res = await fetch('/api/' + slug + '/deletar', {
                     method: 'POST',
@@ -623,11 +1035,15 @@ def generate_superapp_index_html(suite_name: str, module_slugs: list) -> str:
                 });
                 const data = await res.json();
                 if (data.sucesso) {
+                    mostrarToast('Registro #' + id + ' removido!');
                     const fnName = 'carregar' + slug.charAt(0).toUpperCase() + slug.slice(1);
                     if (window[fnName]) window[fnName]();
+                } else {
+                    mostrarToast('Erro ao remover: ' + (data.erro || 'Falha'), 'erro');
                 }
             } catch (e) {
                 console.error(e);
+                mostrarToast('Erro ao excluir registro', 'erro');
             }
         }
 
@@ -640,6 +1056,7 @@ __INITIAL_LOADS__
     </script>
 </body>
 </html>"""
+
     return (
         html_template
         .replace("__SUITE_NAME__", suite_name)

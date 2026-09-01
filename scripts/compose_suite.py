@@ -100,6 +100,14 @@ from core.webhooks import WebhookDispatcher
 from core.security import SecurityService, JWTService, OIDCService
 from core.mcp_server import MCPServer
 from core.metrics import MetricsRegistry, RequestInstrumentation
+from core.circuit_breaker import CircuitBreaker, CircuitState
+
+# Registro de Circuit Breakers (Serviços Externos)
+circuit_breakers = {
+    "webhooks": CircuitBreaker("webhooks", failure_threshold=5, timeout=60),
+    "sso": CircuitBreaker("sso", failure_threshold=3, timeout=30),
+    "mcp": CircuitBreaker("mcp", failure_threshold=5, timeout=60)
+}
 
 # Módulos / Fatias Verticais
 __IMPORTS__
@@ -332,6 +340,26 @@ def post_jobs_reprocessar(data):
     return job_queue.reprocessar(job_id)
 
 
+# 7.5 Rota de Circuit Breakers (Resiliência)
+@registry.get(
+    "/api/circuit-breakers",
+    summary="Listar Circuit Breakers",
+    tags=["8. Resiliência & Estabilidade"],
+    description="Retorna o status dos Circuit Breakers Nativos protetores de serviços externos.",
+    responses={"200": {"description": "Lista de Circuit Breakers"}}
+)
+def get_circuit_breakers(params):
+    return [
+        {
+            "name": cb.name,
+            "state": cb.state.value,
+            "failures": cb._failures,
+            "threshold": cb.failure_threshold
+        }
+        for cb in circuit_breakers.values()
+    ]
+
+
 # 7. Handler HTTP com OWASP Security Headers + Instrumentação Prometheus
 class AppHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -499,13 +527,18 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
-            res = webhook_dispatcher.testar_disparo(
-                url=body_data.get("url", ""),
-                secret=body_data.get("secret", ""),
-                evento=body_data.get("evento", "*"),
-                payload=body_data.get("payload", {})
-            )
-            self.wfile.write(json.dumps(res, ensure_ascii=False).encode("utf-8"))
+            cb = circuit_breakers["webhooks"]
+            try:
+                res = cb.call(
+                    webhook_dispatcher.testar_disparo,
+                    url=body_data.get("url", ""),
+                    secret=body_data.get("secret", ""),
+                    evento=body_data.get("evento", "*"),
+                    payload=body_data.get("payload", {})
+                )
+                self.wfile.write(json.dumps(res, ensure_ascii=False).encode("utf-8"))
+            except Exception as e:
+                self.wfile.write(json.dumps({"sucesso": False, "erro": str(e), "circuit_breaker": cb.state.value}).encode("utf-8"))
             return
 
         if path in registry.routes.get("POST", {}):

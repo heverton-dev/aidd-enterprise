@@ -55,14 +55,18 @@ def build_openapi_spec(target_dir: str, suite_name: str = "AIDD Suite") -> dict:
 
     from core.openapi import RouteRegistry
 
-    master_registry = RouteRegistry()
+    # RouteRegistry é um Singleton (ver templates/v2/openapi.py): toda
+    # instância criada neste processo compartilha o mesmo `self.routes`/
+    # `self.endpoints`, então registrar as rotas de cada módulo já as
+    # expõe no registry compartilhado — nenhuma mesclagem explícita é
+    # necessária (mesclar o singleton nele mesmo causaria loop infinito).
+    shared_registry = RouteRegistry()
     for slug in discover_modules(target_dir):
         module_name = f"modules.{slug}.routes"
         mod = __import__(module_name, fromlist=["registrar_rotas", "registry"])
         mod.registrar_rotas(None)
-        master_registry.include_registry(mod.registry)
 
-    return master_registry.generate_openapi_json(suite_name, "5.0.0")
+    return shared_registry.generate_openapi_json(suite_name, "5.0.0")
 
 
 def generate_typescript_types(spec: dict, modulos: list) -> str:

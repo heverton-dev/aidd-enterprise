@@ -1,9 +1,14 @@
 import json
 
 class RouteRegistry:
-    def __init__(self):
-        self.routes = {"GET": {}, "POST": {}, "PUT": {}, "DELETE": {}, "PATCH": {}}
-        self.endpoints = []
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(RouteRegistry, cls).__new__(cls)
+            cls._instance.routes = {"GET": {}, "POST": {}, "PUT": {}, "DELETE": {}, "PATCH": {}}
+            cls._instance.endpoints = []
+        return cls._instance
 
     def _normalize_responses(self, responses, sample_response):
         if responses and isinstance(responses, dict):

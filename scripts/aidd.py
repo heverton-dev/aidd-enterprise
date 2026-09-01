@@ -332,12 +332,11 @@ def cmd_status(args):
         print(f"Banco SQLite:  Ativo ({size_kb:.1f} KB)")
 
 
-def parse_natural_language_intent(prompt: str, base_dir: str = "."):
-    """Converte instrução em linguagem natural em composição determinística de módulos."""
+def cmd_plan(prompt: str, base_dir: str = ".", auto_apply: bool = False):
+    """Fase 1.5: Gera especificação técnica (SPEC) e plano estruturado antes da criação."""
     ensure_environment()
     prompt_lower = prompt.lower()
     
-    # Dicionário de domínios reconhecidos
     KNOWN_DOMAINS = [
         "crm", "erp", "faturamento", "financeiro", "vendas", "helpdesk",
         "suporte", "logistica", "estoque", "membros", "cursos", "catalogo",
@@ -353,7 +352,6 @@ def parse_natural_language_intent(prompt: str, base_dir: str = "."):
                 found_modules.append(slug)
                 
     if not found_modules:
-        # Extrair substantivos principais se nenhum domínio padrão for encontrado
         words = re.findall(r'\b[a-zA-Z]{4,}\b', prompt_lower)
         stop_words = {"crie", "uma", "aplicacao", "aplicativo", "sistema", "para", "com", "suite", "modulo", "faca", "gere"}
         found_modules = [w for w in words if w not in stop_words][:4]
@@ -361,17 +359,109 @@ def parse_natural_language_intent(prompt: str, base_dir: str = "."):
     if not found_modules:
         found_modules = ["principal", "configuracao"]
 
-    # Gerar nome do projeto
     slug_name = "-".join(found_modules[:3]) + "-suite"
-    target_path = os.path.join(base_dir, f"app_{slug_name}")
+    target_path = os.path.abspath(os.path.join(base_dir, f"app_{slug_name}"))
     suite_title = " ".join(m.capitalize() for m in found_modules) + " Suite"
 
+    os.makedirs(target_path, exist_ok=True)
+
+    # 1. Gerar SPEC-ARQUITETURA.md
+    spec_content = f"""# Especificação Técnica de Arquitetura (SPEC / PRD)
+
+**Projeto:** {suite_title}  
+**Diretório:** `{target_path}`  
+**Status do Planejamento:** AGUARDANDO_APROVACAO  
+**Prompt Original:** "{prompt}"  
+
+---
+
+## 1. Fatias Verticais Mapeadas
+"""
+    for m in found_modules:
+        spec_content += f"""
+### Módulo: `{m}`
+- **Entidades:** `{m.capitalize()}Model` (ID, Titulo, Dados JSON, Timestamps, Ativo)
+- **Serviço:** `{m.capitalize()}Service` com Full CRUD e emissão de eventos
+- **Rotas OpenAPI:** `GET /api/{m}`, `GET /api/{m}/obter`, `POST /api/{m}/criar`, `POST /api/{m}/atualizar`, `POST /api/{m}/deletar`
+- **UI:** Componente desacoplado em `src/static/components/{m}.html`
+- **Testes Unitários:** `tests/unit/test_{m}.py` com pytest
+"""
+
+    spec_content += """
+---
+
+## 2. Shared Kernel & Segurança
+- **Banco de Dados:** SQLite 3 WAL Mode (`src/core/database.py`)
+- **Mensageria:** EventBus Pub/Sub em memória (`src/core/events.py`)
+- **Segurança:** Autenticação JWT HS256 e Headers OWASP (`src/core/security.py`)
+- **APIs & MCP:** Swagger Studio em `/docs` e Servidor Universal MCP em `/mcp`
+
+---
+
+## 3. Próximo Passo: Aprovação e Execução
+Execute `python scripts/aidd.py apply --dir "{target_path}"` para compor o código e disparar os 7 Quality Gates.
+"""
+    spec_path = os.path.join(target_path, "SPEC-ARQUITETURA.md")
+    with open(spec_path, "w", encoding="utf-8") as f:
+        f.write(spec_content)
+
+    # 2. Gerar PLANO-EXECUCAO-ESTRUTURADO.json inicial
+    plano_data = {
+        "projeto": {
+            "nome": suite_title,
+            "slug": slug_name,
+            "diretorio": target_path,
+            "status": "PLANEJADO",
+            "prompt_origem": prompt,
+            "zero_api_key_mode": True,
+            "modulos": found_modules
+        },
+        "arquitetura": {
+            "padrao": "AIDD Modular Clean Architecture",
+            "banco": "SQLite WAL",
+            "mcp_enabled": True
+        }
+    }
+    plano_path = os.path.join(target_path, "PLANO-EXECUCAO-ESTRUTURADO.json")
+    with open(plano_path, "w", encoding="utf-8") as f:
+        json.dump(plano_data, f, indent=2, ensure_ascii=False)
+
     print("=" * 80)
-    print("🗣️  [AIDD NL-PARSER] Entrada em Linguagem Natural Detectada:")
-    print(f"   Prompt: '{prompt}'")
-    print(f"   ➔ Módulos Extraídos: {', '.join(found_modules)}")
-    print(f"   ➔ Destino Alvo:      {target_path}")
-    print(f"   ➔ Nome da Suite:     {suite_title}")
+    print("📋 [FASE 1.5 - SPEC & PLANEJAMENTO ARQUITETURAL]")
+    print("=" * 80)
+    print(f"Projeto:       {suite_title}")
+    print(f"Destino:       {target_path}")
+    print(f"Status:        PLANEJADO (Aguardando Aprovação)")
+    print(f"Fatias ({len(found_modules)}):   {', '.join(found_modules)}")
+    print(f"Documentos:    SPEC-ARQUITETURA.md | PLANO-EXECUCAO-ESTRUTURADO.json")
+    print("=" * 80)
+
+    if auto_apply:
+        cmd_apply(argparse.Namespace(dir=target_path))
+    else:
+        print("\n👉 Para aprovar e compor imediatamente, execute:")
+        print(f"   python scripts/aidd.py apply --dir \"{target_path}\"")
+        print("👉 Ou edite o plano/especificação acima para ajustar o escopo antes da execução.\n")
+
+
+def cmd_apply(args):
+    """Fase 2: Lê o plano estruturado planejado e executa a composição e gates."""
+    ensure_environment()
+    target_dir = os.path.abspath(getattr(args, "dir", "."))
+    plano_path = os.path.join(target_dir, "PLANO-EXECUCAO-ESTRUTURADO.json")
+    
+    if not os.path.exists(plano_path):
+        print(f"[ERRO] Manifesto '{plano_path}' não encontrado. Execute 'plan' primeiro.")
+        sys.exit(1)
+
+    with open(plano_path, "r", encoding="utf-8") as f:
+        plano = json.load(f)
+
+    suite_name = plano.get("projeto", {}).get("nome", "Enterprise Suite")
+    modulos = plano.get("projeto", {}).get("modulos", ["crm", "erp"])
+
+    print("=" * 80)
+    print(f"🚀 [FASE 2 - PROCESSAMENTO] Executando Plano Aprovado: '{suite_name}'")
     print("=" * 80)
 
     try:
@@ -379,12 +469,16 @@ def parse_natural_language_intent(prompt: str, base_dir: str = "."):
     except ImportError:
         from scripts.compose_suite import compose_suite
 
-    compose_suite(target_path, suite_title, found_modules)
+    compose_suite(target_dir, suite_name, modulos)
+
+
+def parse_natural_language_intent(prompt: str, base_dir: str = "."):
+    """Ponto de entrada por Linguagem Natural — Gera o Plano / SPEC (Fase 1.5)."""
+    cmd_plan(prompt, base_dir=base_dir, auto_apply=False)
 
 
 def main():
-    # Se o usuário passou um prompt livre em linguagem natural como primeiro argumento
-    known_cmds = {"setup", "init", "compose", "add-module", "test", "audit", "deploy", "status", "-h", "--help"}
+    known_cmds = {"setup", "init", "plan", "apply", "prompt", "compose", "add-module", "test", "audit", "deploy", "status", "-h", "--help"}
     if len(sys.argv) > 1 and sys.argv[1] not in known_cmds:
         raw_prompt = " ".join(sys.argv[1:])
         parse_natural_language_intent(raw_prompt)
@@ -392,6 +486,16 @@ def main():
 
     parser = argparse.ArgumentParser(description="AIDD Framework CLI — Dividir para Conquistar (v4.1 Enterprise)")
     subparsers = parser.add_subparsers(dest="command", help="Comando a executar")
+
+    # plan (Fase 1.5 - Especificação e Planejamento)
+    p_plan = subparsers.add_parser("plan", help="Gera especificação arquitetural e plano antes de compor")
+    p_plan.add_argument("prompt", help="Instrução em linguagem natural (ex: 'Crie um CRM e ERP de faturamento')")
+    p_plan.add_argument("--dir", default=".", help="Diretório base de destino")
+    p_plan.add_argument("--apply", action="store_true", help="Executa a composição imediatamente após planejar")
+
+    # apply (Fase 2 - Execução do Plano Aprovado)
+    p_apply = subparsers.add_parser("apply", help="Executa o plano estruturado aprovado e roda os gates")
+    p_apply.add_argument("--dir", default=".", help="Diretório do projeto contendo PLANO-EXECUCAO-ESTRUTURADO.json")
 
     # prompt (comando explícito de linguagem natural)
     p_prompt = subparsers.add_parser("prompt", help="Gera aplicação a partir de prompt em linguagem natural")
@@ -443,6 +547,8 @@ def main():
         sys.exit(1)
 
     cmds = {
+        "plan": lambda a: cmd_plan(a.prompt, getattr(a, "dir", "."), getattr(a, "apply", False)),
+        "apply": cmd_apply,
         "prompt": lambda a: parse_natural_language_intent(a.texto, getattr(a, "dir", ".")),
         "setup": cmd_setup,
         "init": cmd_init,

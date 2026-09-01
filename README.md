@@ -1,29 +1,54 @@
-# 📦 aidd-master-pack-v4 (v4.0.0)
+# 📦 AIDD Master Pack v4.0 (Enterprise Cross-Project Suite)
 
-> **AIDD v4.0 — Cross-Project Enterprise Monolith Suite (Unificação de 5 Domínios: CRM, ERP, Helpdesk, Cursos e Catálogo com EventBus Cross-Domain e Super-App UI).**
+> **O Framework Definitivo para Monólitos Modulares, Clean Architecture e Integração Agêntica de Domínios de Negócio.**
 
 ---
 
-## 🏛️ Estrutura do Pacote
+## 🏛️ Visão Geral
+
+A versão **4.0 (Cross-Project)** eleva o ecossistema AIDD ao nível corporativo de alta performance. Ela permite pegar múltiplos projetos independentes (CRM, ERP, Helpdesk, Logística, Catálogo, Membros) e unificá-los em uma única suíte empresarial robusta:
+
+- **Isolamento de Domínios (Vertical Slices):** Sem acoplamento espaguete entre módulos.
+- **EventBus Assíncrono:** Integração entre módulos orientada a eventos em tempo real.
+- **Diligência Full CRUD:** Criação, leitura, atualização e exclusão em todas as fatias.
+- **Swagger Studio OpenAPI 3.1 (`/docs`):** Documentação viva com testador ao vivo.
+- **Model Context Protocol (`/mcp`):** 100% das operações exportadas para agentes de IA (Claude, Cursor, Antigravity).
+- **Webhooks com HMAC:** Notificação para microsserviços e integrações externas.
+- **Impeccable Design System:** Super-App UI com 4px scrollbars, header de linha única e zero emojis.
+
+---
+
+## 📂 Estrutura do Pacote
 
 ```
 aidd-master-pack-v4/
 ├── scripts/
-│   ├── aidd.py               # Micro-CLI do framework
+│   ├── aidd.py               # Micro-CLI de automação
+│   ├── compose_suite.py      # Motor de Composição Cross-Project
 │   ├── add_module.py         # Gerador atômico de fatias verticais
 │   └── gates/                # Quality & Security Gates determinísticos
-├── templates/                # Templates e Shared Kernel da versão 4.0.0
-├── examples/                 # Projetos de referência e exemplos oficiais
-├── README.md                 # Especificação técnica do pacote 4.0.0
-└── SKILL.md                  # Skill agêntica para Antigravity / Cursor / Claude
+├── templates/
+│   ├── rules/                # Regras determinísticas (01_regras, 02_slices, 03_impeccable, 04_cross_project)
+│   └── v2/                   # Shared Kernel & Componentes UI
+├── examples/
+│   ├── enterprise-suite-v4/  # Suíte Corporativa Unificada de 5 Domínios
+│   └── logistica-hub-v4/     # Suíte Logística & Frotas com 20 Tools MCP
+├── README.md
+└── SKILL.md
 ```
 
-## 🚀 Instalação e Uso Rápido
+---
+
+## 🚀 Como Iniciar
 
 ```bash
-# Executar gates de qualidade
-python scripts/gates/G_QUALIDADE.py
+# Iniciar a suite de referência
+cd examples/logistica-hub-v4
+python src/server.py
 
-# Criar um novo módulo vertical
-python scripts/add_module.py financeiro
+# Acessar os portais
+# - Aplicação Web: http://localhost:3000
+# - Swagger Studio: http://localhost:3000/docs
+# - Guia Oficial: http://localhost:3000/docs/guia
+# - Portal MCP: http://localhost:3000/mcp
 ```

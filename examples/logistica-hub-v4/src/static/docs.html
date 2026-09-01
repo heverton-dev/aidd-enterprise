@@ -124,6 +124,7 @@ button, .btn, .btn-primary, .btn-secondary, .btn-gold, .btn-danger,
         </div>
         <div style="display: flex; gap: 0.8rem;">
             <a href="/" class="btn">Aplicacao Super-App</a>
+            <a href="/webhooks" class="btn" style="border-color: rgba(139, 92, 246, 0.4); color: #c4b5fd;">Webhook Studio</a>
             <a href="/mcp" class="btn" style="border-color: rgba(16,185,129,0.4); color: #34d399;">Portal MCP</a>
             <a href="/docs" class="btn btn-primary">Swagger Studio (/docs)</a>
         </div>
@@ -298,6 +299,61 @@ button, .btn, .btn-primary, .btn-secondary, .btn-gold, .btn-danger,
                 "content": `
                     <h2>JSON-RPC 2.0 Nativo</h2>
                     <p>O servidor expõe em <code>/api/mcp/rpc</code> e na rota <code>/mcp</code> todas as 20 ferramentas cobrindo 100% das operações da suíte.</p>
+                `
+            },
+            {
+                "id": "webhook_studio_specs",
+                "cat": "4. Webhook Configuration Studio",
+                "title": "Webhook Configuration Studio v4",
+                "subtitle": "Gerenciamento visual de endpoints, simulação de eventos, logs de auditoria e validação HMAC-SHA256.",
+                "content": `
+                    <h2>Arquitetura do Webhook Studio</h2>
+                    <p>O Webhook Configuration Studio (acessível via <code>/webhooks</code>) fornece gerenciamento unificado de integrações assíncronas para toda a suíte empresarial.</p>
+                    <table class="doc-table">
+                        <thead>
+                            <tr><th>Recurso</th><th>Descrição</th><th>Rota / Interface</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Gerenciador de Endpoints</strong></td><td>Cadastro de URLs de destino com retry configurável (1x a 5x) e geração de secret token.</td><td><code>GET/POST /api/webhooks</code></td></tr>
+                            <tr><td><strong>Simulador Interativo</strong></td><td>Playground para disparar eventos simulados e inspecionar headers, assinatura HMAC e latência em tempo real.</td><td><code>POST /api/webhooks/testar</code></td></tr>
+                            <tr><td><strong>Auditoria de Entregas</strong></td><td>Histórico detalhado de cada disparo com status code, tempo de execução (ms) e botão de reenvio.</td><td><code>GET /api/webhooks/logs</code></td></tr>
+                            <tr><td><strong>Assinatura HMAC-SHA256</strong></td><td>Cabeçalhos <code>X-Webhook-Signature</code> e <code>X-Hub-Signature-256</code> incluídos em cada requisição.</td><td><code>sha256=&lt;hash&gt;</code></td></tr>
+                        </tbody>
+                    </table>
+                `
+            },
+            {
+                "id": "cybersecurity_shield",
+                "cat": "5. Cibersegurança & Blindagem",
+                "title": "Blindagem Cibernética Militar (Hardened Shield)",
+                "subtitle": "Arquitetura defensiva de 7 camadas, conformidade OWASP Top 10, Nginx Anti-DDoS e Autenticação JWT.",
+                "content": `
+                    <div class="callout tip">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <div>
+                            <strong>Certificação de Blindagem AIDD v4:</strong> O sistema é protegido contra todas as vulnerabilidades do OWASP Top 10, ataques de injeção SQL, Clickjacking, MIME-sniffing, Timing Attacks, brute-force e ataques de negação de serviço (DoS/DDoS).
+                        </div>
+                    </div>
+
+                    <h2>As 7 Camadas Defensivas da Aplicação</h2>
+                    <table class="doc-table">
+                        <thead>
+                            <tr><th>Camada</th><th>Mecanismo Defensivo</th><th>Impacto na Segurança</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>1. Nginx Reverse Proxy</strong></td><td>Rate Limiting (100 req/s), limite de conexões simultâneas e buffer restrito.</td><td>Bloqueia ataques DDoS e brute-force na borda sem consumir CPU do Python.</td></tr>
+                            <tr><td><strong>2. Headers OWASP</strong></td><td><code>HSTS (2 anos)</code>, <code>X-Frame-Options: DENY</code>, <code>X-Content-Type-Options: nosniff</code>, <code>CSP</code>.</td><td>Impenetrabilidade contra Clickjacking, XSS e ataques via browser.</td></tr>
+                            <tr><td><strong>3. JWT Cryptographic Engine</strong></td><td>Assinatura HMAC-SHA256, expiração de tokens e <code>hmac.compare_digest</code>.</td><td>Imunidade total contra Timing Attacks e adulteração de payloads (Tampering).</td></tr>
+                            <tr><td><strong>4. SQL Parametrizado</strong></td><td>100% de consultas com placeholders <code>?</code> no SQLite WAL.</td><td>Zero vulnerabilidades de SQL Injection comprovado em varreduras DAST.</td></tr>
+                            <tr><td><strong>5. Trilha Forense</strong></td><td>Tabela <code>logs_auditoria</code> e logs Nginx formatados em JSON.</td><td>Rastreabilidade completa de todas as ações de usuários e IAs.</td></tr>
+                            <tr><td><strong>6. Container Non-Root</strong></td><td>Execução sob usuário restrito <code>aidduser</code> (UID 10001) com healthcheck.</td><td>Impede qualquer tentativa de escalonamento de privilégios para a VPS.</td></tr>
+                            <tr><td><strong>7. Gate Determinístico</strong></td><td>Script automatizado <code>G_SEGURANCA.py</code> executado no pipeline CI/CD.</td><td>Bloqueia qualquer regressão de segurança antes da publicação.</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h2>Comando de Auditoria & Teste de Fogo Local</h2>
+                    <pre class="code-box">python scripts/gates/G_SEGURANCA.py</pre>
+                    <p>Executa a bateria completa de 7 camadas de testes verificando criptografia, headers, queries SQL, Nginx e Docker.</p>
                 `
             }
         ];

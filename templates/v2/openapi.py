@@ -580,6 +580,7 @@ class RouteRegistry:
         </div>
         <div style="display: flex; gap: 0.8rem;">
             <a href="/" class="btn">Aplicação Web</a>
+            <a href="/webhooks" class="btn" style="border-color: rgba(139, 92, 246, 0.4); color: #c4b5fd;">Webhook Studio</a>
             <a href="/mcp" class="btn" style="border-color: rgba(16,185,129,0.4); color: #34d399;">Portal MCP</a>
             <a href="/docs/guia" class="btn" style="border-color: rgba(59,130,246,0.5); color: #93c5fd;">Guia Oficial</a>
             <a href="/openapi.json" target="_blank" class="btn">Exportar JSON</a>

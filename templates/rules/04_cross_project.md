@@ -16,8 +16,9 @@ O **AIDD v4** é o motor de Composição e Unificação Empresarial Cross-Projec
      - *Exemplo 2 (Entregas ➔ Financeiro):* `entrega_concluida` ➔ O Financeiro liquida a receita do frete.
      - *Exemplo 3 (Frotas ➔ Suporte):* `veiculo_manutencao` ➔ O Suporte abre automaticamente um incidente P1 no SLA.
 
-3. **Disparadores de Webhook em Tempo Real:**
-   - Todo evento de domínio relevante (Criação, Atualização, Exclusão) notifica os assinantes externos com assinatura HMAC-SHA256 e payload JSON padronizado.
+3. **Webhook Configuration Studio & Disparadores em Tempo Real:**
+   - Studio visual dedicado (`/webhooks`) para gerenciamento completo de assinantes externos, controle de retry inteligente, auditoria em tempo real de logs de entrega e simulador interativo de payloads.
+   - Todo evento de domínio relevante (Criação, Atualização, Exclusão, Cross-Domain) notifica os assinantes externos com assinatura HMAC-SHA256 (`X-Webhook-Signature`, `X-Hub-Signature-256`) e payload JSON padronizado.
 
 4. **Documentação Unificada OpenAPI 3.1 & Swagger Studio:**
    - O núcleo compõe dinamicamente todas as rotas e tags das fatias verticais em uma única interface Swagger Studio interativa (`/docs`).

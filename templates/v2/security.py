@@ -1,4 +1,4 @@
-import hmac, hashlib, base64, json, time, os
+import hmac, hashlib, base64, json, time, os, urllib.parse, urllib.request
 
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "aidd_enterprise_master_jwt_secret_key_v4_scale_production_2026")
 
@@ -103,5 +103,95 @@ class SecurityService:
         
         if required_role and payload.get("role") != required_role and payload.get("role") != "admin":
             return False, f"Acesso negado. Requer nível '{required_role}'"
-            
+
         return True, payload
+
+
+class OIDCService:
+    """Fluxo OAuth2 Authorization Code + PKCE para SSO corporativo (Google
+    Workspace, Microsoft Entra ID, GitHub, Okta). Ativado apenas quando as
+    variáveis de ambiente OIDC_* estão configuradas — o modo padrão (JWT local
+    via JWTService) continua funcionando sem nenhuma dependência extra."""
+
+    @staticmethod
+    def generate_pkce_pair() -> tuple:
+        """Gera o par (code_verifier, code_challenge) do PKCE (RFC 7636, método S256)."""
+        verifier = base64.urlsafe_b64encode(os.urandom(40)).decode("utf-8").rstrip("=")
+        challenge = base64.urlsafe_b64encode(
+            hashlib.sha256(verifier.encode("utf-8")).digest()
+        ).decode("utf-8").rstrip("=")
+        return verifier, challenge
+
+    @staticmethod
+    def build_authorization_url(authorization_endpoint: str, client_id: str, redirect_uri: str,
+                                 state: str, code_challenge: str, scope: str = "openid email profile") -> str:
+        params = {
+            "response_type": "code",
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "scope": scope,
+            "state": state,
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256",
+        }
+        return f"{authorization_endpoint}?{urllib.parse.urlencode(params)}"
+
+    @staticmethod
+    def exchange_code_for_tokens(token_endpoint: str, client_id: str, client_secret: str,
+                                  code: str, code_verifier: str, redirect_uri: str) -> dict:
+        """Troca o authorization code por tokens (id_token, access_token) via
+        Authorization Code + PKCE, sem depender de bibliotecas HTTP externas."""
+        data = urllib.parse.urlencode({
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": redirect_uri,
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "code_verifier": code_verifier,
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            token_endpoint, data=data,
+            headers={"Content-Type": "application/x-www-form-urlencoded"}
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+
+    @staticmethod
+    def fetch_jwks(jwks_uri: str) -> dict:
+        with urllib.request.urlopen(jwks_uri, timeout=10) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+
+    @staticmethod
+    def validate_id_token(id_token: str, jwks: dict, audience: str, issuer: str) -> dict:
+        """Valida a assinatura criptográfica RS256 do id_token contra a chave
+        pública correspondente no JWKS, e as claims padrão (iss, aud, exp)."""
+        try:
+            import jwt
+        except ImportError:
+            raise RuntimeError("PyJWT não instalado. Para SSO OIDC, instale: pip install pyjwt cryptography")
+
+        header = jwt.get_unverified_header(id_token)
+        kid = header.get("kid")
+        keys = jwks.get("keys", [])
+        jwk = next((k for k in keys if k.get("kid") == kid), None)
+        if jwk is None and keys:
+            jwk = keys[0]
+        if jwk is None:
+            raise ValueError("JWKS não contém nenhuma chave pública utilizável")
+
+        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(jwk))
+        return jwt.decode(id_token, key=public_key, algorithms=["RS256"], audience=audience, issuer=issuer)
+
+    @staticmethod
+    def map_claims_to_role(claims: dict, group_role_map: dict = None) -> str:
+        """Mapeia grupos/claims corporativos para os papéis internos do sistema
+        (admin/operador/leitor). Sem correspondência no mapa, o papel padrão
+        de menor privilégio ('leitor') é atribuído."""
+        group_role_map = group_role_map or {}
+        groups = claims.get("groups") or claims.get("roles") or []
+        if isinstance(groups, str):
+            groups = [groups]
+        for g in groups:
+            if g in group_role_map:
+                return group_role_map[g]
+        return "leitor"

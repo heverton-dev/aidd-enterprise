@@ -88,7 +88,7 @@ from core.outbox_worker import OutboxWorker
 from core.jobs import JobQueue
 from core.openapi import RouteRegistry
 from core.webhooks import WebhookDispatcher
-from core.security import SecurityService, JWTService
+from core.security import SecurityService, JWTService, OIDCService
 from core.mcp_server import MCPServer
 
 # Módulos / Fatias Verticais
@@ -100,16 +100,33 @@ __DB_INIT__
 
 db = Database(__DB_URL_EXPR__)
 events = EventBus()
-outbox_worker = OutboxWorker(db, events)
-outbox_worker.start()
-job_queue = JobQueue(db=db)
 webhook_dispatcher = WebhookDispatcher(db)
 registry = RouteRegistry()
 mcp_server = MCPServer(DB_PATH)
 
-# 1. Inicializar Schemas de todos os módulos
+# Configuração SSO Corporativo (OAuth2/OIDC + PKCE) — opcional, Zero Fricção
+# quando não configurada: o login local JWT (/api/auth/login) continua ativo.
+OIDC_CONFIG = {
+    "client_id": os.environ.get("OIDC_CLIENT_ID", ""),
+    "client_secret": os.environ.get("OIDC_CLIENT_SECRET", ""),
+    "authorization_endpoint": os.environ.get("OIDC_AUTHORIZATION_ENDPOINT", ""),
+    "token_endpoint": os.environ.get("OIDC_TOKEN_ENDPOINT", ""),
+    "jwks_uri": os.environ.get("OIDC_JWKS_URI", ""),
+    "issuer": os.environ.get("OIDC_ISSUER", ""),
+    "redirect_uri": os.environ.get("OIDC_REDIRECT_URI", f"http://localhost:{PORT}/api/auth/oauth/callback"),
+}
+_oidc_pending_states = {}
+
+# 1. Inicializar Schemas de todos os módulos (via conexão única do processo
+# principal, ANTES de qualquer worker em background tocar o arquivo/schema —
+# evita SQLITE_BUSY transitório na primeira inicialização do WAL)
 with db.get_connection() as conn:
 __INIT_SCHEMAS__
+
+# 1.5 Workers de background (Outbox e Jobs) só iniciam DEPOIS do schema pronto
+outbox_worker = OutboxWorker(db, events)
+outbox_worker.start()
+job_queue = JobQueue(db=db)
 
 # 2. Instanciar Serviços de Negócio
 __SERVICE_INITS__
@@ -161,6 +178,76 @@ def post_login(data):
 )
 def get_auth_me(params):
     return {"autenticado": True, "usuario": {"email": "admin@empresa.com", "role": "admin", "status": "ativo"}}
+
+# 5.5 Rotas de SSO Corporativo (OAuth2/OIDC + PKCE)
+@registry.get(
+    "/api/auth/oauth/login",
+    summary="Iniciar Login SSO (OAuth2/OIDC + PKCE)",
+    tags=["0. Autenticação & Segurança"],
+    description="Gera a URL de autorização do provedor de identidade corporativo (Google Workspace, Microsoft Entra ID, Okta, GitHub) usando Authorization Code + PKCE. O front-end deve redirecionar o navegador para redirect_url.",
+    responses={
+        "200": {"description": "URL de autorização gerada", "content": {"application/json": {"example": {"redirect_url": "https://idp.exemplo.com/authorize?...", "state": "a1b2c3"}}}}
+    }
+)
+def get_oauth_login(params):
+    if not OIDC_CONFIG.get("authorization_endpoint"):
+        return {"sucesso": False, "erro": "SSO OIDC não configurado. Defina as variáveis OIDC_* no ambiente."}
+    verifier, challenge = OIDCService.generate_pkce_pair()
+    state = uuid.uuid4().hex
+    _oidc_pending_states[state] = verifier
+    url = OIDCService.build_authorization_url(
+        OIDC_CONFIG["authorization_endpoint"], OIDC_CONFIG["client_id"],
+        OIDC_CONFIG["redirect_uri"], state, challenge
+    )
+    return {"redirect_url": url, "state": state}
+
+@registry.get(
+    "/api/auth/oauth/callback",
+    summary="Callback OAuth2/OIDC",
+    tags=["0. Autenticação & Segurança"],
+    description="Troca o authorization code por tokens, valida o id_token via JWKS (RS256) e emite um JWT interno da aplicação com claims e papel corporativo mapeado.",
+    query_params=[
+        {"name": "code", "type": "string", "req": True, "desc": "Authorization code retornado pelo provedor"},
+        {"name": "state", "type": "string", "req": True, "desc": "State para validação CSRF/PKCE"}
+    ],
+    responses={
+        "200": {"description": "Login concluído, token JWT interno emitido"},
+        "400": {"description": "state inválido/expirado ou id_token não pôde ser validado"}
+    }
+)
+def get_oauth_callback(params):
+    code = params.get("code", [None])[0] if isinstance(params.get("code"), list) else params.get("code")
+    state = params.get("state", [None])[0] if isinstance(params.get("state"), list) else params.get("state")
+
+    verifier = _oidc_pending_states.pop(state, None)
+    if not verifier:
+        return {"sucesso": False, "erro": "state inválido ou expirado"}
+
+    try:
+        tokens = OIDCService.exchange_code_for_tokens(
+            OIDC_CONFIG["token_endpoint"], OIDC_CONFIG["client_id"], OIDC_CONFIG["client_secret"],
+            code, verifier, OIDC_CONFIG["redirect_uri"]
+        )
+        id_token = tokens.get("id_token")
+        jwks = OIDCService.fetch_jwks(OIDC_CONFIG["jwks_uri"])
+        claims = OIDCService.validate_id_token(id_token, jwks, OIDC_CONFIG["client_id"], OIDC_CONFIG["issuer"])
+    except Exception as e:
+        return {"sucesso": False, "erro": f"Falha na validação SSO: {e}"}
+
+    role = OIDCService.map_claims_to_role(claims, OIDC_CONFIG.get("group_role_map", {}))
+    email = claims.get("email", claims.get("sub", ""))
+    app_token = JWTService.encode({"sub": email, "role": role, "name": claims.get("name", "")})
+
+    payload = {"email": email, "role": role}
+    events.emit("usuario_autenticado_sso", payload)
+    webhook_dispatcher.disparar("auth.sso_login_sucesso", payload)
+
+    return {
+        "sucesso": True,
+        "token": app_token,
+        "tipo": "Bearer",
+        "usuario": {"email": email, "role": role, "nome": claims.get("name", "")}
+    }
 
 # 6. Rotas de Webhooks
 @registry.get(
@@ -407,7 +494,10 @@ if __name__ == "__main__":
 """
     if db_engine == "postgres":
         db_init_str = (
-            "DATABASE_URL_EXEMPLO = \"postgresql://aidd_user:CHANGE_ME@localhost:5432/aidd_suite\""
+            "DATABASE_URL_EXEMPLO = \"postgresql://aidd_user:CHANGE_ME@localhost:5432/aidd_suite\"\n"
+            "# MCPServer permanece baseado em SQLite por design proprio (introspeccao via arquivo local),\n"
+            "# independente do motor escolhido para a Database principal.\n"
+            "DB_PATH = os.path.join(CURRENT_DIR, \"..\", \"mcp_introspection.db\")"
         )
         db_url_expr_str = "os.environ.get(\"DATABASE_URL\", DATABASE_URL_EXEMPLO)"
     else:
@@ -812,7 +902,7 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
                 print(f"  [+] Quality Gate: {g}")
 
     # 9. Copiar Scripts de Automação
-    for s in ["aidd.py", "add_module.py", "compose_suite.py"]:
+    for s in ["aidd.py", "add_module.py", "compose_suite.py", "openapi_to_ts.py"]:
         src = os.path.join(scripts_dir, s)
         if os.path.isfile(src):
             shutil.copyfile(src, os.path.join(target_scripts_dir, s))

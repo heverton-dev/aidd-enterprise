@@ -407,6 +407,22 @@ def cmd_deploy(args):
     print(f"✨ [OK] Instruções de deploy para {alvo} processadas.")
 
 
+def cmd_export_frontend(args):
+    ensure_environment()
+    target_dir = os.path.abspath(getattr(args, "dir", "."))
+    plano_path = os.path.join(target_dir, "PLANO-EXECUCAO-ESTRUTURADO.json")
+    suite_name = "AIDD Suite"
+    if os.path.exists(plano_path):
+        with open(plano_path, "r", encoding="utf-8") as f:
+            suite_name = json.load(f).get("projeto", {}).get("nome", suite_name)
+
+    try:
+        from openapi_to_ts import export_frontend
+    except ImportError:
+        from scripts.openapi_to_ts import export_frontend
+    export_frontend(target_dir, suite_name, stack=getattr(args, "stack", "nextjs"))
+
+
 def cmd_status(args):
     target_dir = os.path.abspath(getattr(args, "dir", "."))
     print("=" * 80)
@@ -609,7 +625,7 @@ def parse_natural_language_intent(prompt: str, base_dir: str = "."):
 
 
 def main():
-    known_cmds = {"setup", "init", "plan", "apply", "prompt", "compose", "add-module", "test", "audit", "bench", "heal", "deploy", "status", "-h", "--help"}
+    known_cmds = {"setup", "init", "plan", "apply", "prompt", "compose", "add-module", "test", "audit", "bench", "heal", "deploy", "status", "export-frontend", "-h", "--help"}
     if len(sys.argv) > 1 and sys.argv[1] not in known_cmds:
         raw_prompt = " ".join(sys.argv[1:])
         parse_natural_language_intent(raw_prompt)
@@ -682,6 +698,11 @@ def main():
     p_stat = subparsers.add_parser("status", help="Exibe integridade dos módulos e manifesto do projeto")
     p_stat.add_argument("--dir", default=".", help="Diretório do projeto")
 
+    # export-frontend
+    p_export = subparsers.add_parser("export-frontend", help="Exporta front-end Next.js/TypeScript tipado a partir do OpenAPI")
+    p_export.add_argument("--stack", choices=["nextjs"], default="nextjs", help="Stack de frontend alvo")
+    p_export.add_argument("--dir", default=".", help="Diretório do projeto")
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
@@ -700,7 +721,8 @@ def main():
         "test": cmd_test,
         "audit": cmd_audit,
         "deploy": cmd_deploy,
-        "status": cmd_status
+        "status": cmd_status,
+        "export-frontend": cmd_export_frontend
     }
     cmds[args.command](args)
 

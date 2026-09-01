@@ -1,69 +1,82 @@
-# AIDD Master Pack — AI-Driven Development Framework (v1.0)
+# AIDD Master Pack v2.0 — Enterprise Modular & Cloud-Ready Framework
 
-> **Framework de Provisionamento e Orquestração Agêntica de Software com Zero Fricção de API Key, Economia Extrema de Tokens e Clean Architecture.**
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Architecture: AIDD v2.0 Modular](https://img.shields.io/badge/Architecture-AIDD%20v2.0%20Modular-emerald.svg)](#-arquitetura-modular-data-driven)
+[![OpenAPI / Swagger](https://img.shields.io/badge/API-OpenAPI%203.0%20%2F%20Swagger-cyan.svg)](#-documentacao-openapi-e-swagger-ui)
+[![Deploy: Docker / VPS](https://img.shields.io/badge/Deploy-Docker%20%2F%20VPS%20(Hetzner)-purple.svg)](#-deploy-multi-cloud-e-docker)
 
----
-
-## 🌟 Visão Geral
-
-O **AIDD Master Pack** transforma uma ideia descrita em linguagem natural em um **projeto de software completo, funcional e testado em segundos**.
-
-Ele une os conceitos de:
-* **Tratado das 4 Camadas (Heverton Peres)**: Tela/UI, Harness/Segurança, LLM/Raciocínio e Tools/Determinismo.
-* **Orquestração Multi-Agente com ORCA Worktrees**: Mesas de trabalho isoladas sem contaminação de contexto.
-* **Design System Impeccable (Regra Zero Emojis)**: Interfaces limpas, profissionais e livres de clichês de IA.
-* **Modo Zero API Key Pass-Through**: 90% do trabalho mecânico roda em Python local sem depender de chaves externas.
+> **Framework Empresarial de Provisionamento, Modularidade sob Demanda e Orquestração Agêntica com Zero Fricção de API Key, Dual Database (SQLite/Postgres) e Design Impeccable (Zero Emojis).**
 
 ---
 
-## 🏛️ As 4 Camadas do Tratado
+## 🌟 O Que Há de Novo na v2.0
 
-* **Camada 1: Tela & UI** — Soberania em PT-BR, Prefix Caching de 90%, Zero Amnésia.
-* **Camada 2: Harness & Segurança** — Circuit Breakers, Sandbox Reversível, Worktrees ORCA.
-* **Camada 3: LLM & Raciocínio** — Caveman Ultra (Thinking em English Caveman denso).
-* **Camada 4: Tools & Determinismo** — 90% Determinismo local em Python, SQLite WAL e Gates.
+1. **Modularidade sob Demanda (`python scripts/add_module.py <nome>`):**
+   - O usuário pode criar novos módulos independentes a qualquer momento com 1 comando.
+   - Cada módulo contém seu schema de banco, regras de negócio, rotas REST, componentes visuais e testes automatizados.
+2. **Dual Database Engine:**
+   - **Desenvolvimento:** SQLite WAL mode (Zero configuração local).
+   - **Produção:** PostgreSQL / Supabase chaveado via `DATABASE_URL`.
+3. **OpenAPI 3.0 & Swagger UI Automático (`/docs`):**
+   - Todas as rotas de todos os módulos aparecem auto-documentadas interativamente.
+4. **Testes de Carga (Locust) e E2E (Playwright):**
+   - `tests/load/locustfile.py` para simular 10.000 requisições simultâneas.
+5. **Infraestrutura Cloud-Ready:**
+   - `Dockerfile` multi-stage, `docker-compose.yml` e script de deploy em VPS Hetzner/Contabo (`deploy.sh`).
+6. **Design Impeccable (Regra Zero Emojis):**
+   - Interfaces corporativas com ícones vetoriais SVG e acabamento de alto nível.
 
 ---
 
-## 🏆 As 3 Regras de Ouro (Anti-Estouro de Tokens)
+## 🏛️ Estrutura de Diretórios Modular
 
-1. **Não use o chat principal como terminal:** Deixe compilação, testes (pytest) e tarefas mecânicas rodando via Python local. Isso economiza 90% do seu consumo semanal.
-2. **Use Worktrees do ORCA para frentes grandes:** Cada tarefa separada em sua mesa limpa evita que o contexto principal acumule 100k+ tokens desnecessários.
-3. **Reinicie sessões usando o Plano JSON:** Ao começar um novo dia ou módulo, abra uma sessão nova apontando para o `PLANO-EXECUCAO-ESTRUTURADO.json`. O agente retoma o estado exato consumindo apenas 500 tokens em vez de 80.000 do histórico passado.
-
----
-
-## 🛡️ Gates Mecânicos de Validação (Zero Token)
-
-Todos os projetos gerados incluem gates determinísticos em Python que barram código quebrado antes do commit:
-* `G_SEGREDOS.py` — Analisa **Entropia de Shannon (> 4.6 bits)** e bloqueia credenciais/chaves expostas.
-* `G_QUALIDADE.py` — Compila a sintaxe e valida a integridade com `py_compile`.
-* `G_HARNESS_COMPAT.py` — Garante compatibilidade automática com 21 IDEs e harnesses.
+```
+projeto-v2/
+├── src/
+│   ├── core/                  # Database Dual, EventBus, OpenAPI Generator
+│   ├── modules/               # Módulos Desacoplados (Auth, Cupons, Afiliados...)
+│   │   └── <modulo>/
+│   │       ├── models.py      # Schemas e Tabelas SQLite/Postgres
+│   │       ├── services.py    # Regras de Negócio e Casos de Uso
+│   │       └── routes.py      # Endpoints REST e Contratos
+│   └── static/                # Frontend SPA Impeccable com Componentes
+├── tests/
+│   ├── unit/                  # Testes unitários de cada módulo
+│   └── load/locustfile.py     # Testes de estresse com Locust
+├── scripts/
+│   ├── provision_project.py   # Gerador do Projeto Base
+│   ├── add_module.py          # Criador Dinâmico de Módulos
+│   └── gates/                 # Gates Mecânicos (Shannon Entropy, Qualidade)
+├── Dockerfile & docker-compose.yml # Containers de Produção
+└── deploy.sh                  # Deploy em VPS Hetzner / Contabo
+```
 
 ---
 
 ## 🚀 Como Usar
 
-### 1. Provisionar um Novo Projeto do Zero:
+### 1. Criar um Novo Projeto Modular:
 ```bash
-python scripts/provision_project.py "Meu Projeto Incrivel"
+python scripts/provision_project.py "Minha Plataforma Modular"
 ```
 
-### 2. Rodar a Bateria de Gates Mecânicos:
+### 2. Adicionar um Novo Módulo sob Demanda:
+```bash
+python scripts/add_module.py cupons "Gerenciador de Cupons de Desconto"
+```
+
+### 3. Rodar Testes Unitários de Todos os Módulos:
 ```bash
 pytest
-python scripts/gates/G_SEGREDOS.py
-python scripts/gates/G_QUALIDADE.py
 ```
 
----
-
-## 📂 Exemplos Reais Incluídos
-
-* `examples/plataforma-de-membros`: Área de membros completa com cursos, player de aulas, progresso e autenticação.
-* `examples/catalogo-digital-whatsapp`: E-commerce/Catálogo com drawer de carrinho, painel admin e fechamento de pedidos via WhatsApp.
+### 4. Subir em Produção via Docker:
+```bash
+docker compose up -d
+```
 
 ---
 
 ## 📄 Licença
-Distribuído sob a licença **MIT**.
+Distribuído sob a licença **MIT** (Heverton Peres).

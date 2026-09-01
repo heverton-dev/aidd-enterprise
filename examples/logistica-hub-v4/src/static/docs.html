@@ -166,7 +166,141 @@ button, .btn, .btn-primary, .btn-secondary, .btn-gold, .btn-danger,
     </div>
 
     <script>
-        const docPages = [{"id": "intro", "cat": "1. Arquitetura da Suite", "title": "Logistica Hub v4.0 — Visao Geral", "subtitle": "Plataforma corporativa integrada para gestao de frotas, entregas rastreadas, WMS e faturamento de fretes.", "content": "\n            <div class=\"callout tip\">\n                <svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#10b981\" stroke-width=\"2\"><path d=\"M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6\"/></svg>\n                <div>\n                    <strong>Padrao Monolito Modular AIDD v4.0:</strong> Arquitetura de microsservicos verticais integrados em um unico nucleo de alta performance com EventBus assincrono, SQLite WAL concorrente e Servidor Nativo MCP (Model Context Protocol).\n                </div>\n            </div>\n\n            <h2>Principios de Engenharia</h2>\n            <p>O Logistica Hub v4.0 segue rigorosamente as diretrizes de desenvolvimento agêntico de classe mundial:</p>\n            <ul>\n                <li><strong>Security First:</strong> Headers HTTP OWASP nosniff, DENY frame, sanitizacao estrita de inputs SQL e isolamento de rotas.</li>\n                <li><strong>Zero Dependencias Pesadas:</strong> Nucleo operacional executado na biblioteca padrao do Python, garantindo tempo de resposta sub-10ms.</li>\n                <li><strong>Interface Sem Emojis:</strong> Design corporativo puro com iconografia vetorial SVG Lucide e tipografia Plus Jakarta Sans.</li>\n                <li><strong>Event-Driven Cross-Domain:</strong> Desacoplamento total entre modais operacionais e lancamentos contabeis.</li>\n            </ul>\n        "}, {"id": "mod_frotas", "cat": "2. Modulos Operacionais", "title": "Modulo de Gestao de Frotas", "subtitle": "Controle patrimonial de caminhoes, motoristas, telemetria e disponibilidade operacional.", "content": "\n            <h2>Estrutura de Frotas</h2>\n            <p>O modulo gerencia a alocacao de veiculos pesados com monitoramento de quilometragem e capacidade de tracao:</p>\n            <table class=\"doc-table\">\n                <thead>\n                    <tr><th>Status</th><th>Definicao</th><th>Impacto Operacional</th></tr>\n                </thead>\n                <tbody>\n                    <tr><td><code>disponivel</code></td><td>Veiculo pronto para carregamento no patio</td><td>Pode ser vinculado a novas remessas</td></tr>\n                    <tr><td><code>em_rota</code></td><td>Caminhao em transito com carga vinculada</td><td>Bloqueado para novas alocacoes</td></tr>\n                    <tr><td><code>manutencao</code></td><td>Veiculo em oficina mecânica preventiva ou corretiva</td><td>Dispara incidente P1 automatico no suporte</td></tr>\n                </tbody>\n            </table>\n        "}, {"id": "mod_entregas", "cat": "2. Modulos Operacionais", "title": "Modulo de Entregas & Rastreamento", "subtitle": "Ciclo de vida de remessas com codigo de rastreamento UUID e disparos de faturamento.", "content": "\n            <h2>Regra de Faturamento Automatico (Cross-Domain)</h2>\n            <p>Quando o operador ou motorista altera o status da entrega para <code>entregue</code>:</p>\n            <ol>\n                <li>O EventBus emite <code>entrega_concluida</code> com o valor e destinatario.</li>\n                <li>O modulo financeiro captura o evento e insere automaticamente uma receita liquidada no fluxo de caixa.</li>\n                <li>Os webhooks externos cadastrados sao notificados em tempo real.</li>\n            </ol>\n        "}, {"id": "mod_wms", "cat": "2. Modulos Operacionais", "title": "Modulo WMS & Armazem", "subtitle": "Mapeamento de enderecamento de paletes, SKUs industriais e inventario continuo.", "content": "\n            <h2>Mapeamento de Ruas e Posicoes</h2>\n            <p>O enderecamento WMS utiliza o padrao <code>RUA-[LETRA]-[NUMERO]</code> para indexacao rapida de carga e descarga por empilhadeiras.</p>\n        "}, {"id": "mod_financeiro", "cat": "2. Modulos Operacionais", "title": "Modulo Financeiro de Fretes & DRE", "subtitle": "Gestao de receitas de frete, custos de combustivel, pedagios e saldo liquido da frota.", "content": "\n            <h2>Demonstrativo de Resultado do Frete (DRE)</h2>\n            <p>Calcula em tempo real a margem liquida da operacao:</p>\n            <p><code>Margem Liquida = Total de Fretes Recebidos - (Diesel + Pedagios + Manutencao)</code></p>\n        "}, {"id": "mod_suporte", "cat": "2. Modulos Operacionais", "title": "Central de Incidentes & SLA", "subtitle": "Monitoramento de panes mecanicas, sinistros e conformidade com niveis de servico.", "content": "\n            <h2>Matriz de Criticidade de SLA</h2>\n            <ul>\n                <li><strong>P1 (2 Horas):</strong> Pane mecanica em rodovia com carga perecivel ou de alto valor.</li>\n                <li><strong>P2 (4 Horas):</strong> Atraso logistico por bloqueio de pista.</li>\n                <li><strong>P3 (24 Horas):</strong> Solicitacao de troca de pneu ou revisao programada.</li>\n            </ul>\n        "}, {"id": "eventbus_specs", "cat": "3. Orquestracao & EventBus", "title": "Barramento Central de Eventos", "subtitle": "Especificacao tecnica dos eventos emitidos e consumidos na suite.", "content": "\n            <h2>Tabela de Eventos Cross-Domain</h2>\n            <table class=\"doc-table\">\n                <thead>\n                    <tr><th>Evento</th><th>Modulo Emissor</th><th>Modulo Receptor</th><th>Acao Executada</th></tr>\n                </thead>\n                <tbody>\n                    <tr><td><code>entrega_concluida</code></td><td>Entregas</td><td>Financeiro</td><td>Lanca receita de frete liquidada</td></tr>\n                    <tr><td><code>veiculo_manutencao</code></td><td>Frotas</td><td>Suporte SLA</td><td>Abre chamado de revisao tecnica P1</td></tr>\n                </tbody>\n            </table>\n        "}, {"id": "mcp_server_specs", "cat": "4. Inteligencia Artificial (MCP)", "title": "Servidor Nativo Universal MCP", "subtitle": "Especificacao do Model Context Protocol para Claude Desktop, Cursor e Antigravity.", "content": "\n            <h2>Protocolo JSON-RPC 2.0 Nativo</h2>\n            <p>Disponivel via linha de comando (STDIO) e via Web em <code>http://localhost:3000/mcp</code> com testador integrado.</p>\n        "}, {"id": "api_reference", "cat": "5. APIs & Desenvolvedores", "title": "Swagger Studio & OpenAPI 3.1", "subtitle": "Guia de consumo de endpoints REST da suite de logistica.", "content": "\n            <h2>Central Swagger Studio (/docs)</h2>\n            <p>Todos os endpoints estao documentados com tabelas de parametros, exemplos de payloads e testador interativo ao vivo.</p>\n        "}, {"id": "deploy_guide", "cat": "6. Operacoes & Infraestrutura", "title": "Guia de Instalacao & Deploy", "subtitle": "Execucao local, configuracao de porta e politicas de backup.", "content": "\n            <h2>Comando de Inicializacao</h2>\n            <pre class=\"code-box\">python src/server.py</pre>\n            <p>O servidor inicia automaticamente na porta <code>3000</code> com os schemas DDL carregados.</p>\n        "}];
+        const docPages = [
+            {
+                "id": "intro",
+                "cat": "1. Arquitetura da Suite",
+                "title": "Logistica Hub v4.0 — Visao Geral",
+                "subtitle": "Plataforma corporativa integrada para gestao de frotas, entregas rastreadas, WMS e faturamento de fretes.",
+                "content": `
+                    <div class="callout tip">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        <div>
+                            <strong>Padrão Monólito Modular AIDD v4.0:</strong> Arquitetura de microsserviços verticais integrados em um único núcleo de alta performance com Full CRUD em todas as fatias, EventBus assíncrono, Webhooks HMAC e Servidor Nativo MCP (Model Context Protocol).
+                        </div>
+                    </div>
+
+                    <h2>Princípios Inegociáveis de Engenharia (O Mínimo é o Perfeito)</h2>
+                    <p>O Logística Hub v4.0 implementa os 4 Pilares da Diligência Operacional:</p>
+                    <ul>
+                        <li><strong>Full CRUD em 100% dos Módulos:</strong> Criação, leitura, atualização e exclusão persistidas em banco de dados SQLite WAL com confirmações visuais táteis.</li>
+                        <li><strong>Documentação OpenAPI 3.1 & Swagger Studio:</strong> Todas as 20 rotas de API possuem esquemas de entrada, saídas e testador interativo ao vivo.</li>
+                        <li><strong>Disparadores de Webhook em Tempo Real:</strong> Cada operação emite eventos assíncronos no EventBus e despacha payloads estruturados para integrações externas.</li>
+                        <li><strong>Conectividade Universal com IA (MCP):</strong> 20 ferramentas tipadas em JSON-RPC 2.0 prontas para Claude Desktop, Cursor e Antigravity.</li>
+                    </ul>
+                `
+            },
+            {
+                "id": "mod_frotas",
+                "cat": "2. Módulos & Full CRUD",
+                "title": "1. Gestão de Frotas & Veículos",
+                "subtitle": "Controle patrimonial de caminhões, motoristas, telemetria e disponibilidade operacional.",
+                "content": `
+                    <h2>Operações CRUD da Frota</h2>
+                    <table class="doc-table">
+                        <thead>
+                            <tr><th>Operação</th><th>Método & Rota</th><th>Ferramenta MCP</th><th>Evento / Webhook</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Criar</strong></td><td><code>POST /api/frotas/veiculos/salvar</code></td><td><code>frotas_cadastrar_veiculo</code></td><td><code>frotas.veiculo_cadastrado</code></td></tr>
+                            <tr><td><strong>Ler</strong></td><td><code>GET /api/frotas/veiculos</code></td><td><code>frotas_listar_veiculos</code></td><td>-</td></tr>
+                            <tr><td><strong>Atualizar</strong></td><td><code>POST /api/frotas/veiculos/alternar</code></td><td><code>frotas_alternar_status</code></td><td><code>frotas.status_alterado</code></td></tr>
+                            <tr><td><strong>Excluir</strong></td><td><code>POST /api/frotas/veiculos/excluir</code></td><td><code>frotas_excluir_veiculo</code></td><td><code>frotas.veiculo_removido</code></td></tr>
+                        </tbody>
+                    </table>
+                `
+            },
+            {
+                "id": "mod_entregas",
+                "cat": "2. Módulos & Full CRUD",
+                "title": "2. Entregas & Rastreamento",
+                "subtitle": "Ciclo de vida de remessas com código de rastreamento UUID e disparos de faturamento.",
+                "content": `
+                    <h2>Operações CRUD de Entregas</h2>
+                    <table class="doc-table">
+                        <thead>
+                            <tr><th>Operação</th><th>Método & Rota</th><th>Ferramenta MCP</th><th>Evento / Webhook</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Criar</strong></td><td><code>POST /api/entregas/salvar</code></td><td><code>entregas_criar_remessa</code></td><td><code>entregas.remessa_criada</code></td></tr>
+                            <tr><td><strong>Ler</strong></td><td><code>GET /api/entregas/listar</code></td><td><code>entregas_listar</code></td><td>-</td></tr>
+                            <tr><td><strong>Atualizar / Finalizar</strong></td><td><code>POST /api/entregas/finalizar</code></td><td><code>entregas_atualizar_status</code></td><td><code>cross_domain.entrega_to_financeiro</code></td></tr>
+                            <tr><td><strong>Excluir</strong></td><td><code>POST /api/entregas/excluir</code></td><td><code>entregas_excluir_remessa</code></td><td><code>entregas.remessa_cancelada</code></td></tr>
+                        </tbody>
+                    </table>
+                `
+            },
+            {
+                "id": "mod_wms",
+                "cat": "2. Módulos & Full CRUD",
+                "title": "3. Armazém WMS & Localização",
+                "subtitle": "Mapeamento de endereçamento de paletes, SKUs industriais e inventário contínuo.",
+                "content": `
+                    <h2>Operações CRUD de Estoque WMS</h2>
+                    <table class="doc-table">
+                        <thead>
+                            <tr><th>Operação</th><th>Método & Rota</th><th>Ferramenta MCP</th><th>Evento / Webhook</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Criar</strong></td><td><code>POST /api/wms/estoque/salvar</code></td><td><code>wms_adicionar_item</code></td><td><code>wms.item_adicionado</code></td></tr>
+                            <tr><td><strong>Ler</strong></td><td><code>GET /api/wms/estoque</code></td><td><code>wms_consultar_estoque</code></td><td>-</td></tr>
+                            <tr><td><strong>Atualizar</strong></td><td><code>POST /api/wms/estoque/ajustar</code></td><td><code>wms_ajustar_estoque</code></td><td><code>wms.estoque_ajustado</code></td></tr>
+                            <tr><td><strong>Excluir</strong></td><td><code>POST /api/wms/estoque/excluir</code></td><td><code>wms_excluir_item</code></td><td><code>wms.item_removido</code></td></tr>
+                        </tbody>
+                    </table>
+                `
+            },
+            {
+                "id": "mod_financeiro",
+                "cat": "2. Módulos & Full CRUD",
+                "title": "4. Financeiro de Fretes & DRE",
+                "subtitle": "Gestão de receitas de frete, custos de combustível, pedágios e saldo líquido da frota.",
+                "content": `
+                    <h2>Operações CRUD Financeiras</h2>
+                    <table class="doc-table">
+                        <thead>
+                            <tr><th>Operação</th><th>Método & Rota</th><th>Ferramenta MCP</th><th>Evento / Webhook</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Criar</strong></td><td><code>POST /api/financeiro/fretes/salvar</code></td><td><code>financeiro_lancar_movimentacao</code></td><td><code>financeiro.lancamento_criado</code></td></tr>
+                            <tr><td><strong>Ler</strong></td><td><code>GET /api/financeiro/fretes</code></td><td><code>financeiro_listar_fretes</code></td><td>-</td></tr>
+                            <tr><td><strong>Atualizar</strong></td><td><code>POST /api/financeiro/fretes/alternar-status</code></td><td><code>financeiro_alternar_status</code></td><td><code>financeiro.status_alterado</code></td></tr>
+                            <tr><td><strong>Excluir</strong></td><td><code>POST /api/financeiro/fretes/excluir</code></td><td><code>financeiro_excluir_lancamento</code></td><td><code>financeiro.lancamento_excluido</code></td></tr>
+                        </tbody>
+                    </table>
+                `
+            },
+            {
+                "id": "mod_suporte",
+                "cat": "2. Módulos & Full CRUD",
+                "title": "5. Central de Incidentes & SLA",
+                "subtitle": "Monitoramento de panes mecânicas, sinistros e conformidade com níveis de serviço.",
+                "content": `
+                    <h2>Operações CRUD de Incidentes SLA</h2>
+                    <table class="doc-table">
+                        <thead>
+                            <tr><th>Operação</th><th>Método & Rota</th><th>Ferramenta MCP</th><th>Evento / Webhook</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Criar</strong></td><td><code>POST /api/suporte/incidentes/salvar</code></td><td><code>suporte_abrir_incidente</code></td><td><code>suporte.incidente_aberto</code></td></tr>
+                            <tr><td><strong>Ler</strong></td><td><code>GET /api/suporte/incidentes</code></td><td><code>suporte_listar_incidentes</code></td><td>-</td></tr>
+                            <tr><td><strong>Atualizar / Resolver</strong></td><td><code>POST /api/suporte/incidentes/resolver</code></td><td><code>suporte_resolver_incidente</code></td><td><code>suporte.incidente_resolvido</code></td></tr>
+                            <tr><td><strong>Excluir</strong></td><td><code>POST /api/suporte/incidentes/excluir</code></td><td><code>suporte_excluir_incidente</code></td><td><code>suporte.incidente_excluido</code></td></tr>
+                        </tbody>
+                    </table>
+                `
+            },
+            {
+                "id": "mcp_server_specs",
+                "cat": "3. Inteligência Artificial (MCP)",
+                "title": "Servidor Nativo Universal MCP 4.0",
+                "subtitle": "20 Ferramentas Model Context Protocol prontas para Claude Desktop, Cursor e Antigravity.",
+                "content": `
+                    <h2>JSON-RPC 2.0 Nativo</h2>
+                    <p>O servidor expõe em <code>/api/mcp/rpc</code> e na rota <code>/mcp</code> todas as 20 ferramentas cobrindo 100% das operações da suíte.</p>
+                `
+            }
+        ];
         let currentPageIndex = 0;
 
         function montarSidebar() {

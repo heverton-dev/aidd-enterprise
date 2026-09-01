@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise Suite — AIDD v4.0 Cross-Project</title>
+    <title>AIDD Enterprise Suite v4.0 — Cross-Project</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #030712;
             --surface: rgba(17, 24, 39, 0.85);
             --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.16);
             --primary: #3b82f6;
             --primary-hover: #2563eb;
-            --accent-gold: #f59e0b;
             --danger: #ef4444;
             --success: #10b981;
+            --warning: #f59e0b;
             --purple: #a855f7;
             --text: #f9fafb;
             --muted: #9ca3af;
@@ -26,20 +27,21 @@
             min-height: 100vh;
             background-image: 
                 radial-gradient(circle at 50% -20%, rgba(59, 130, 246, 0.25), transparent 60%),
-                radial-gradient(circle at 100% 40%, rgba(168, 85, 247, 0.15), transparent 50%);
+                radial-gradient(circle at 100% 40%, rgba(168, 85, 247, 0.12), transparent 50%);
             background-attachment: fixed;
             padding: 1.5rem 3rem;
         }
 
+        /* HEADER SUPERIOR */
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--border);
             padding-bottom: 1.2rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1.8rem;
         }
-        .brand { display: flex; align-items: center; gap: 0.8rem; font-size: 1.3rem; font-weight: 800; }
+        .brand { display: flex; align-items: center; gap: 0.8rem; font-size: 1.25rem; font-weight: 800; }
         .app-switcher {
             display: flex;
             background: rgba(255, 255, 255, 0.04);
@@ -49,7 +51,7 @@
             gap: 0.3rem;
         }
         .app-tab {
-            padding: 0.5rem 1.1rem;
+            padding: 0.55rem 1.1rem;
             border-radius: 8px;
             font-size: 0.84rem;
             font-weight: 700;
@@ -62,14 +64,18 @@
             align-items: center;
             gap: 0.4rem;
         }
-        .app-tab.active { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
-        .btn { padding: 0.55rem 1.1rem; border-radius: 8px; font-weight: 700; font-size: 0.84rem; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: #fff; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; }
-        .btn:hover { background: rgba(255,255,255,0.1); }
+        .app-tab:hover { color: #fff; }
+        .app-tab.active { background: var(--primary); color: #fff; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4); }
+
+        .btn { padding: 0.55rem 1.1rem; border-radius: 8px; font-weight: 700; font-size: 0.84rem; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: #fff; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s; }
+        .btn:hover { background: rgba(255,255,255,0.1); border-color: var(--border-hover); }
         .btn-primary { background: var(--primary); border-color: var(--primary); }
+        .btn-danger { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #f87171; }
+        .btn-danger:hover { background: var(--danger); color: #fff; }
 
         .banner-cross {
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.25);
             border-radius: 12px;
             padding: 0.9rem 1.5rem;
             margin-bottom: 2rem;
@@ -79,25 +85,35 @@
             font-size: 0.88rem;
         }
 
-        /* VISTAS ESPECÍFICAS */
+        /* VISTAS */
         .app-view { display: none; }
-        .app-view.active { display: block; }
+        .app-view.active { display: block; animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* KANBAN CRM */
-        .kanban { display: grid; grid-template-columns: repeat(5, minmax(240px, 1fr)); gap: 1.2rem; }
+        /* CRM KANBAN */
+        .kanban { display: grid; grid-template-columns: repeat(5, minmax(220px, 1fr)); gap: 1.2rem; }
         .column { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem; min-height: 480px; }
-        .lead-card { background: rgba(31, 41, 55, 0.8); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 0.8rem; cursor: grab; }
+        .lead-card { background: rgba(31, 41, 55, 0.85); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 0.8rem; cursor: grab; transition: all 0.15s; }
+        .lead-card:hover { border-color: var(--primary); transform: translateY(-2px); }
 
-        /* TABELA ERP */
+        /* ERP TABELA */
         table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
         th, td { padding: 1rem 1.2rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
-        th { font-weight: 700; color: var(--muted); text-transform: uppercase; font-size: 0.78rem; }
+        th { font-weight: 700; color: var(--muted); text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.04em; }
 
         /* HELPDESK */
         .ticket-list { display: flex; flex-direction: column; gap: 0.8rem; }
-        .ticket-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
+        .ticket-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
 
-        .toast { position: fixed; bottom: 2rem; right: 2rem; background: rgba(17, 24, 39, 0.95); border: 1px solid var(--border); padding: 1rem 1.5rem; border-radius: 12px; display: none; z-index: 200; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        /* MODAIS */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 100; }
+        .modal-box { background: #0b0f19; border: 1px solid var(--border-hover); border-radius: 16px; width: 100%; max-width: 500px; padding: 2rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.9); }
+        .form-group { margin-bottom: 1.2rem; }
+        .form-group label { display: block; font-size: 0.82rem; font-weight: 700; color: var(--muted); margin-bottom: 0.4rem; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.7rem 0.9rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 0.9rem; outline: none; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary); }
+
+        .toast { position: fixed; bottom: 2rem; right: 2rem; background: #0f172a; border: 1px solid var(--primary); padding: 1rem 1.5rem; border-radius: 12px; display: none; z-index: 200; box-shadow: 0 10px 25px rgba(0,0,0,0.6); }
     </style>
 </head>
 <body>
@@ -105,20 +121,23 @@
     <header>
         <div class="brand">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-            AIDD Enterprise Suite v4.0
+            <span>AIDD Enterprise Suite v4.0</span>
         </div>
 
-        <!-- APP SWITCHER CENTRAL -->
+        <!-- APP SWITCHER -->
         <div class="app-switcher">
             <button class="app-tab active" onclick="trocarApp('crm')">CRM Vendas</button>
             <button class="app-tab" onclick="trocarApp('erp')">ERP Financeiro</button>
             <button class="app-tab" onclick="trocarApp('helpdesk')">Helpdesk SLA</button>
             <button class="app-tab" onclick="trocarApp('membros')">Cursos VIP</button>
-            <button class="app-tab" onclick="trocarApp('catalogo')">Catálogo</button>
+            <button class="app-tab" onclick="trocarApp('catalogo')">Catálogo Digital</button>
         </div>
 
         <div style="display: flex; gap: 0.8rem;">
-            <a href="/docs/guia" class="btn" style="border-color: rgba(59,130,246,0.5); color: #93c5fd;">Docs OnOrca</a>
+            <a href="/docs/guia" class="btn" style="border-color: rgba(59,130,246,0.5); color: #93c5fd;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                Documentação da Suíte
+            </a>
             <a href="/docs" target="_blank" class="btn btn-primary">Swagger /docs</a>
         </div>
     </header>
@@ -126,16 +145,16 @@
     <div class="banner-cross">
         <div style="display: flex; align-items: center; gap: 0.6rem;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            <span><strong>Cross-Domain Ativo:</strong> Arrastar um lead para <em>Fechado / Ganho</em> no CRM gera automaticamente uma <strong>Receita no ERP</strong> e dispara Webhooks para o n8n!</span>
+            <span><strong>Cross-Domain EventBus Online:</strong> Quando um lead é movido para <em>Fechado / Ganho</em> no CRM, o <strong>ERP gera a Conta a Receber</strong> e notifica os webhooks em tempo real!</span>
         </div>
-        <span style="background: rgba(16,185,129,0.2); color: #6ee7b7; padding: 0.2rem 0.6rem; border-radius: 9999px; font-weight: 800; font-size: 0.75rem;">EVENTBUS ONLINE</span>
+        <span style="background: rgba(16,185,129,0.2); color: #6ee7b7; padding: 0.25rem 0.7rem; border-radius: 9999px; font-weight: 800; font-size: 0.75rem;">EVENTBUS ATIVO</span>
     </div>
 
     <!-- VISTA 1: CRM -->
     <div id="view-crm" class="app-view active">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h2 style="font-size: 1.4rem; font-weight: 800;">Pipeline de Vendas (Kanban Drag & Drop)</h2>
-            <button class="btn btn-primary" onclick="criarLeadRapido()">+ Lead VIP</button>
+            <h2 style="font-size: 1.35rem; font-weight: 800;">Pipeline de Vendas (Kanban Drag & Drop & Full-CRUD)</h2>
+            <button class="btn btn-primary" onclick="abrirModalLead()">+ Cadastrar Lead</button>
         </div>
         <div class="kanban" id="kanban-crm">Carregando CRM...</div>
     </div>
@@ -143,8 +162,11 @@
     <!-- VISTA 2: ERP -->
     <div id="view-erp" class="app-view">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h2 style="font-size: 1.4rem; font-weight: 800;">Fluxo de Caixa & DRE em Tempo Real</h2>
-            <div id="resumo-erp-box" style="font-weight: 800; color: #10b981;"></div>
+            <div>
+                <h2 style="font-size: 1.35rem; font-weight: 800;">Gestão Financeira & DRE em Tempo Real</h2>
+                <div id="resumo-erp-box" style="font-weight: 700; color: #10b981; margin-top: 0.3rem;"></div>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModalConta()">+ Novo Lançamento</button>
         </div>
         <table>
             <thead>
@@ -155,6 +177,7 @@
                     <th>VALOR</th>
                     <th>VENCIMENTO</th>
                     <th>STATUS (1-CLIQUE)</th>
+                    <th>AÇÕES</th>
                 </tr>
             </thead>
             <tbody id="tabela-erp">Carregando ERP...</tbody>
@@ -164,40 +187,108 @@
     <!-- VISTA 3: HELPDESK -->
     <div id="view-helpdesk" class="app-view">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h2 style="font-size: 1.4rem; font-weight: 800;">Fila de Chamados & Cronômetro de SLA</h2>
-            <button class="btn btn-primary" onclick="abrirTicketRapido()">+ Chamado P1</button>
+            <h2 style="font-size: 1.35rem; font-weight: 800;">Fila de Chamados & Monitor de SLA</h2>
+            <button class="btn btn-primary" onclick="abrirModalTicket()">+ Novo Chamado</button>
         </div>
         <div class="ticket-list" id="lista-helpdesk">Carregando Helpdesk...</div>
     </div>
 
     <!-- VISTA 4: MEMBROS -->
     <div id="view-membros" class="app-view">
-        <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 1.5rem;">Área de Membros & Cursos</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 style="font-size: 1.35rem; font-weight: 800;">Plataforma de Membros & Cursos VIP</h2>
+            <button class="btn btn-primary" onclick="abrirModalAssinatura()">+ Assinar Plano VIP</button>
+        </div>
         <div id="grade-cursos" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;"></div>
     </div>
 
     <!-- VISTA 5: CATÁLOGO -->
     <div id="view-catalogo" class="app-view">
-        <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 1.5rem;">Catálogo de Produtos</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 style="font-size: 1.35rem; font-weight: 800;">Catálogo Digital & Checkout E-commerce</h2>
+            <button class="btn btn-primary" onclick="abrirModalPedido()">+ Novo Pedido</button>
+        </div>
         <div id="grade-produtos" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;"></div>
     </div>
 
+    <!-- MODAL LEAD CRM -->
+    <div class="modal-overlay" id="modal-lead">
+        <div class="modal-box">
+            <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 1.2rem;">Cadastrar / Editar Lead</h3>
+            <input type="hidden" id="lead-id">
+            <div class="form-group"><label>Nome do Lead / Decisor</label><input type="text" id="lead-nome" required></div>
+            <div class="form-group"><label>E-mail Corporativo</label><input type="email" id="lead-email" required></div>
+            <div class="form-group"><label>WhatsApp</label><input type="text" id="lead-telefone" required></div>
+            <div class="form-group"><label>Empresa</label><input type="text" id="lead-empresa"></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group"><label>Valor Estimado (R$)</label><input type="number" id="lead-valor" value="15000"></div>
+                <div class="form-group"><label>Score (0-100)</label><input type="number" id="lead-score" value="75"></div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.8rem; margin-top: 1.5rem;">
+                <button class="btn" onclick="fecharModais()">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarLead()">Salvar Lead</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CONTA ERP -->
+    <div class="modal-overlay" id="modal-conta">
+        <div class="modal-box">
+            <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 1.2rem;">Novo Lançamento ERP</h3>
+            <div class="form-group"><label>Descrição</label><input type="text" id="conta-desc" required></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group"><label>Tipo</label><select id="conta-tipo"><option value="receita">Receita</option><option value="despesa">Despesa</option></select></div>
+                <div class="form-group"><label>Categoria</label><input type="text" id="conta-cat" value="Geral"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group"><label>Valor (R$)</label><input type="number" id="conta-valor" value="1000"></div>
+                <div class="form-group"><label>Vencimento</label><input type="date" id="conta-venc" value="2026-09-30"></div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.8rem; margin-top: 1.5rem;">
+                <button class="btn" onclick="fecharModais()">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarConta()">Salvar Lançamento</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TICKET HELPDESK -->
+    <div class="modal-overlay" id="modal-ticket">
+        <div class="modal-box">
+            <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 1.2rem;">Abrir Chamado Helpdesk</h3>
+            <div class="form-group"><label>Assunto</label><input type="text" id="ticket-assunto" required></div>
+            <div class="form-group"><label>Descrição Detalhada</label><textarea id="ticket-desc" rows="3"></textarea></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group"><label>Cliente</label><input type="text" id="ticket-cliente" required></div>
+                <div class="form-group"><label>Criticidade</label><select id="ticket-prio"><option value="P1">P1 - Crítico (SLA 2h)</option><option value="P2">P2 - Alto (SLA 4h)</option><option value="P3">P3 - Médio (SLA 24h)</option></select></div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.8rem; margin-top: 1.5rem;">
+                <button class="btn" onclick="fecharModais()">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarTicket()">Criar Chamado</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
     <div class="toast" id="toast">
-        <span id="toast-text" style="font-weight: 700; font-size: 0.9rem;">Notificação</span>
+        <div id="toast-text" style="font-weight: 700; font-size: 0.9rem;"></div>
     </div>
 
     <script>
         let leadArrastado = null;
 
-        function showToast(m) {
+        function showToast(msg) {
             const t = document.getElementById('toast');
-            document.getElementById('toast-text').innerText = m;
+            document.getElementById('toast-text').innerText = msg;
             t.style.display = 'block';
             setTimeout(() => { t.style.display = 'none'; }, 4000);
         }
 
+        function fecharModais() {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+        }
+
         function trocarApp(app) {
-            document.querySelectorAll('.app-tab').forEach((b, i) => {
+            document.querySelectorAll('.app-tab').forEach(b => {
                 b.classList.toggle('active', b.innerText.toLowerCase().includes(app));
             });
             document.querySelectorAll('.app-view').forEach(v => {
@@ -218,28 +309,63 @@
             const k = document.getElementById('kanban-crm');
             k.innerHTML = Object.entries(data).map(([stKey, col]) => `
                 <div class="column" ondragover="event.preventDefault()" ondrop="soltarLead(event, '${stKey}')">
-                    <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.8rem; color: #93c5fd; display: flex; justify-content: space-between;">
+                    <div style="font-weight: 800; font-size: 0.92rem; margin-bottom: 0.8rem; color: #93c5fd; display: flex; justify-content: space-between;">
                         <span>${col.nome}</span>
                         <span>${col.itens.length}</span>
                     </div>
                     ${col.itens.map(l => `
                         <div class="lead-card" draggable="true" ondragstart="leadArrastado = ${l.id}">
-                            <div style="font-weight: 700; font-size: 0.92rem;">${l.nome}</div>
-                            <div style="color: var(--muted); font-size: 0.8rem;">${l.empresa || 'Empresa'}</div>
-                            <div style="font-weight: 800; color: #10b981; margin-top: 0.5rem;">R$ ${l.valor_estimado.toFixed(2)}</div>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div style="font-weight: 700; font-size: 0.92rem;">${l.nome}</div>
+                                <span style="background: rgba(59,130,246,0.2); color: #93c5fd; font-size: 0.72rem; padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 800;">${l.score} pts</span>
+                            </div>
+                            <div style="color: var(--muted); font-size: 0.8rem; margin: 0.2rem 0;">${l.empresa || 'Cliente'}</div>
+                            <div style="font-weight: 800; color: #10b981; margin-top: 0.4rem;">R$ ${l.valor_estimado.toFixed(2)}</div>
+                            <div style="display: flex; gap: 0.4rem; margin-top: 0.6rem;">
+                                <button class="btn btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.72rem;" onclick="excluirLead(${l.id})">Excluir</button>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
             `).join('');
         }
 
+        function abrirModalLead() {
+            document.getElementById('lead-id').value = '';
+            document.getElementById('lead-nome').value = '';
+            document.getElementById('lead-email').value = '';
+            document.getElementById('lead-telefone').value = '';
+            document.getElementById('lead-empresa').value = '';
+            document.getElementById('modal-lead').style.display = 'flex';
+        }
+
+        async function salvarLead() {
+            const body = {
+                id: document.getElementById('lead-id').value || null,
+                nome: document.getElementById('lead-nome').value,
+                email: document.getElementById('lead-email').value,
+                telefone: document.getElementById('lead-telefone').value,
+                empresa: document.getElementById('lead-empresa').value,
+                valor_estimado: parseFloat(document.getElementById('lead-valor').value),
+                score: parseInt(document.getElementById('lead-score').value)
+            };
+            await fetch('/api/crm/leads/salvar', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+            fecharModais();
+            showToast('Lead salvo com sucesso!');
+            carregarCRM();
+        }
+
+        async function excluirLead(id) {
+            if (confirm('Deseja excluir este lead?')) {
+                await fetch('/api/crm/leads/excluir', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id }) });
+                showToast('Lead excluído!');
+                carregarCRM();
+            }
+        }
+
         async function soltarLead(e, novoSt) {
             if (leadArrastado) {
-                await fetch('/api/crm/pipeline/mover', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ lead_id: leadArrastado, novo_status: novoSt })
-                });
+                await fetch('/api/crm/pipeline/mover', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ lead_id: leadArrastado, novo_status: novoSt }) });
                 if (novoSt === 'ganho') {
                     showToast('🎉 Lead GANHO! Conta a Receber criada automaticamente no ERP!');
                 } else {
@@ -250,29 +376,13 @@
             }
         }
 
-        async function criarLeadRapido() {
-            await fetch('/api/crm/leads/salvar', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    nome: 'Novo Cliente Corp #' + Math.floor(Math.random()*100),
-                    email: 'corp@empresa.com',
-                    telefone: '11999998888',
-                    empresa: 'Holding S.A.',
-                    valor_estimado: 50000.0,
-                    status: 'novo'
-                })
-            });
-            carregarCRM();
-        }
-
         /* ERP */
         async function carregarERP() {
             const [resumo, contas] = await Promise.all([
                 fetch('/api/erp/fluxo-caixa').then(r => r.json()),
                 fetch('/api/erp/contas').then(r => r.json())
             ]);
-            document.getElementById('resumo-erp-box').innerText = 'Saldo Realizado: R$ ' + resumo.saldo_realizado.toFixed(2);
+            document.getElementById('resumo-erp-box').innerText = `Saldo Realizado: R$ ${resumo.saldo_realizado.toFixed(2)} | Projetado: R$ ${resumo.saldo_projetado.toFixed(2)}`;
             document.getElementById('tabela-erp').innerHTML = contas.map(c => `
                 <tr>
                     <td style="font-weight: 700;">${c.descricao}</td>
@@ -280,18 +390,47 @@
                     <td>${c.categoria}</td>
                     <td style="font-weight: 800;">R$ ${c.valor.toFixed(2)}</td>
                     <td>${c.data_vencimento}</td>
-                    <td><button class="btn" onclick="alternarERP(${c.id})">${c.status.toUpperCase()}</button></td>
+                    <td>
+                        <button class="btn" style="border-color: ${c.status === 'pago' ? '#10b981' : '#f59e0b'}; color: ${c.status === 'pago' ? '#10b981' : '#f59e0b'}; font-size: 0.78rem; padding: 0.3rem 0.7rem;" onclick="alternarStatusERP(${c.id})">
+                            ${c.status.toUpperCase()}
+                        </button>
+                    </td>
+                    <td>
+                        <button class="btn btn-danger" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="excluirConta(${c.id})">Excluir</button>
+                    </td>
                 </tr>
             `).join('');
         }
 
-        async function alternarERP(id) {
-            await fetch('/api/erp/contas/alternar-status', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ id })
-            });
+        function abrirModalConta() {
+            document.getElementById('modal-conta').style.display = 'flex';
+        }
+
+        async function salvarConta() {
+            const body = {
+                descricao: document.getElementById('conta-desc').value,
+                tipo: document.getElementById('conta-tipo').value,
+                categoria: document.getElementById('conta-cat').value,
+                valor: parseFloat(document.getElementById('conta-valor').value),
+                data_vencimento: document.getElementById('conta-venc').value
+            };
+            await fetch('/api/erp/contas/salvar', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+            fecharModais();
+            showToast('Lançamento financeiro salvo!');
             carregarERP();
+        }
+
+        async function alternarStatusERP(id) {
+            await fetch('/api/erp/contas/alternar-status', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id }) });
+            carregarERP();
+        }
+
+        async function excluirConta(id) {
+            if (confirm('Deseja excluir este lançamento?')) {
+                await fetch('/api/erp/contas/excluir', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id }) });
+                showToast('Lançamento excluído!');
+                carregarERP();
+            }
         }
 
         /* HELPDESK */
@@ -302,61 +441,103 @@
                     <div>
                         <span style="background: rgba(239,68,68,0.2); color: #f87171; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 800; font-size: 0.75rem;">${t.prioridade}</span>
                         <span style="font-weight: 800; margin-left: 0.5rem;">${t.protocolo}</span>
-                        <h4 style="margin-top: 0.3rem;">${t.assunto}</h4>
+                        <h4 style="margin-top: 0.4rem; font-size: 1rem;">${t.assunto}</h4>
+                        <p style="color: var(--muted); font-size: 0.82rem; margin-top: 0.2rem;">${t.cliente_nome} (${t.cliente_email})</p>
                     </div>
                     <div style="display: flex; align-items: center; gap: 1rem;">
-                        <span style="color: #60a5fa; font-weight: 800;">SLA: ${t.sla_limite_horas}h</span>
-                        <button class="btn" onclick="avancarTicket(${t.id})">${t.status.toUpperCase()}</button>
+                        <span style="color: #60a5fa; font-weight: 800; font-size: 0.85rem;">SLA: ${t.sla_limite_horas}h</span>
+                        <button class="btn" onclick="avancarTicket(${t.id})" style="border-color: rgba(59,130,246,0.4);">${t.status.toUpperCase()}</button>
+                        <button class="btn btn-danger" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;" onclick="excluirTicket(${t.id})">Excluir</button>
                     </div>
                 </div>
             `).join('');
         }
 
+        function abrirModalTicket() {
+            document.getElementById('modal-ticket').style.display = 'flex';
+        }
+
+        async function salvarTicket() {
+            const body = {
+                assunto: document.getElementById('ticket-assunto').value,
+                descricao: document.getElementById('ticket-desc').value,
+                cliente_nome: document.getElementById('ticket-cliente').value,
+                cliente_email: 'cliente@empresa.com',
+                prioridade: document.getElementById('ticket-prio').value
+            };
+            await fetch('/api/helpdesk/tickets/salvar', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+            fecharModais();
+            showToast('Chamado aberto com sucesso!');
+            carregarHelpdesk();
+        }
+
         async function avancarTicket(id) {
-            await fetch('/api/helpdesk/tickets/avancar-status', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ id })
-            });
+            await fetch('/api/helpdesk/tickets/avancar-status', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id }) });
             carregarHelpdesk();
         }
 
-        async function abrirTicketRapido() {
-            await fetch('/api/helpdesk/tickets/salvar', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    assunto: 'Instabilidade no Checkout #' + Math.floor(Math.random()*100),
-                    descricao: 'Chamado aberto via Suíte Integrada',
-                    cliente_nome: 'Gestor Corp',
-                    cliente_email: 'gestor@empresa.com',
-                    prioridade: 'P1'
-                })
-            });
-            carregarHelpdesk();
+        async function excluirTicket(id) {
+            if (confirm('Deseja excluir este chamado?')) {
+                await fetch('/api/helpdesk/tickets/excluir', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id }) });
+                showToast('Chamado excluído!');
+                carregarHelpdesk();
+            }
         }
 
-        /* MEMBROS & CATÁLOGO */
+        /* MEMBROS */
         async function carregarMembros() {
             const cursos = await fetch('/api/membros/cursos').then(r => r.json());
             document.getElementById('grade-cursos').innerHTML = cursos.map(c => `
                 <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; padding: 1.2rem;">
-                    <img src="${c.thumbnail}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 8px; margin-bottom: 0.8rem;">
-                    <div style="font-weight: 800;">${c.titulo}</div>
-                    <div style="color: var(--muted); font-size: 0.85rem; margin-top: 0.3rem;">${c.descricao}</div>
+                    <img src="${c.thumbnail}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 0.8rem;">
+                    <div style="font-weight: 800; font-size: 1rem;">${c.titulo}</div>
+                    <div style="color: var(--muted); font-size: 0.84rem; margin-top: 0.4rem; line-height: 1.5;">${c.descricao}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+                        <span style="color: #60a5fa; font-weight: 700; font-size: 0.8rem;">${c.total_aulas} Aulas Práticas</span>
+                        <button class="btn btn-primary" style="font-size: 0.78rem; padding: 0.35rem 0.8rem;" onclick="showToast('Acessando player de aula!')">Assistir Agora</button>
+                    </div>
                 </div>
             `).join('');
         }
 
+        async function abrirModalAssinatura() {
+            await fetch('/api/membros/assinar', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ nome: 'Membro VIP', email: 'vip@empresa.com', plano: 'Anual Enterprise', valor: 997.0 })
+            });
+            showToast('🎉 Assinatura VIP Ativada! Conta gerada no ERP!');
+        }
+
+        /* CATÁLOGO */
         async function carregarCatalogo() {
             const prods = await fetch('/api/catalogo/produtos').then(r => r.json());
             document.getElementById('grade-produtos').innerHTML = prods.map(p => `
-                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;">
-                    <div style="font-weight: 800; font-size: 1.1rem;">${p.nome}</div>
-                    <div style="color: var(--muted); font-size: 0.85rem; margin: 0.5rem 0;">${p.descricao}</div>
-                    <div style="font-size: 1.2rem; font-weight: 800; color: #10b981;">R$ ${p.preco.toFixed(2)}</div>
+                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="font-weight: 800; font-size: 1.05rem;">${p.nome}</div>
+                        <div style="color: var(--muted); font-size: 0.84rem; margin: 0.5rem 0; line-height: 1.5;">${p.descricao}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.3rem; font-weight: 800; color: #10b981; margin: 0.8rem 0;">R$ ${p.preco.toFixed(2)}</div>
+                        <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="comprarProduto('${p.nome}', ${p.preco})">Comprar Agora</button>
+                    </div>
                 </div>
             `).join('');
+        }
+
+        async function comprarProduto(nome, preco) {
+            await fetch('/api/catalogo/pedidos/salvar', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    cliente_nome: 'Cliente Direto Catálogo',
+                    cliente_telefone: '11999998888',
+                    total: preco,
+                    itens: [{ nome, preco }]
+                })
+            });
+            showToast('🎉 Pedido confirmado! Receita lançada no ERP automaticamente!');
         }
 
         window.onload = () => carregarCRM();

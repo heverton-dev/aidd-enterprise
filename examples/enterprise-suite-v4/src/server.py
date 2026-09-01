@@ -1,4 +1,4 @@
-import http.server, socketserver, json, urllib.parse, os, sys
+import http.server, socketserver, json, urllib.parse, os, sys, uuid
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -9,7 +9,6 @@ from core.events import EventBus
 from core.openapi import RouteRegistry
 from core.webhooks import WebhookDispatcher
 from core.models import init_all_schemas
-import uuid
 
 PORT = 3000
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -19,32 +18,10 @@ webhook_dispatcher = WebhookDispatcher(db)
 
 with db.get_connection() as conn:
     init_all_schemas(conn)
-    # Seed inicial se necessário
-    if conn.execute("SELECT COUNT(*) FROM leads").fetchone()[0] == 0:
-        conn.executescript("""
-            INSERT INTO leads (nome, email, telefone, empresa, score, status, valor_estimado) VALUES
-            ('Carlos Eduardo Mendes', 'carlos@techcorp.com.br', '5511988887777', 'TechCorp Brasil', 95, 'qualificado', 18500.0),
-            ('Dra. Helena Castro', 'helena@biomed.med.br', '5541999991111', 'BioMed Lab', 98, 'ganho', 75000.0);
-
-            INSERT INTO lancamentos (descricao, tipo, categoria, valor, data_vencimento, status, entidade_nome) VALUES
-            ('Contrato Fechado: BioMed Lab', 'receita', 'Contratos CRM', 75000.0, '2026-09-15', 'pago', 'BioMed Lab'),
-            ('Infraestrutura Cloud Hetzner', 'despesa', 'Servidores', 1250.0, '2026-09-05', 'pago', 'Hetzner Online');
-
-            INSERT INTO tickets (protocolo, assunto, descricao, cliente_nome, cliente_email, prioridade, status, sla_limite_horas) VALUES
-            ('TICK-A92B1C', 'Configuração de Webhook n8n', 'Suporte à integração da esteira de vendas.', 'Rafael Souza', 'rafael@empresa.com', 'P1', 'aberto', 2);
-
-            INSERT INTO cursos (titulo, descricao, categoria, thumbnail) VALUES
-            ('Engenharia de Software com IA', 'Domine arquitetura modular e agentes autônomos.', 'Arquitetura', 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&auto=format&fit=crop&q=60');
-
-            INSERT INTO produtos (nome, preco, categoria, descricao) VALUES
-            ('Licença AIDD Enterprise v4.0', 4990.00, 'Software', 'Acesso completo à suíte integrada com 5 domínios.');
-        """)
-        conn.commit()
 
 # =========================================================================
-# CROSS-DOMAIN ORCHESTRATION (Regras de Negócio Cruzadas entre Domínios)
+# CROSS-DOMAIN ORCHESTRATION RULES (EventBus Central)
 # =========================================================================
-# 1. Quando Lead é Ganho no CRM -> Gera Receita no ERP automaticamente!
 def on_lead_ganho(dados):
     with db.get_connection() as conn:
         conn.execute("""
@@ -54,15 +31,22 @@ def on_lead_ganho(dados):
         conn.commit()
     webhook_dispatcher.disparar("cross_domain.crm_to_erp", dados)
 
+def on_pedido_catalogo(dados):
+    with db.get_connection() as conn:
+        conn.execute("""
+            INSERT INTO lancamentos (descricao, tipo, categoria, valor, data_vencimento, status, entidade_nome)
+            VALUES (?, 'receita', 'E-commerce Catálogo', ?, date('now'), 'pago', ?)
+        """, (f"Pedido Catálogo: {dados.get('cliente_nome')}", float(dados.get('total', 0)), dados.get('cliente_nome', 'Cliente')))
+        conn.commit()
+    webhook_dispatcher.disparar("cross_domain.catalogo_to_erp", dados)
+
 events.on("lead_ganho", on_lead_ganho)
-events.on("lead_criado", lambda d: webhook_dispatcher.disparar("crm.lead_criado", d))
-events.on("conta_criada", lambda d: webhook_dispatcher.disparar("erp.conta_criada", d))
-events.on("ticket_aberto", lambda d: webhook_dispatcher.disparar("helpdesk.ticket_aberto", d))
+events.on("pedido_criado", on_pedido_catalogo)
 
 registry = RouteRegistry()
 
-# ----------------- ROTAS CRM -----------------
-@registry.get("/api/crm/pipeline", summary="Kanban de Vendas CRM", tags=["CRM"])
+# ----------------- CRM REST FULL-CRUD -----------------
+@registry.get("/api/crm/pipeline", summary="Kanban de Vendas CRM", tags=["CRM Vendas"])
 def get_pipeline(params):
     with db.get_connection() as conn:
         leads = [dict(r) for r in conn.execute("SELECT * FROM leads ORDER BY score DESC").fetchall()]
@@ -80,7 +64,7 @@ def get_pipeline(params):
                 estagios[st]["total_valor"] += l.get("valor_estimado", 0)
         return estagios
 
-@registry.post("/api/crm/leads/salvar", summary="Salvar ou Editar Lead", tags=["CRM"])
+@registry.post("/api/crm/leads/salvar", summary="Criar ou Atualizar Lead", tags=["CRM Vendas"])
 def post_salvar_lead(data):
     lid = data.get("id")
     with db.get_connection() as conn:
@@ -97,7 +81,15 @@ def post_salvar_lead(data):
             events.emit("lead_ganho", {"id": nid, "nome": data["nome"], "valor": data.get("valor_estimado",0), "empresa": data.get("empresa","")})
     return {"sucesso": True, "id": nid}
 
-@registry.post("/api/crm/pipeline/mover", summary="Move Lead e dispara Cross-Domain", tags=["CRM"])
+@registry.post("/api/crm/leads/excluir", summary="Excluir Lead", tags=["CRM Vendas"])
+def post_excluir_lead(data):
+    lid = int(data.get("id", 0))
+    with db.get_connection() as conn:
+        conn.execute("DELETE FROM leads WHERE id = ?", (lid,))
+        conn.commit()
+    return {"sucesso": True}
+
+@registry.post("/api/crm/pipeline/mover", summary="Move Estágio do Lead", tags=["CRM Vendas"])
 def post_mover_lead(data):
     lid = int(data.get("lead_id", 0))
     st = data.get("novo_status", "qualificado")
@@ -110,13 +102,13 @@ def post_mover_lead(data):
             events.emit("lead_ganho", {"id": lid, "nome": lead_dict["nome"], "valor": lead_dict["valor_estimado"], "empresa": lead_dict["empresa"]})
     return {"sucesso": True, "lead_id": lid, "status": st}
 
-# ----------------- ROTAS ERP -----------------
-@registry.get("/api/erp/contas", summary="Lançamentos Financeiros ERP", tags=["ERP Financeiro"])
+# ----------------- ERP REST FULL-CRUD -----------------
+@registry.get("/api/erp/contas", summary="Lista Lançamentos ERP", tags=["ERP Financeiro"])
 def get_contas(params):
     with db.get_connection() as conn:
         return [dict(r) for r in conn.execute("SELECT * FROM lancamentos ORDER BY data_vencimento ASC").fetchall()]
 
-@registry.get("/api/erp/fluxo-caixa", summary="DRE & Resumo Fluxo de Caixa", tags=["ERP Financeiro"])
+@registry.get("/api/erp/fluxo-caixa", summary="DRE & Resumo de Fluxo de Caixa", tags=["ERP Financeiro"])
 def get_fluxo(params):
     with db.get_connection() as conn:
         rec_paga = conn.execute("SELECT COALESCE(SUM(valor), 0) FROM lancamentos WHERE tipo='receita' AND status='pago'").fetchone()[0]
@@ -130,17 +122,30 @@ def get_fluxo(params):
             "saldo_projetado": rec_total - desp_total
         }
 
-@registry.post("/api/erp/contas/salvar", summary="Salvar Lançamento ERP", tags=["ERP Financeiro"])
+@registry.post("/api/erp/contas/salvar", summary="Salvar ou Editar Lançamento", tags=["ERP Financeiro"])
 def post_salvar_conta(data):
+    cid = data.get("id")
     with db.get_connection() as conn:
-        conn.execute("""
-            INSERT INTO lancamentos (descricao, tipo, categoria, valor, data_vencimento, status, entidade_nome)
-            VALUES (?, ?, ?, ?, ?, 'pendente', ?)
-        """, (data["descricao"], data["tipo"], data["categoria"], float(data["valor"]), data["data_vencimento"], data.get("entidade_nome","Geral")))
+        if cid:
+            conn.execute("UPDATE lancamentos SET descricao=?, tipo=?, categoria=?, valor=?, data_vencimento=?, entidade_nome=? WHERE id=?",
+                         (data["descricao"], data["tipo"], data["categoria"], float(data["valor"]), data["data_vencimento"], data.get("entidade_nome","Geral"), int(cid)))
+        else:
+            conn.execute("""
+                INSERT INTO lancamentos (descricao, tipo, categoria, valor, data_vencimento, status, entidade_nome)
+                VALUES (?, ?, ?, ?, ?, 'pendente', ?)
+            """, (data["descricao"], data["tipo"], data["categoria"], float(data["valor"]), data["data_vencimento"], data.get("entidade_nome","Geral")))
         conn.commit()
     return {"sucesso": True}
 
-@registry.post("/api/erp/contas/alternar-status", summary="Alternar Pago / Pendente", tags=["ERP Financeiro"])
+@registry.post("/api/erp/contas/excluir", summary="Excluir Lançamento", tags=["ERP Financeiro"])
+def post_excluir_conta(data):
+    cid = int(data.get("id", 0))
+    with db.get_connection() as conn:
+        conn.execute("DELETE FROM lancamentos WHERE id = ?", (cid,))
+        conn.commit()
+    return {"sucesso": True}
+
+@registry.post("/api/erp/contas/alternar-status", summary="1-Clique Status Pago/Pendente", tags=["ERP Financeiro"])
 def post_alternar_conta(data):
     cid = int(data.get("id", 0))
     with db.get_connection() as conn:
@@ -150,27 +155,40 @@ def post_alternar_conta(data):
         conn.commit()
     return {"sucesso": True, "status": novo_st}
 
-# ----------------- ROTAS HELPDESK -----------------
-@registry.get("/api/helpdesk/tickets", summary="Fila de Chamados com SLA", tags=["Helpdesk"])
+# ----------------- HELPDESK REST FULL-CRUD -----------------
+@registry.get("/api/helpdesk/tickets", summary="Lista Fila de Chamados", tags=["Central Helpdesk"])
 def get_tickets(params):
     with db.get_connection() as conn:
         return [dict(r) for r in conn.execute("SELECT * FROM tickets ORDER BY CASE prioridade WHEN 'P1' THEN 1 WHEN 'P2' THEN 2 ELSE 3 END, id DESC").fetchall()]
 
-@registry.post("/api/helpdesk/tickets/salvar", summary="Novo Chamado Helpdesk", tags=["Helpdesk"])
+@registry.post("/api/helpdesk/tickets/salvar", summary="Criar ou Editar Chamado", tags=["Central Helpdesk"])
 def post_salvar_ticket(data):
-    proto = f"TICK-{uuid.uuid4().hex[:6].upper()}"
-    prio = data.get("prioridade", "P3")
-    sla = 2 if prio == "P1" else (4 if prio == "P2" else 24)
+    tid = data.get("id")
     with db.get_connection() as conn:
-        conn.execute("""
-            INSERT INTO tickets (protocolo, assunto, descricao, cliente_nome, cliente_email, prioridade, status, sla_limite_horas)
-            VALUES (?, ?, ?, ?, ?, ?, 'aberto', ?)
-        """, (proto, data["assunto"], data["descricao"], data["cliente_nome"], data["cliente_email"], prio, sla))
+        prio = data.get("prioridade", "P3")
+        sla = 2 if prio == "P1" else (4 if prio == "P2" else 24)
+        if tid:
+            conn.execute("UPDATE tickets SET assunto=?, descricao=?, cliente_nome=?, cliente_email=?, prioridade=?, sla_limite_horas=? WHERE id=?",
+                         (data["assunto"], data["descricao"], data["cliente_nome"], data["cliente_email"], prio, sla, int(tid)))
+            proto = conn.execute("SELECT protocolo FROM tickets WHERE id = ?", (int(tid),)).fetchone()[0]
+        else:
+            proto = f"TICK-{uuid.uuid4().hex[:6].upper()}"
+            conn.execute("""
+                INSERT INTO tickets (protocolo, assunto, descricao, cliente_nome, cliente_email, prioridade, status, sla_limite_horas)
+                VALUES (?, ?, ?, ?, ?, ?, 'aberto', ?)
+            """, (proto, data["assunto"], data["descricao"], data["cliente_nome"], data["cliente_email"], prio, sla))
         conn.commit()
-    events.emit("ticket_aberto", {"protocolo": proto, "prioridade": prio})
     return {"sucesso": True, "protocolo": proto}
 
-@registry.post("/api/helpdesk/tickets/avancar-status", summary="Avançar status chamado", tags=["Helpdesk"])
+@registry.post("/api/helpdesk/tickets/excluir", summary="Excluir Chamado", tags=["Central Helpdesk"])
+def post_excluir_ticket(data):
+    tid = int(data.get("id", 0))
+    with db.get_connection() as conn:
+        conn.execute("DELETE FROM tickets WHERE id = ?", (tid,))
+        conn.commit()
+    return {"sucesso": True}
+
+@registry.post("/api/helpdesk/tickets/avancar-status", summary="1-Clique Status Chamado", tags=["Central Helpdesk"])
 def post_avancar_ticket(data):
     tid = int(data.get("id", 0))
     with db.get_connection() as conn:
@@ -180,17 +198,40 @@ def post_avancar_ticket(data):
         conn.commit()
     return {"sucesso": True, "status": novo_st}
 
-# ----------------- ROTAS MEMBROS & CATÁLOGO -----------------
-@registry.get("/api/membros/cursos", summary="Lista Cursos Disponíveis", tags=["Membros & Cursos"])
+# ----------------- MEMBROS & CATÁLOGO REST FULL-CRUD -----------------
+@registry.get("/api/membros/cursos", summary="Lista Cursos VIP", tags=["Membros & Cursos"])
 def get_cursos(params):
     with db.get_connection() as conn:
         return [dict(r) for r in conn.execute("SELECT * FROM cursos").fetchall()]
+
+@registry.post("/api/membros/assinar", summary="Checkout Assinatura", tags=["Membros & Cursos"])
+def post_assinar(data):
+    with db.get_connection() as conn:
+        conn.execute("""
+            INSERT INTO assinaturas (usuario_nome, usuario_email, plano, metodo, valor, status)
+            VALUES (?, ?, ?, ?, ?, 'ativa')
+        """, (data["nome"], data["email"], data.get("plano", "Pro"), data.get("metodo", "Pix"), float(data.get("valor", 97.0))))
+        conn.commit()
+    return {"sucesso": True}
 
 @registry.get("/api/catalogo/produtos", summary="Lista Produtos Catálogo", tags=["Catálogo & E-commerce"])
 def get_produtos(params):
     with db.get_connection() as conn:
         return [dict(r) for r in conn.execute("SELECT * FROM produtos").fetchall()]
 
+@registry.post("/api/catalogo/pedidos/salvar", summary="Finalizar Pedido Catálogo", tags=["Catálogo & E-commerce"])
+def post_salvar_pedido(data):
+    with db.get_connection() as conn:
+        cur = conn.execute("""
+            INSERT INTO pedidos (cliente_nome, cliente_telefone, total, itens_json, status)
+            VALUES (?, ?, ?, ?, 'pago')
+        """, (data["cliente_nome"], data["cliente_telefone"], float(data["total"]), json.dumps(data.get("itens", []))))
+        conn.commit()
+        pid = cur.lastrowid
+        events.emit("pedido_criado", {"id": pid, "cliente_nome": data["cliente_nome"], "total": data["total"]})
+    return {"sucesso": True, "pedido_id": pid}
+
+# ----------------- SERVIDOR HTTP -----------------
 class AppHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=STATIC_DIR, **kwargs)
@@ -202,7 +243,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             with open(os.path.join(STATIC_DIR, "docs.html"), "r", encoding="utf-8") as df:
                 self._send_html(df.read())
         elif p.path == "/docs":
-            self._send_html(registry.get_swagger_html("AIDD v4.0 Enterprise Suite — OpenAPI Swagger"))
+            self._send_html(registry.get_swagger_html("AIDD Enterprise Suite v4.0 — OpenAPI Swagger"))
         elif p.path == "/openapi.json":
             self._send_json(registry.generate_openapi_json("AIDD Enterprise Suite v4.0", "4.0.0"))
         elif p.path in registry.routes["GET"]:
@@ -241,7 +282,7 @@ class ThreadedServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
 
 if __name__ == "__main__":
     server = ThreadedServer(("", PORT), AppHandler)
-    print(f"[OK] AIDD v4.0 Enterprise Suite rodando em: http://localhost:{PORT}")
-    print(f"[OK] Documentação OnOrca em: http://localhost:{PORT}/docs/guia")
+    print(f"[OK] AIDD Enterprise Suite v4.0 rodando em: http://localhost:{PORT}")
+    print(f"[OK] Documentação da Suíte em: http://localhost:{PORT}/docs/guia")
     print(f"[OK] Swagger API Docs em: http://localhost:{PORT}/docs")
     server.serve_forever()

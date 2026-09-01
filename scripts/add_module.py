@@ -260,6 +260,7 @@ Registro de rotas OpenAPI 3.1 para o módulo '{slug}'.
 
 from typing import Any, Optional, Dict, List
 from core.openapi import RouteRegistry
+from core.cqrs import read_model
 
 registry = RouteRegistry()
 
@@ -282,7 +283,10 @@ def registrar_rotas(service: Any = None):
     )
     def listar(params):
         status = params.get("status", [None])[0] if isinstance(params.get("status"), list) else params.get("status")
-        return service.listar(status=status) if service else []
+        if not service:
+            return []
+        cache_key = f"{slug}_list"
+        return read_model.get_or_revalidate(cache_key, lambda: service.listar(status=status), ttl=30)
 
     @registry.get(
         "/api/{slug}/metricas",

@@ -1,22 +1,77 @@
-﻿import http.server, socketserver, json, urllib.parse, os, sys
+import http.server, socketserver, json, urllib.parse, os, sys
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from services import PlataformaService
+from core.database import Database
+from core.events import EventBus
+from core.openapi import RouteRegistry
+from core.webhooks import WebhookDispatcher
+
+# Import dos Módulos Verticais
+from modules.auth.backend.models import init_schema as init_auth_schema
+from modules.auth.backend.services import AuthService
+from modules.auth.backend.routes import registrar_rotas as reg_auth_routes
+
+from modules.assinaturas.backend.models import init_schema as init_ass_schema
+from modules.assinaturas.backend.services import AssinaturasService
+from modules.assinaturas.backend.routes import registrar_rotas as reg_ass_routes
+
+from modules.cursos.backend.models import init_schema as init_cur_schema
+from modules.cursos.backend.services import CursosService
+from modules.cursos.backend.routes import registrar_rotas as reg_cur_routes
+
+from modules.progresso.backend.models import init_schema as init_prog_schema
+from modules.progresso.backend.services import ProgressoService
+from modules.progresso.backend.routes import registrar_rotas as reg_prog_routes
 
 PORT = 3000
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
-db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "banco_membros.db")
-service = PlataformaService(db_path)
-service.seed_dados_iniciais()
+db = Database(f"sqlite:///{os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'banco_membros.db')}")
+events = EventBus()
+webhook_dispatcher = WebhookDispatcher(db)
 
-# Garantir usuario demo no banco
-service.cadastrar_usuario("Heverton Peres", "admin@aidd.com", "123456")
-service.matricular(1, 1)
-service.matricular(1, 2)
-service.alternar_progresso_aula(1, 1)
+# Event-Driven Webhook Dispatcher para n8n
+events.on("usuario_cadastrado", lambda d: webhook_dispatcher.disparar("aluno.cadastrado", d))
+events.on("assinatura_ativada", lambda d: webhook_dispatcher.disparar("assinatura.ativada", d))
+events.on("progresso_atualizado", lambda d: webhook_dispatcher.disparar("aula.concluida", d))
+
+# 1. Inicializar Schemas
+with db.get_connection() as conn:
+    init_auth_schema(conn)
+    init_ass_schema(conn)
+    init_cur_schema(conn)
+    init_prog_schema(conn)
+    conn.execute("CREATE TABLE IF NOT EXISTS configuracoes (chave TEXT PRIMARY KEY, valor TEXT NOT NULL);")
+    conn.commit()
+
+auth_svc = AuthService(db, events)
+ass_svc = AssinaturasService(db, events)
+cursos_svc = CursosService(db, events)
+prog_svc = ProgressoService(db, events)
+
+ass_svc.seed_planos()
+cursos_svc.seed_iniciais()
+
+# Seed admin de teste
+auth_svc.cadastrar("Heverton Peres", "admin@aidd.com", "123456")
+cursos_svc.matricular(1, 1)
+
+# 2. Registrar Rotas OpenAPI
+registry = RouteRegistry()
+reg_auth_routes(registry, auth_svc)
+reg_ass_routes(registry, ass_svc)
+reg_cur_routes(registry, cursos_svc)
+reg_prog_routes(registry, prog_svc)
+
+@registry.post("/api/admin/salvar-webhook", summary="Configura URL de Webhook para automação no n8n", tags=["Configuração"])
+def post_salvar_webhook(data):
+    url = data.get("webhook_url", "")
+    with db.get_connection() as conn:
+        conn.execute("INSERT OR REPLACE INTO configuracoes (chave, valor) VALUES ('webhook_url', ?)", (url,))
+        conn.commit()
+    return {"sucesso": True, "webhook_url": url, "mensagem": "Webhook configurado com sucesso para automações n8n!"}
 
 class PlatformHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -27,17 +82,15 @@ class PlatformHandler(http.server.SimpleHTTPRequestHandler):
         path = parsed.path
         params = urllib.parse.parse_qs(parsed.query)
 
-        if path == "/api/cursos":
-            uid_param = params.get("usuario_id", [""])[0]
-            uid = int(uid_param) if uid_param.isdigit() else None
-            cursos = service.listar_cursos(uid)
-            self._send_json(cursos)
-        elif path == "/api/aulas":
-            cid = int(params.get("curso_id", [0])[0])
-            uid_param = params.get("usuario_id", [""])[0]
-            uid = int(uid_param) if uid_param.isdigit() else None
-            aulas = service.obter_aulas(cid, uid)
-            self._send_json(aulas)
+        if path == "/docs":
+            html = registry.get_swagger_html("Plataforma de Membros & Assinaturas — Swagger API")
+            self._send_html(html)
+        elif path == "/openapi.json":
+            spec = registry.generate_openapi_json("Plataforma de Assinaturas API", "2.0.0")
+            self._send_json(spec)
+        elif path in registry.routes["GET"]:
+            handler = registry.routes["GET"][path]
+            self._send_json(handler(params))
         elif path == "/favicon.ico":
             self.send_response(204)
             self.end_headers()
@@ -53,26 +106,27 @@ class PlatformHandler(http.server.SimpleHTTPRequestHandler):
         body = self.rfile.read(length).decode("utf-8")
         data = json.loads(body) if body else {}
 
-        if parsed.path == "/api/cadastro":
-            res = service.cadastrar_usuario(data.get("nome", ""), data.get("email", ""), data.get("senha", ""))
-            self._send_json(res)
-        elif parsed.path == "/api/login":
-            res = service.autenticar(data.get("email", ""), data.get("senha", ""))
-            self._send_json(res)
-        elif parsed.path == "/api/matricular":
-            res = service.matricular(int(data.get("usuario_id", 0)), int(data.get("curso_id", 0)))
-            self._send_json(res)
-        elif parsed.path == "/api/progresso":
-            res = service.alternar_progresso_aula(int(data.get("usuario_id", 0)), int(data.get("aula_id", 0)))
-            self._send_json(res)
+        if parsed.path in registry.routes["POST"]:
+            handler = registry.routes["POST"][parsed.path]
+            self._send_json(handler(data))
         else:
-            self.send_error(404, "Endpoint nao encontrado")
+            self.send_error(404, "Endpoint não encontrado")
 
     def _send_json(self, data, status=200):
         res = json.dumps(data, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self.send_header("Content-Length", str(len(res)))
+        self.end_headers()
+        self.wfile.write(res)
+
+    def _send_html(self, html):
+        res = html.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(res)))
         self.end_headers()
         self.wfile.write(res)
@@ -81,10 +135,8 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
-def start_server():
-    server = ThreadedHTTPServer(("", PORT), PlatformHandler)
-    print(f"[OK] Servidor Multithreaded rodando em: http://localhost:{PORT}")
-    server.serve_forever()
-
 if __name__ == "__main__":
-    start_server()
+    server = ThreadedHTTPServer(("", PORT), PlatformHandler)
+    print(f"[OK] Plataforma de Membros & Assinaturas rodando em: http://localhost:{PORT}")
+    print(f"[OK] Swagger Docs em: http://localhost:{PORT}/docs")
+    server.serve_forever()

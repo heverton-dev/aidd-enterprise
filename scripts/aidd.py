@@ -120,6 +120,51 @@ def cmd_add_module(args):
     criar_modulo(args.nome, args.descricao or "", target_dir=getattr(args, "dir", "."))
 
 
+def cmd_refine_module(args):
+    """Executa a suíte BDD (behave) de um módulo até 100% dos cenários passarem.
+    O comando é o gate determinístico; o ciclo Ler Falha -> Editar services.py ->
+    Re-executar é conduzido pelo agente de refinamento de domínio (ver
+    templates/agents/agent_domain_refiner.md), não por este script."""
+    target_dir = os.path.abspath(getattr(args, "dir", "."))
+    modulo = args.modulo
+    spec_path = os.path.abspath(getattr(args, "spec", None) or os.path.join(target_dir, "features", f"{modulo}.feature"))
+
+    print("=" * 80)
+    print(f"🧬 [AIDD v5.0 BDD DOMAIN REFINER] Validando regras de domínio do módulo '{modulo}'")
+    print(f"📄 Especificação: {spec_path}")
+    print("=" * 80)
+
+    if not os.path.isfile(spec_path):
+        print(f"[ERRO] Arquivo de especificação não encontrado: {spec_path}")
+        sys.exit(1)
+
+    try:
+        import behave  # noqa: F401
+    except ImportError:
+        print("[*] [BOOTSTRAP AUTOMÁTICO] Instalando 'behave' (necessário para refinamento BDD)...")
+        subprocess.run([sys.executable, "-m", "pip", "install", "behave"], check=True, capture_output=True)
+        req_file = os.path.join(target_dir, "requirements.txt")
+        if os.path.isfile(req_file):
+            with open(req_file, "r", encoding="utf-8") as f:
+                conteudo = f.read()
+            if "behave" not in conteudo:
+                with open(req_file, "a", encoding="utf-8") as f:
+                    f.write("behave>=1.2.6\n")
+
+    src_path = os.path.join(target_dir, "src")
+    env = os.environ.copy()
+    env["PYTHONPATH"] = f"{src_path}{os.pathsep}{env.get('PYTHONPATH', '')}"
+
+    res = subprocess.run([sys.executable, "-m", "behave", spec_path, "--no-capture"], cwd=target_dir, env=env)
+
+    if res.returncode != 0:
+        print(f"\n❌ [RED] Cenários BDD do módulo '{modulo}' falharam (exit code {res.returncode}).")
+        print("   Ajuste a lógica em src/modules/<modulo>/services.py e execute novamente.")
+        sys.exit(res.returncode)
+
+    print(f"\n🏆 [GREEN] 100% dos cenários BDD do módulo '{modulo}' homologados (exit 0)!")
+
+
 def cmd_test(args):
     target_dir = os.path.abspath(getattr(args, "dir", "."))
     tipo = getattr(args, "tipo", "unit") or "unit"
@@ -423,6 +468,21 @@ def cmd_export_frontend(args):
     export_frontend(target_dir, suite_name, stack=getattr(args, "stack", "nextjs"))
 
 
+def cmd_scaffold_infra(args):
+    target_dir = os.path.abspath(getattr(args, "dir", "."))
+    plano_path = os.path.join(target_dir, "PLANO-EXECUCAO-ESTRUTURADO.json")
+    suite_name = "AIDD Suite"
+    if os.path.exists(plano_path):
+        with open(plano_path, "r", encoding="utf-8") as f:
+            suite_name = json.load(f).get("projeto", {}).get("nome", suite_name)
+
+    try:
+        from scaffold_infra import scaffold_infra
+    except ImportError:
+        from scripts.scaffold_infra import scaffold_infra
+    scaffold_infra(target_dir, suite_name)
+
+
 def cmd_status(args):
     target_dir = os.path.abspath(getattr(args, "dir", "."))
     print("=" * 80)
@@ -625,7 +685,7 @@ def parse_natural_language_intent(prompt: str, base_dir: str = "."):
 
 
 def main():
-    known_cmds = {"setup", "init", "plan", "apply", "prompt", "compose", "add-module", "test", "audit", "bench", "heal", "deploy", "status", "export-frontend", "-h", "--help"}
+    known_cmds = {"setup", "init", "plan", "apply", "prompt", "compose", "add-module", "test", "audit", "bench", "heal", "deploy", "status", "export-frontend", "refine-module", "scaffold-infra", "-h", "--help"}
     if len(sys.argv) > 1 and sys.argv[1] not in known_cmds:
         raw_prompt = " ".join(sys.argv[1:])
         parse_natural_language_intent(raw_prompt)
@@ -703,6 +763,16 @@ def main():
     p_export.add_argument("--stack", choices=["nextjs"], default="nextjs", help="Stack de frontend alvo")
     p_export.add_argument("--dir", default=".", help="Diretório do projeto")
 
+    # refine-module
+    p_refine = subparsers.add_parser("refine-module", help="Executa a suíte BDD (behave) de um módulo até 100%% dos cenários passarem")
+    p_refine.add_argument("modulo", help="Nome do módulo alvo")
+    p_refine.add_argument("--spec", default=None, help="Caminho do arquivo .feature (default: features/<modulo>.feature)")
+    p_refine.add_argument("--dir", default=".", help="Diretório do projeto")
+
+    # scaffold-infra
+    p_infra = subparsers.add_parser("scaffold-infra", help="Gera infraestrutura declarativa Terraform + Helm em infra/")
+    p_infra.add_argument("--dir", default=".", help="Diretório do projeto")
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
@@ -722,7 +792,9 @@ def main():
         "audit": cmd_audit,
         "deploy": cmd_deploy,
         "status": cmd_status,
-        "export-frontend": cmd_export_frontend
+        "export-frontend": cmd_export_frontend,
+        "refine-module": cmd_refine_module,
+        "scaffold-infra": cmd_scaffold_infra
     }
     cmds[args.command](args)
 

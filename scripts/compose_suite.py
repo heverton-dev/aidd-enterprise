@@ -71,6 +71,7 @@ import json
 import urllib.parse
 import os
 import sys
+import time
 import uuid
 import datetime
 
@@ -90,6 +91,7 @@ from core.openapi import RouteRegistry
 from core.webhooks import WebhookDispatcher
 from core.security import SecurityService, JWTService, OIDCService
 from core.mcp_server import MCPServer
+from core.metrics import MetricsRegistry, RequestInstrumentation
 
 # Módulos / Fatias Verticais
 __IMPORTS__
@@ -103,6 +105,8 @@ events = EventBus()
 webhook_dispatcher = WebhookDispatcher(db)
 registry = RouteRegistry()
 mcp_server = MCPServer(DB_PATH)
+metrics_registry = MetricsRegistry()
+instrumentation = RequestInstrumentation(metrics_registry)
 
 # Configuração SSO Corporativo (OAuth2/OIDC + PKCE) — opcional, Zero Fricção
 # quando não configurada: o login local JWT (/api/auth/login) continua ativo.
@@ -315,10 +319,15 @@ def post_jobs_reprocessar(data):
     return job_queue.reprocessar(job_id)
 
 
-# 7. Handler HTTP com OWASP Security Headers
+# 7. Handler HTTP com OWASP Security Headers + Instrumentação Prometheus
 class AppHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
+        self._last_status_code = 200
         super().__init__(*args, directory=STATIC_DIR, **kwargs)
+
+    def send_response(self, code, message=None):
+        self._last_status_code = code
+        super().send_response(code, message)
 
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -334,9 +343,32 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        t0 = time.time()
+        path_only = self.path.split("?")[0]
+        try:
+            self._handle_get()
+        finally:
+            instrumentation.track_request("GET", path_only, self._last_status_code, time.time() - t0)
+
+    def do_POST(self):
+        t0 = time.time()
+        path_only = self.path.split("?")[0]
+        try:
+            self._handle_post()
+        finally:
+            instrumentation.track_request("POST", path_only, self._last_status_code, time.time() - t0)
+
+    def _handle_get(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)
+
+        if path == "/metrics":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(metrics_registry.render().encode("utf-8"))
+            return
 
         if path == "/openapi.json":
             self.send_response(200)
@@ -404,7 +436,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
 
         super().do_GET()
 
-    def do_POST(self):
+    def _handle_post(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
 
@@ -481,6 +513,7 @@ def run_server():
         print(f"⚡ Webhook Studio:     http://localhost:{PORT}/webhooks")
         print(f"🤖 MCP Native Studio:  http://localhost:{PORT}/mcp")
         print(f"📊 OpenAPI Spec:       http://localhost:{PORT}/openapi.json")
+        print(f"📈 Métricas Prometheus: http://localhost:{PORT}/metrics")
         print("=" * 80)
         try:
             httpd.serve_forever()
@@ -807,7 +840,7 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
     open(os.path.join(shared_utils_dir, "__init__.py"), "w", encoding="utf-8").close()
 
     # 2. Copiar Shared Kernel Core
-    core_files = ["database.py", "events.py", "outbox_worker.py", "openapi.py", "security.py", "webhooks.py", "mcp_server.py", "result.py", "jobs.py"]
+    core_files = ["database.py", "events.py", "outbox_worker.py", "openapi.py", "security.py", "webhooks.py", "mcp_server.py", "result.py", "jobs.py", "metrics.py"]
     for cf in core_files:
         src = os.path.join(templates_v2, cf)
         dst = os.path.join(core_dir, cf)
@@ -902,7 +935,7 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
                 print(f"  [+] Quality Gate: {g}")
 
     # 9. Copiar Scripts de Automação
-    for s in ["aidd.py", "add_module.py", "compose_suite.py", "openapi_to_ts.py"]:
+    for s in ["aidd.py", "add_module.py", "compose_suite.py", "openapi_to_ts.py", "scaffold_infra.py"]:
         src = os.path.join(scripts_dir, s)
         if os.path.isfile(src):
             shutil.copyfile(src, os.path.join(target_scripts_dir, s))

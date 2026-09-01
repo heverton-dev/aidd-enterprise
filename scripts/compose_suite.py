@@ -101,6 +101,10 @@ from core.security import SecurityService, JWTService, OIDCService
 from core.mcp_server import MCPServer
 from core.metrics import MetricsRegistry, RequestInstrumentation
 from core.circuit_breaker import CircuitBreaker, CircuitState
+from core.logs import get_logger, correlation_id_var
+
+# Inicialização do Logger Universal
+logger = get_logger("__SUITE_NAME__")
 
 # Registro de Circuit Breakers (Serviços Externos)
 circuit_breakers = {
@@ -386,18 +390,32 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         t0 = time.time()
         path_only = self.path.split("?")[0]
+        corr_id = self.headers.get('X-Correlation-ID', uuid.uuid4().hex)
+        correlation_id_var.set(corr_id)
+        logger.info(f"Iniciando requisição GET para {path_only}")
         try:
             self._handle_get()
+        except Exception as e:
+            logger.error(f"Exceção não tratada em GET {path_only}: {e}", exc_info=True)
+            raise
         finally:
             instrumentation.track_request("GET", path_only, self._last_status_code, time.time() - t0)
+            logger.info(f"Finalizando requisição GET para {path_only} com status {self._last_status_code}")
 
     def do_POST(self):
         t0 = time.time()
         path_only = self.path.split("?")[0]
+        corr_id = self.headers.get('X-Correlation-ID', uuid.uuid4().hex)
+        correlation_id_var.set(corr_id)
+        logger.info(f"Iniciando requisição POST para {path_only}")
         try:
             self._handle_post()
+        except Exception as e:
+            logger.error(f"Exceção não tratada em POST {path_only}: {e}", exc_info=True)
+            raise
         finally:
             instrumentation.track_request("POST", path_only, self._last_status_code, time.time() - t0)
+            logger.info(f"Finalizando requisição POST para {path_only} com status {self._last_status_code}")
 
     def _handle_get(self):
         parsed = urllib.parse.urlparse(self.path)

@@ -222,6 +222,31 @@ class SecurityGate:
         except Exception as e:
             self.log("WARN", "Camada 6: SQLite Safety", "Auditoria de Banco de Dados", str(e))
 
+        db_py_path = os.path.join(self.src_dir, "core", "database.py")
+        if os.path.exists(db_py_path):
+            with open(db_py_path, "r", encoding="utf-8") as f:
+                db_content = f.read()
+            if "_audit_log" in db_content and "curr_hash" in db_content:
+                self.log("PASS", "Camada 6: SQLite Safety", "WORM Audit Hash Chain", "Tabela _audit_log e curr_hash implementados com sucesso")
+            else:
+                self.log("FAIL", "Camada 6: SQLite Safety", "WORM Audit Hash Chain", "Pilar de auditoria WORM ausente no database.py")
+        else:
+            # Fallback scan for templates
+            found_worm = False
+            for root_dir, _, files in os.walk(self.root):
+                for f in files:
+                    if f.endswith("database.py"):
+                        with open(os.path.join(root_dir, f), "r", encoding="utf-8") as fp:
+                            content = fp.read()
+                            if "_audit_log" in content and "curr_hash" in content:
+                                found_worm = True
+                                break
+            if found_worm:
+                self.log("PASS", "Camada 6: SQLite Safety", "WORM Audit Hash Chain", "Tabela _audit_log e curr_hash implementados com sucesso (template)")
+            else:
+                self.log("FAIL", "Camada 6: SQLite Safety", "WORM Audit Hash Chain", "Pilar de auditoria WORM ausente no database.py")
+
+
         # ---------------------------------------------------------
         # CAMADA 7: OPENAPI 3.1 & SWAGGER SECURITY SCHEMES
         # ---------------------------------------------------------

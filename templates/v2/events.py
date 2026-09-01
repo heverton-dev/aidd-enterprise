@@ -20,6 +20,13 @@ import threading
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import Callable, Any, Dict, Optional
+from dataclasses import dataclass, field
+
+@dataclass
+class Event:
+    name: str
+    payload: Dict[str, Any]
+    correlation_id: str = ""
 
 
 class EventBusDriver(ABC):

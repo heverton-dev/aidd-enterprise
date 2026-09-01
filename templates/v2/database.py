@@ -17,7 +17,25 @@ import json
 import uuid
 import sqlite3
 import datetime
+import hashlib
 from abc import ABC, abstractmethod
+
+
+def append_audit_log(cursor, action: str, payload: dict):
+    cursor.execute("SELECT curr_hash FROM _audit_log ORDER BY timestamp DESC LIMIT 1;")
+    row = cursor.fetchone()
+    prev_hash = '0' * 64
+    if row:
+        prev_hash = row["curr_hash"] if isinstance(row, dict) else row[0]
+    payload_json = json.dumps(payload, sort_keys=True)
+    curr_hash = hashlib.sha256(f"{prev_hash}{action}{payload_json}".encode('utf-8')).hexdigest()
+    log_id = uuid.uuid4().hex
+    timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    cursor.execute(
+        "INSERT INTO _audit_log (id, timestamp, action, payload, prev_hash, curr_hash) VALUES (?, ?, ?, ?, ?, ?)",
+        (log_id, timestamp, action, payload_json, prev_hash, curr_hash)
+    )
+
 
 _PLACEHOLDER_RE = re.compile(r"\?")
 _AUTOINCREMENT_RE = re.compile(r"INTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT", re.IGNORECASE)
@@ -74,6 +92,14 @@ class SQLiteAdapter(DatabaseAdapter):
                     processado_em TEXT
                 );
                 CREATE INDEX IF NOT EXISTS idx_outbox_status ON _outbox_events(status);
+                CREATE TABLE IF NOT EXISTS _audit_log (
+                    id TEXT PRIMARY KEY,
+                    timestamp TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    prev_hash TEXT NOT NULL,
+                    curr_hash TEXT NOT NULL
+                );
             """)
             conn.commit()
         finally:
@@ -205,6 +231,16 @@ class PostgresAdapter(DatabaseAdapter):
                 );
             """)
             cur.execute("CREATE INDEX IF NOT EXISTS idx_outbox_status ON _outbox_events(status);")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS _audit_log (
+                    id TEXT PRIMARY KEY,
+                    timestamp TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    prev_hash TEXT NOT NULL,
+                    curr_hash TEXT NOT NULL
+                );
+            """)
             conn.commit()
         finally:
             conn.close()

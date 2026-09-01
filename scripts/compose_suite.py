@@ -1491,13 +1491,15 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
             outf.write(final_docs_html)
         print("  [+] Front-end Docs 'src/static/docs.html' gerado dinamicamente via AST!")
 
-    # 7. Gerar requirements.txt
-    req_content = "pytest>=7.4.0\nrequests>=2.31.0\n"
+    # 7. Gerar requirements.txt e config do mutmut
+    req_content = "pytest>=7.4.0\nmutmut>=2.4.0\nrequests>=2.31.0\n"
     if db_engine == "postgres":
         req_content += "psycopg2-binary>=2.9.9\n"
     with open(os.path.join(target_dir, "requirements.txt"), "w", encoding="utf-8") as f:
         f.write(req_content)
-    print("  [+] Manifesto 'requirements.txt' gerado!")
+    with open(os.path.join(target_dir, "setup.cfg"), "w", encoding="utf-8") as f:
+        f.write("[mutmut]\npaths_to_mutate=src/\nbackup=False\nrunner=pytest\ntests_dir=tests/\n")
+    print("  [+] Manifesto 'requirements.txt' e 'setup.cfg' gerados!")
 
     # 8. Copiar Quality Gates
     if os.path.isdir(gates_dir):

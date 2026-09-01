@@ -55,6 +55,20 @@ def verificar(target_dir: str = "."):
                     except Exception as e:
                         erros.append(f"Falha ao inspecionar AST em {f_path}: {e}")
 
+    # 2.5 Testes de Mutação (AST) via mutmut
+    print("    -> Executando Testes de Mutação (AST) via mutmut...")
+    try:
+        # Verifica se mutmut está instalado no ambiente
+        mutmut_check = subprocess.run([sys.executable, '-m', 'mutmut', '--version'], capture_output=True)
+        if mutmut_check.returncode == 0:
+            res = subprocess.run([sys.executable, '-m', 'mutmut', 'run', '--paths-to-mutate=src/', '--runner=pytest'], cwd=target_dir, capture_output=True, text=True)
+            if res.returncode != 0:
+                erros.append("Falha nos Testes de Mutação (AST). Mutantes sobreviventes encontrados pelo mutmut.")
+        else:
+            print("       (Aviso: mutmut não instalado, pulando mutações. Instale via requirements.txt)")
+    except Exception as e:
+        erros.append(f"Erro ao executar mutmut: {e}")
+
     # 3. Linter de Impeccable UI & Acessibilidade WCAG 2.1
     comp_dir = os.path.join(src_dir, "static", "components")
     if os.path.isdir(comp_dir):

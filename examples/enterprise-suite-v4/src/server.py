@@ -419,6 +419,8 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         if p.path == "/docs/guia":
             with open(os.path.join(STATIC_DIR, "docs.html"), "r", encoding="utf-8") as df:
                 self._send_html(df.read())
+        elif p.path == "/mcp":
+            self._send_html(mcp_engine.get_portal_html())
         elif p.path == "/docs":
             self._send_html(registry.get_swagger_html("AIDD Enterprise Suite v4.0 — API Reference Studio"))
         elif p.path == "/openapi.json":

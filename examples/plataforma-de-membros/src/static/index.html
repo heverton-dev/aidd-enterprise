@@ -411,6 +411,41 @@
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
             z-index: 200;
         }
+    
+/* =========================================================================
+   DESIGN SYSTEM UNIVERSAL (SCROLLBAR 4PX & BUTTON WRAP PROTECTION)
+   ========================================================================= */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(59, 130, 246, 0.4) transparent;
+}
+::-webkit-scrollbar {
+    width: 4px !important;
+    height: 4px !important;
+}
+::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.35) !important;
+    border-radius: 9999px !important;
+    transition: background 0.2s ease !important;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.75) !important;
+}
+
+button, .btn, .btn-primary, .btn-secondary, .btn-gold, .btn-danger,
+.tab-btn, .resp-status-btn, .lang-tab, .endpoint-link, .nav-item {
+    white-space: nowrap !important;
+    text-overflow: ellipsis;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    line-height: 1.2 !important;
+}
+
     </style>
 </head>
 <body>

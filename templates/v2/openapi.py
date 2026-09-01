@@ -262,8 +262,21 @@ class RouteRegistry:
             "info": {
                 "title": title,
                 "version": version,
-                "description": "API Reference Dinâmica de Alta Fidelidade com Interactive Live Playground"
+                "description": "API Reference Dinâmica de Alta Fidelidade com Interactive Live Playground e Autenticação JWT"
             },
+            "components": {
+                "securitySchemes": {
+                    "bearerAuth": {
+                        "type": "http",
+                        "scheme": "bearer",
+                        "bearerFormat": "JWT",
+                        "description": "Insira o token JWT gerado em /api/auth/login"
+                    }
+                }
+            },
+            "security": [
+                {"bearerAuth": []}
+            ],
             "tags": [{"name": t} for t in sorted(tags_set)],
             "paths": paths_obj
         }

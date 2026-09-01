@@ -1,83 +1,206 @@
 import sys, json, os, sqlite3, uuid
 
-class EnterpriseMCPServer:
-    """
-    Servidor MCP Universal (Model Context Protocol) para AIDD Enterprise Suite v4.0.
-    Compatível com Antigravity, Claude Desktop, Cursor, Windsurf, Zed e OnOrca.
-    Suporta protocolo JSON-RPC 2.0 via STDIO ou HTTP.
-    """
+class LogisticaMCPServer:
     def __init__(self, db_path: str):
         self.db_path = db_path
         self.tools = {
-            "crm_listar_pipeline": {
-                "description": "Retorna o pipeline completo de vendas do CRM agrupado por estágios do Kanban.",
+            # 1. FROTAS
+            "frotas_listar_veiculos": {
+                "description": "Lista todos os veículos da frota, motoristas, capacidade em KG e status operacional.",
                 "inputSchema": {"type": "object", "properties": {}}
             },
-            "crm_salvar_lead": {
-                "description": "Cadastra um novo lead comercial ou atualiza um existente.",
+            "frotas_cadastrar_veiculo": {
+                "description": "Cadastra um novo caminhão ou utilitário na frota com placa e capacidade.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "nome": {"type": "string", "description": "Nome completo do decisor"},
-                        "email": {"type": "string", "description": "E-mail corporativo"},
-                        "telefone": {"type": "string", "description": "Telefone / WhatsApp"},
-                        "empresa": {"type": "string", "description": "Razão social da empresa"},
-                        "score": {"type": "integer", "description": "Pontuação comercial (0-100)"},
-                        "status": {"type": "string", "description": "novo, qualificado, proposta, negociacao, ganho"},
-                        "valor_estimado": {"type": "number", "description": "Valor estimado do contrato em BRL"}
+                        "placa": {"type": "string", "description": "Placa do veículo (ex: BRA2E19)"},
+                        "modelo": {"type": "string", "description": "Modelo do caminhão"},
+                        "motorista": {"type": "string", "description": "Nome do motorista responsável"},
+                        "capacidade_kg": {"type": "number", "description": "Capacidade de carga em KG"}
                     },
-                    "required": ["nome", "email", "telefone"]
+                    "required": ["placa", "modelo", "motorista", "capacidade_kg"]
                 }
             },
-            "crm_mover_lead": {
-                "description": "Altera o estágio do lead no Kanban. Dispara receita no ERP se o status for 'ganho'.",
+            "frotas_alternar_status": {
+                "description": "Alterna ciclicamente o status do caminhão (disponivel, em_rota, manutencao).",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "lead_id": {"type": "integer", "description": "ID do lead"},
-                        "novo_status": {"type": "string", "description": "novo, qualificado, proposta, negociacao, ganho"}
+                        "id": {"type": "integer", "description": "ID do veículo"}
                     },
-                    "required": ["lead_id", "novo_status"]
+                    "required": ["id"]
                 }
             },
-            "erp_obter_fluxo_caixa": {
-                "description": "Consulta o DRE e resumo de fluxo de caixa (saldo realizado e saldo projetado).",
+            "frotas_excluir_veiculo": {
+                "description": "Remove um veículo da frota de transporte.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "integer", "description": "ID do veículo a ser excluído"}
+                    },
+                    "required": ["id"]
+                }
+            },
+
+            # 2. ENTREGAS
+            "entregas_listar": {
+                "description": "Lista todas as ordens de transporte e remessas em tempo real.",
                 "inputSchema": {"type": "object", "properties": {}}
             },
-            "erp_lancar_conta": {
-                "description": "Registra uma nova conta a pagar ou a receber no ERP financeiro.",
+            "entregas_criar_remessa": {
+                "description": "Cria uma nova remessa de entrega com código de rastreamento e valor de frete.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "descricao": {"type": "string", "description": "Descrição do lançamento"},
-                        "tipo": {"type": "string", "description": "receita ou despesa"},
+                        "destinatario": {"type": "string", "description": "Nome do cliente destinatário"},
+                        "cidade_destino": {"type": "string", "description": "Cidade e UF de destino"},
+                        "valor_frete": {"type": "number", "description": "Valor monetário do frete em BRL"},
+                        "peso_kg": {"type": "number", "description": "Peso total da carga em KG"}
+                    },
+                    "required": ["destinatario", "cidade_destino", "valor_frete", "peso_kg"]
+                }
+            },
+            "entregas_atualizar_status": {
+                "description": "Atualiza o status da entrega (pendente, em_transito, entregue). Dispara faturamento se 'entregue'.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "entrega_id": {"type": "integer", "description": "ID da entrega"},
+                        "novo_status": {"type": "string", "description": "pendente, em_transito, entregue"}
+                    },
+                    "required": ["entrega_id", "novo_status"]
+                }
+            },
+            "entregas_excluir_remessa": {
+                "description": "Cancela ou remove uma remessa de entrega.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "integer", "description": "ID da entrega a ser cancelada"}
+                    },
+                    "required": ["id"]
+                }
+            },
+
+            # 3. WMS
+            "wms_consultar_estoque": {
+                "description": "Consulta os itens e saldo de estoque no armazém WMS com posições de palete.",
+                "inputSchema": {"type": "object", "properties": {}}
+            },
+            "wms_adicionar_item": {
+                "description": "Cadastra uma nova mercadoria no estoque WMS com SKU e posição de palete.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "sku": {"type": "string", "description": "Código SKU único"},
+                        "descricao": {"type": "string", "description": "Descrição do material"},
+                        "posicao_palete": {"type": "string", "description": "Endereçamento WMS (ex: RUA-A-04)"},
+                        "quantidade": {"type": "integer", "description": "Quantidade física de unidades"},
+                        "valor_unitario": {"type": "number", "description": "Valor unitário em BRL"}
+                    },
+                    "required": ["sku", "descricao", "posicao_palete", "quantidade", "valor_unitario"]
+                }
+            },
+            "wms_ajustar_estoque": {
+                "description": "Ajusta o saldo físico ou a posição de palete de um item no WMS.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "integer", "description": "ID do item WMS"},
+                        "quantidade": {"type": "integer", "description": "Nova quantidade física"},
+                        "posicao_palete": {"type": "string", "description": "Nova posição (opcional)"}
+                    },
+                    "required": ["id", "quantidade"]
+                }
+            },
+            "wms_excluir_item": {
+                "description": "Dá baixa total ou remove um item do armazém WMS.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "integer", "description": "ID do item no WMS"}
+                    },
+                    "required": ["id"]
+                }
+            },
+
+            # 4. FINANCEIRO
+            "financeiro_listar_fretes": {
+                "description": "Lista todas as faturas de fretes recebidos e despesas operacionais.",
+                "inputSchema": {"type": "object", "properties": {}}
+            },
+            "financeiro_lancar_movimentacao": {
+                "description": "Registra uma receita de frete ou despesa operacional (Diesel, Pedágio, Manutenção).",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "tipo": {"type": "string", "description": "'receita' ou 'despesa'"},
+                        "descricao": {"type": "string", "description": "Descrição da operação"},
                         "categoria": {"type": "string", "description": "Categoria contábil"},
-                        "valor": {"type": "number", "description": "Valor monetário em BRL"},
+                        "valor": {"type": "number", "description": "Valor em BRL"},
                         "data_vencimento": {"type": "string", "description": "Data YYYY-MM-DD"}
                     },
-                    "required": ["descricao", "tipo", "categoria", "valor", "data_vencimento"]
+                    "required": ["tipo", "descricao", "valor", "data_vencimento"]
                 }
             },
-            "helpdesk_listar_tickets": {
-                "description": "Lista todos os chamados de suporte com controle de criticidade (P1/P2/P3) e SLA.",
-                "inputSchema": {"type": "object", "properties": {}}
-            },
-            "helpdesk_abrir_ticket": {
-                "description": "Abre um chamado de suporte técnico com protocolo UUID gerado automaticamente.",
+            "financeiro_alternar_status": {
+                "description": "Alterna o status de quitação financeiro entre 'pago' e 'pendente'.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "assunto": {"type": "string", "description": "Assunto do chamado"},
-                        "descricao": {"type": "string", "description": "Descrição técnica detalhada"},
-                        "cliente_nome": {"type": "string", "description": "Nome do solicitante"},
-                        "prioridade": {"type": "string", "description": "P1 (2h), P2 (4h) ou P3 (24h)"}
+                        "id": {"type": "integer", "description": "ID do lançamento financeiro"}
                     },
-                    "required": ["assunto", "descricao", "cliente_nome"]
+                    "required": ["id"]
                 }
             },
-            "catalogo_listar_produtos": {
-                "description": "Consulta todos os produtos disponíveis no catálogo comercial.",
+            "financeiro_excluir_lancamento": {
+                "description": "Exclui um lançamento do razão financeiro.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "integer", "description": "ID do lançamento"}
+                    },
+                    "required": ["id"]
+                }
+            },
+
+            # 5. SUPORTE SLA
+            "suporte_listar_incidentes": {
+                "description": "Lista todos os chamados de socorro mecânico e incidentes de transporte com SLA.",
                 "inputSchema": {"type": "object", "properties": {}}
+            },
+            "suporte_abrir_incidente": {
+                "description": "Abre um chamado de suporte operacional / pane mecânica com prioridade P1/P2/P3 e SLA.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "titulo": {"type": "string", "description": "Título do incidente"},
+                        "veiculo_placa": {"type": "string", "description": "Placa do caminhão envolvido"},
+                        "prioridade": {"type": "string", "description": "P1 (2h), P2 (4h) ou P3 (24h)"}
+                    },
+                    "required": ["titulo", "prioridade"]
+                }
+            },
+            "suporte_resolver_incidente": {
+                "description": "Encerra e marca o chamado de suporte como 'resolvido'.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "integer", "description": "ID do incidente"}
+                    },
+                    "required": ["id"]
+                }
+            },
+            "suporte_excluir_incidente": {
+                "description": "Remove um chamado de incidente do histórico.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "integer", "description": "ID do incidente"}
+                    },
+                    "required": ["id"]
+                }
             }
         }
 
@@ -88,63 +211,136 @@ class EnterpriseMCPServer:
 
     def handle_call_tool(self, name: str, args: dict) -> dict:
         with self._get_conn() as conn:
-            if name == "crm_listar_pipeline":
-                leads = [dict(r) for r in conn.execute("SELECT * FROM leads ORDER BY score DESC").fetchall()]
-                return {"content": [{"type": "text", "text": json.dumps(leads, ensure_ascii=False, indent=2)}]}
+            # 1. FROTAS
+            if name == "frotas_listar_veiculos":
+                veics = [dict(r) for r in conn.execute("SELECT * FROM veiculos ORDER BY id DESC").fetchall()]
+                return {"content": [{"type": "text", "text": json.dumps(veics, ensure_ascii=False, indent=2)}]}
 
-            elif name == "crm_salvar_lead":
-                cur = conn.execute("""
-                    INSERT INTO leads (nome, email, telefone, empresa, score, status, valor_estimado)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (args["nome"], args["email"], args["telefone"], args.get("empresa", "Cliente"), int(args.get("score", 50)), args.get("status", "novo"), float(args.get("valor_estimado", 0))))
+            elif name == "frotas_cadastrar_veiculo":
+                conn.execute("INSERT INTO veiculos (placa, modelo, motorista, capacidade_kg, status) VALUES (?, ?, ?, ?, 'disponivel')",
+                             (args["placa"].upper(), args["modelo"], args["motorista"], float(args["capacidade_kg"])))
                 conn.commit()
-                return {"content": [{"type": "text", "text": f"Lead cadastrado com sucesso! ID: {cur.lastrowid}"}]}
+                return {"content": [{"type": "text", "text": f"Veículo {args['placa'].upper()} cadastrado com sucesso!"}]}
 
-            elif name == "crm_mover_lead":
-                conn.execute("UPDATE leads SET status = ? WHERE id = ?", (args["novo_status"], int(args["lead_id"])))
+            elif name == "frotas_alternar_status":
+                vid = int(args["id"])
+                row = conn.execute("SELECT status, placa FROM veiculos WHERE id = ?", (vid,)).fetchone()
+                if not row:
+                    return {"isError": True, "content": [{"type": "text", "text": "Veículo não encontrado"}]}
+                novo_st = "em_rota" if row[0] == "disponivel" else ("manutencao" if row[0] == "em_rota" else "disponivel")
+                conn.execute("UPDATE veiculos SET status = ? WHERE id = ?", (novo_st, vid))
                 conn.commit()
-                if args["novo_status"] == "ganho":
-                    row = conn.execute("SELECT * FROM leads WHERE id = ?", (int(args["lead_id"]),)).fetchone()
+                return {"content": [{"type": "text", "text": f"Status do veículo {row[1]} atualizado para {novo_st.upper()}!"}]}
+
+            elif name == "frotas_excluir_veiculo":
+                conn.execute("DELETE FROM veiculos WHERE id = ?", (int(args["id"]),))
+                conn.commit()
+                return {"content": [{"type": "text", "text": f"Veículo #{args['id']} excluído da frota!"}]}
+
+            # 2. ENTREGAS
+            elif name == "entregas_listar":
+                entregas = [dict(r) for r in conn.execute("SELECT * FROM entregas ORDER BY id DESC").fetchall()]
+                return {"content": [{"type": "text", "text": json.dumps(entregas, ensure_ascii=False, indent=2)}]}
+
+            elif name == "entregas_criar_remessa":
+                cod = f"BR-LOG-{uuid.uuid4().hex[:4].upper()}"
+                conn.execute("INSERT INTO entregas (codigo_rastreio, destinatario, cidade_destino, valor_frete, peso_kg, status) VALUES (?, ?, ?, ?, ?, 'pendente')",
+                             (cod, args["destinatario"], args["cidade_destino"], float(args["valor_frete"]), float(args["peso_kg"])))
+                conn.commit()
+                return {"content": [{"type": "text", "text": f"Remessa criada! Código de Rastreamento: {cod}"}]}
+
+            elif name == "entregas_atualizar_status":
+                conn.execute("UPDATE entregas SET status = ? WHERE id = ?", (args["novo_status"], int(args["entrega_id"])))
+                conn.commit()
+                if args["novo_status"] == "entregue":
+                    row = conn.execute("SELECT * FROM entregas WHERE id = ?", (int(args["entrega_id"]),)).fetchone()
                     if row:
-                        conn.execute("""
-                            INSERT INTO lancamentos (descricao, tipo, categoria, valor, data_vencimento, status, entidade_nome)
-                            VALUES (?, 'receita', 'Vendas CRM', ?, date('now', '+15 days'), 'pendente', ?)
-                        """, (f"Contrato Ganho: {row['nome']}", float(row['valor_estimado']), row['empresa']))
+                        conn.execute("INSERT INTO fretes_financeiro (tipo, descricao, valor, status, data_vencimento) VALUES ('receita', ?, ?, 'pago', date('now'))",
+                                     (f"Faturamento Frete {row['codigo_rastreio']}", float(row['valor_frete'])))
                         conn.commit()
-                return {"content": [{"type": "text", "text": f"Lead {args['lead_id']} movido para {args['novo_status'].upper()}!"}]}
+                return {"content": [{"type": "text", "text": f"Entrega #{args['entrega_id']} atualizada para {args['novo_status'].upper()}!"}]}
 
-            elif name == "erp_obter_fluxo_caixa":
-                rec = conn.execute("SELECT COALESCE(SUM(valor), 0) FROM lancamentos WHERE tipo='receita' AND status='pago'").fetchone()[0]
-                desp = conn.execute("SELECT COALESCE(SUM(valor), 0) FROM lancamentos WHERE tipo='despesa' AND status='pago'").fetchone()[0]
-                res = {"receitas_pagas": rec, "despesas_pagas": desp, "saldo_realizado": rec - desp}
-                return {"content": [{"type": "text", "text": json.dumps(res, ensure_ascii=False, indent=2)}]}
-
-            elif name == "erp_lancar_conta":
-                conn.execute("""
-                    INSERT INTO lancamentos (descricao, tipo, categoria, valor, data_vencimento, status, entidade_nome)
-                    VALUES (?, ?, ?, ?, ?, 'pendente', 'Geral')
-                """, (args["descricao"], args["tipo"], args["categoria"], float(args["valor"]), args["data_vencimento"]))
+            elif name == "entregas_excluir_remessa":
+                conn.execute("DELETE FROM entregas WHERE id = ?", (int(args["id"]),))
                 conn.commit()
-                return {"content": [{"type": "text", "text": "Lançamento financeiro registrado com sucesso no ERP!"}]}
+                return {"content": [{"type": "text", "text": f"Remessa #{args['id']} cancelada e excluída!"}]}
 
-            elif name == "helpdesk_listar_tickets":
-                tickets = [dict(r) for r in conn.execute("SELECT * FROM tickets ORDER BY id DESC").fetchall()]
-                return {"content": [{"type": "text", "text": json.dumps(tickets, ensure_ascii=False, indent=2)}]}
+            # 3. WMS
+            elif name == "wms_consultar_estoque":
+                itens = [dict(r) for r in conn.execute("SELECT * FROM estoque_wms ORDER BY id DESC").fetchall()]
+                return {"content": [{"type": "text", "text": json.dumps(itens, ensure_ascii=False, indent=2)}]}
 
-            elif name == "helpdesk_abrir_ticket":
-                proto = f"TICK-{uuid.uuid4().hex[:6].upper()}"
-                prio = args.get("prioridade", "P3")
+            elif name == "wms_adicionar_item":
+                conn.execute("INSERT INTO estoque_wms (sku, descricao, posicao_palete, quantidade, valor_unitario) VALUES (?, ?, ?, ?, ?)",
+                             (args["sku"].upper(), args["descricao"], args["posicao_palete"].upper(), int(args["quantidade"]), float(args["valor_unitario"])))
+                conn.commit()
+                return {"content": [{"type": "text", "text": f"Item SKU {args['sku'].upper()} adicionado no WMS!"}]}
+
+            elif name == "wms_ajustar_estoque":
+                iid = int(args["id"])
+                qtd = int(args["quantidade"])
+                pos = args.get("posicao_palete")
+                if pos:
+                    conn.execute("UPDATE estoque_wms SET quantidade = ?, posicao_palete = ? WHERE id = ?", (qtd, pos.upper(), iid))
+                else:
+                    conn.execute("UPDATE estoque_wms SET quantidade = ? WHERE id = ?", (qtd, iid))
+                conn.commit()
+                return {"content": [{"type": "text", "text": f"Estoque WMS #{iid} ajustado para {qtd} unidades!"}]}
+
+            elif name == "wms_excluir_item":
+                conn.execute("DELETE FROM estoque_wms WHERE id = ?", (int(args["id"]),))
+                conn.commit()
+                return {"content": [{"type": "text", "text": f"Item #{args['id']} baixado do estoque WMS!"}]}
+
+            # 4. FINANCEIRO
+            elif name == "financeiro_listar_fretes":
+                fretes = [dict(r) for r in conn.execute("SELECT * FROM fretes_financeiro ORDER BY id DESC").fetchall()]
+                return {"content": [{"type": "text", "text": json.dumps(fretes, ensure_ascii=False, indent=2)}]}
+
+            elif name == "financeiro_lancar_movimentacao":
+                conn.execute("INSERT INTO fretes_financeiro (tipo, descricao, categoria, valor, status, data_vencimento) VALUES (?, ?, ?, ?, 'pendente', ?)",
+                             (args["tipo"], args["descricao"], args.get("categoria", "Geral"), float(args["valor"]), args["data_vencimento"]))
+                conn.commit()
+                return {"content": [{"type": "text", "text": f"Lançamento financeiro de {args['tipo'].upper()} registrado com sucesso!"}]}
+
+            elif name == "financeiro_alternar_status":
+                fid = int(args["id"])
+                row = conn.execute("SELECT status FROM fretes_financeiro WHERE id = ?", (fid,)).fetchone()
+                if not row:
+                    return {"isError": True, "content": [{"type": "text", "text": "Lançamento não encontrado"}]}
+                novo_st = "pago" if row[0] == "pendente" else "pendente"
+                conn.execute("UPDATE fretes_financeiro SET status = ? WHERE id = ?", (novo_st, fid))
+                conn.commit()
+                return {"content": [{"type": "text", "text": f"Status financeiro #{fid} alterado para {novo_st.upper()}!"}]}
+
+            elif name == "financeiro_excluir_lancamento":
+                conn.execute("DELETE FROM fretes_financeiro WHERE id = ?", (int(args["id"]),))
+                conn.commit()
+                return {"content": [{"type": "text", "text": f"Lançamento #{args['id']} excluído!"}]}
+
+            # 5. SUPORTE SLA
+            elif name == "suporte_listar_incidentes":
+                incs = [dict(r) for r in conn.execute("SELECT * FROM incidentes_sla ORDER BY id DESC").fetchall()]
+                return {"content": [{"type": "text", "text": json.dumps(incs, ensure_ascii=False, indent=2)}]}
+
+            elif name == "suporte_abrir_incidente":
+                proto = f"INC-{uuid.uuid4().hex[:6].upper()}"
+                prio = args.get("prioridade", "P3").upper()
                 sla = 2 if prio == "P1" else (4 if prio == "P2" else 24)
-                conn.execute("""
-                    INSERT INTO tickets (protocolo, assunto, descricao, cliente_nome, cliente_email, prioridade, status, sla_limite_horas)
-                    VALUES (?, ?, ?, ?, 'cliente@empresa.com', ?, 'aberto', ?)
-                """, (proto, args["assunto"], args["descricao"], args["cliente_nome"], prio, sla))
+                conn.execute("INSERT INTO incidentes_sla (protocolo, titulo, veiculo_placa, prioridade, status, sla_horas) VALUES (?, ?, ?, ?, 'aberto', ?)",
+                             (proto, args["titulo"], args.get("veiculo_placa", "N/A"), prio, sla))
                 conn.commit()
-                return {"content": [{"type": "text", "text": f"Chamado aberto com sucesso! Protocolo: {proto} (SLA: {sla}h)"}]}
+                return {"content": [{"type": "text", "text": f"Incidente aberto! Protocolo: {proto} (SLA: {sla}h)"}]}
 
-            elif name == "catalogo_listar_produtos":
-                prods = [dict(r) for r in conn.execute("SELECT * FROM produtos").fetchall()]
-                return {"content": [{"type": "text", "text": json.dumps(prods, ensure_ascii=False, indent=2)}]}
+            elif name == "suporte_resolver_incidente":
+                conn.execute("UPDATE incidentes_sla SET status = 'resolvido' WHERE id = ?", (int(args["id"]),))
+                conn.commit()
+                return {"content": [{"type": "text", "text": f"Incidente #{args['id']} marcado como RESOLVIDO!"}]}
+
+            elif name == "suporte_excluir_incidente":
+                conn.execute("DELETE FROM incidentes_sla WHERE id = ?", (int(args["id"]),))
+                conn.commit()
+                return {"content": [{"type": "text", "text": f"Incidente #{args['id']} excluído do histórico!"}]}
 
             else:
                 return {"isError": True, "content": [{"type": "text", "text": f"Ferramenta desconhecida: {name}"}]}
@@ -160,241 +356,232 @@ class EnterpriseMCPServer:
                 "result": {
                     "protocolVersion": "2024-11-05",
                     "capabilities": {"tools": {}},
-                    "serverInfo": {"name": "aidd-enterprise-suite-mcp", "version": "4.0.0"}
+                    "serverInfo": {"name": "logistica-hub-mcp", "version": "4.0.0"}
                 }
             }
+
         elif method == "tools/list":
-            tools_list = [{"name": k, "description": v["description"], "inputSchema": v["inputSchema"]} for k, v in self.tools.items()]
-            return {"jsonrpc": "2.0", "id": msg_id, "result": {"tools": tools_list}}
+            tools_list = []
+            for name, meta in self.tools.items():
+                tools_list.append({
+                    "name": name,
+                    "description": meta["description"],
+                    "inputSchema": meta["inputSchema"]
+                })
+            return {
+                "jsonrpc": "2.0",
+                "id": msg_id,
+                "result": {"tools": tools_list}
+            }
+
         elif method == "tools/call":
             params = request.get("params", {})
             name = params.get("name")
-            args = params.get("arguments", {})
-            res = self.handle_call_tool(name, args)
-            return {"jsonrpc": "2.0", "id": msg_id, "result": res}
+            arguments = params.get("arguments", {})
+            res = self.handle_call_tool(name, arguments)
+            return {
+                "jsonrpc": "2.0",
+                "id": msg_id,
+                "result": res
+            }
+
         else:
-            return {"jsonrpc": "2.0", "id": msg_id, "error": {"code": -32601, "message": f"Method '{method}' not found"}}
+            return {
+                "jsonrpc": "2.0",
+                "id": msg_id,
+                "error": {"code": -32601, "message": f"Método desconhecido: {method}"}
+            }
 
-    def run_stdio(self):
-        """Loop de execução contínuo via STDIN/STDOUT para conectar no Claude Desktop, Cursor e Antigravity."""
-        while True:
-            try:
-                line = sys.stdin.readline()
-                if not line:
-                    break
-                req = json.loads(line)
-                resp = self.process_rpc(req)
-                sys.stdout.write(json.dumps(resp) + "\n")
-                sys.stdout.flush()
-            except Exception as e:
-                err_resp = {"jsonrpc": "2.0", "error": {"code": -32603, "message": str(e)}}
-                sys.stdout.write(json.dumps(err_resp) + "\n")
-                sys.stdout.flush()
-
+    def handle_json_rpc(self, req: dict) -> dict:
+        return self.process_rpc(req)
 
     def get_portal_html(self) -> str:
-        tools_dict = self.tools
-        server_path = os.path.abspath(__file__)
-        return """<!DOCTYPE html>
+        tools_cards = ""
+        for name, meta in self.tools.items():
+            schema_pretty = json.dumps(meta["inputSchema"], indent=2, ensure_ascii=False)
+            tools_cards += f"""
+            <div class="mcp-card">
+                <div class="mcp-tool-header">
+                    <span class="mcp-tool-badge">TOOL</span>
+                    <span class="mcp-tool-name">{name}</span>
+                </div>
+                <p class="mcp-tool-desc">{meta['description']}</p>
+                <div class="mcp-schema-box">
+                    <pre>{schema_pretty}</pre>
+                </div>
+                <button class="btn btn-primary" style="margin-top: 1rem; width: 100%; justify-content: center;" onclick="prepararTesteTool('{name}')">Testar no Playground MCP</button>
+            </div>
+            """
+
+        return f"""<!DOCTYPE html>
 <html lang="pt-BR" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCP Universal Hub — AIDD Enterprise Suite v4.0</title>
+    <title>Portal MCP Universal — Logística Hub v4.0</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-body: #020617;
-            --bg-card: #050b18;
+        :root {{
+            --bg: #020617;
+            --surface: #050b18;
             --border: rgba(255, 255, 255, 0.08);
             --border-hover: rgba(255, 255, 255, 0.16);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
             --primary: #3b82f6;
             --primary-light: #60a5fa;
-            --green: #10b981;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
-        body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --code-bg: #010409;
+        }}
+        * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }}
 
-        header { height: 60px; background: rgba(3, 7, 18, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; position: sticky; top: 0; z-index: 50; }
-        .brand-title { font-weight: 800; font-size: 1rem; color: #fff; display: flex; align-items: center; gap: 0.6rem; }
-        .badge-status { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; font-size: 0.72rem; font-weight: 800; padding: 0.25rem 0.6rem; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.35rem; }
-        .badge-status::before { content: ''; width: 7px; height: 7px; background: #10b981; border-radius: 50%; display: inline-block; }
+        /* SCROLLBAR 4PX */
+        * {{ scrollbar-width: thin; scrollbar-color: rgba(59, 130, 246, 0.4) transparent; }}
+        ::-webkit-scrollbar {{ width: 4px !important; height: 4px !important; }}
+        ::-webkit-scrollbar-track {{ background: transparent !important; }}
+        ::-webkit-scrollbar-thumb {{ background: rgba(59, 130, 246, 0.35) !important; border-radius: 9999px !important; }}
 
-        .btn { padding: 0.45rem 0.9rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.04); color: #fff; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s; }
-        .btn:hover { background: rgba(255, 255, 255, 0.08); border-color: var(--border-hover); }
+        /* BOTÃO LINHA ÚNICA */
+        button, .btn, .btn-primary {{
+            white-space: nowrap !important;
+            text-overflow: ellipsis;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            flex-shrink: 0 !important;
+            line-height: 1.2 !important;
+        }}
 
-        main { max-width: 1200px; margin: 0 auto; width: 100%; padding: 2.5rem 1.5rem; display: flex; flex-direction: column; gap: 2.5rem; }
-        
-        .hero { background: linear-gradient(180deg, rgba(59, 130, 246, 0.08) 0%, transparent 100%); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; }
-        .hero h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 0.6rem; }
-        .hero p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; max-width: 800px; }
+        body {{ background: var(--bg); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }}
 
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-        @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+        header {{
+            min-height: 60px;
+            height: 60px;
+            background: rgba(3, 7, 18, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            gap: 1rem;
+            white-space: nowrap;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }}
+        header::-webkit-scrollbar {{ display: none; }}
 
-        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
-        .card-title { font-size: 1.1rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 0.5rem; }
+        .brand {{ font-weight: 800; font-size: 1.05rem; display: flex; align-items: center; gap: 0.6rem; color: #fff; flex-shrink: 0; }}
+        .btn {{ padding: 0.45rem 0.9rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.04); color: #fff; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.15s; }}
+        .btn:hover {{ background: rgba(255, 255, 255, 0.08); border-color: var(--border-hover); }}
+        .btn-primary {{ background: var(--primary); border-color: var(--primary); }}
 
-        pre.code-block { background: #020617; border: 1px solid var(--border); border-radius: 10px; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #60a5fa; overflow-x: auto; line-height: 1.5; }
+        main {{ max-width: 1300px; width: 100%; margin: 0 auto; padding: 2.5rem 1.5rem; flex: 1; }}
+        .banner {{ background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 14px; padding: 1.5rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; }}
+        .tools-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem; }}
+        .mcp-card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; }}
+        .mcp-tool-header {{ display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; }}
+        .mcp-tool-badge {{ background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; font-size: 0.68rem; font-weight: 800; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: 'JetBrains Mono', monospace; }}
+        .mcp-tool-name {{ font-weight: 800; font-size: 1.05rem; color: #fff; font-family: 'JetBrains Mono', monospace; }}
+        .mcp-tool-desc {{ font-size: 0.86rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem; }}
+        .mcp-schema-box {{ background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem; max-height: 140px; overflow-y: auto; }}
+        .mcp-schema-box pre {{ font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #93c5fd; }}
 
-        .tool-card { background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 0.8rem; transition: all 0.2s; }
-        .tool-card:hover { border-color: rgba(59, 130, 246, 0.4); background: rgba(59, 130, 246, 0.04); }
-        .tool-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
-        .tool-name { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 700; color: #fff; }
-        .tool-badge { background: rgba(59, 130, 246, 0.15); color: var(--primary-light); font-size: 0.68rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 4px; font-family: 'JetBrains Mono', monospace; }
-        .tool-desc { font-size: 0.84rem; color: var(--text-muted); line-height: 1.5; }
-
-        .btn-test { background: var(--primary); border: 1px solid var(--primary); color: #fff; font-weight: 700; font-size: 0.85rem; padding: 0.6rem 1rem; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
-        .btn-test:hover { background: #2563eb; }
+        .playground-box {{ background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.8rem; margin-top: 2rem; }}
+        .playground-title {{ font-size: 1.25rem; font-weight: 800; color: #fff; margin-bottom: 1rem; }}
+        .rpc-editor {{ width: 100%; height: 160px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #60a5fa; outline: none; margin-bottom: 1rem; }}
+        .rpc-response {{ background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #34d399; min-height: 120px; white-space: pre-wrap; }}
     </style>
 </head>
 <body>
-
     <header>
-        <div class="brand-title">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-            <span>AIDD Universal MCP Server</span>
-            <span class="badge-status">ATIVO & ONLINE (v2024-11-05)</span>
+        <div class="brand">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>Model Context Protocol (MCP) Portal</span>
         </div>
         <div style="display: flex; gap: 0.8rem;">
-            <a href="/" class="btn">Aplicação Super-App</a>
-            <a href="/docs" class="btn">Swagger Studio</a>
-            <a href="/docs/guia" class="btn">Guia OnOrca</a>
+            <a href="/" class="btn">Aplicação Web</a>
+            <a href="/docs/guia" class="btn">Guia Oficial</a>
+            <a href="/docs" class="btn btn-primary">Swagger Studio</a>
         </div>
     </header>
 
     <main>
-        <div class="hero">
-            <h1>Model Context Protocol (MCP) — Servidor Nativo</h1>
-            <p>Servidor Universal MCP integrado à Suíte Corporativa v4.0. Permite que agentes de IA (Google Antigravity, Claude Desktop, Cursor, Zed, Windsurf, OnOrca) consultem e alterem dados do CRM, ERP, Helpdesk e Catálogo via STDIO ou HTTP JSON-RPC 2.0.</p>
+        <div class="banner">
+            <div>
+                <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 0.4rem;">Servidor Nativo Universal MCP 4.0</h2>
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Compatibilidade direta com Claude Desktop, Cursor e Antigravity via JSON-RPC 2.0.</p>
+            </div>
+            <button class="btn btn-primary" onclick="testarListTools()">Listar Ferramentas (tools/list)</button>
         </div>
 
-        <div class="grid-2">
-            <!-- CONFIGURAÇÃO CLAUDE / CURSOR -->
-            <div class="card">
-                <div class="card-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                    Conexão no Claude Desktop / Cursor / Antigravity
-                </div>
-                <p style="font-size: 0.85rem; color: var(--text-muted);">Copie a configuração abaixo no arquivo <code>claude_desktop_config.json</code> ou nas configurações de MCP do seu aplicativo:</p>
-                <pre class="code-block">{
-  "mcpServers": {
-    "aidd-enterprise-suite": {
-      "command": "python",
-      "args": [
-        "C:\\Users\\trcnologia\\Desktop\\enterprise-suite-v4\\src\\core\\mcp_server.py"
-      ],
-      "env": {
-        "PYTHONIOENCODING": "utf-8"
-      }
-    }
-  }
-}</pre>
-                <button class="btn" onclick="copiarConfig()" style="align-self: flex-start;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                    Copiar Configuração JSON
-                </button>
-            </div>
-
-            <!-- TESTE JSON-RPC VIA WEB -->
-            <div class="card">
-                <div class="card-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    Testador Web de Ferramentas MCP (Live Runner)
-                </div>
-                <p style="font-size: 0.85rem; color: var(--text-muted);">Dispare uma chamada JSON-RPC 2.0 direta para o endpoint HTTP <code>/mcp</code>:</p>
-                <div style="display: flex; gap: 0.6rem;">
-                    <select id="select-mcp-tool" style="flex: 1; background: #020617; border: 1px solid var(--border); color: #fff; padding: 0.6rem; border-radius: 8px; font-size: 0.85rem; outline: none;">
-                    </select>
-                    <button class="btn-test" onclick="executarTesteMcp()">Executar Tool</button>
-                </div>
-                <div id="mcp-test-response" style="background: #020617; border: 1px solid var(--border); border-radius: 10px; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #34d399; min-height: 120px; max-height: 180px; overflow-y: auto;">
-                    // Selecione uma ferramenta e clique em "Executar Tool" para ver o retorno em JSON
-                </div>
-            </div>
+        <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 1.2rem;">Ferramentas de CRUD & Operações Logísticas Disponíveis</h3>
+        <div class="tools-grid">
+            {tools_cards}
         </div>
 
-        <!-- LISTA DE FERRAMENTAS DISPONÍVEIS -->
-        <div class="card">
-            <div class="card-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                Catálogo de Ferramentas MCP Nativas (Tools)
+        <div class="playground-box">
+            <div class="playground-title">Interactive MCP JSON-RPC 2.0 Playground</div>
+            <textarea class="rpc-editor" id="rpc-input">{{
+  "jsonrpc": "2.0",
+  "id": "test-1",
+  "method": "tools/call",
+  "params": {{
+    "name": "frotas_listar_veiculos",
+    "arguments": {{}}
+  }}
+}}</textarea>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                <button class="btn btn-primary" onclick="executarRpc()">Executar Chamada JSON-RPC</button>
             </div>
-            <div id="mcp-tools-list"></div>
+            <div class="rpc-response" id="rpc-output">// O payload de resposta JSON-RPC do servidor MCP aparecerá aqui</div>
         </div>
     </main>
 
     <script>
-        const tools = [{"name": "crm_listar_pipeline", "description": "Retorna o pipeline completo de vendas do CRM agrupado por estágios do Kanban.", "schema": {"type": "object"}}, {"name": "crm_salvar_lead", "description": "Cadastra um novo lead comercial ou atualiza um existente.", "schema": {"type": "object"}}, {"name": "crm_mover_lead", "description": "Altera o estágio do lead no Kanban. Dispara receita no ERP se o status for ganho.", "schema": {"type": "object"}}, {"name": "erp_obter_fluxo_caixa", "description": "Consulta o DRE e resumo de fluxo de caixa (saldo realizado e saldo projetado).", "schema": {"type": "object"}}, {"name": "erp_lancar_conta", "description": "Registra uma nova conta a pagar ou a receber no ERP financeiro.", "schema": {"type": "object"}}, {"name": "helpdesk_listar_tickets", "description": "Lista todos os chamados de suporte com controle de criticidade (P1/P2/P3) e SLA.", "schema": {"type": "object"}}, {"name": "helpdesk_abrir_ticket", "description": "Abre um chamado de suporte técnico com protocolo UUID gerado automaticamente.", "schema": {"type": "object"}}, {"name": "catalogo_listar_produtos", "description": "Consulta todos os produtos disponíveis no catálogo comercial.", "schema": {"type": "object"}}];
-
-        function renderizarFerramentas() {
-            const container = document.getElementById('mcp-tools-list');
-            const select = document.getElementById('select-mcp-tool');
-            let html = '';
-            let optHtml = '';
-
-            tools.forEach(t => {
-                optHtml += `<option value="${t.name}">${t.name}</option>`;
-                html += `
-                    <div class="tool-card">
-                        <div class="tool-header">
-                            <span class="tool-name">${t.name}</span>
-                            <span class="tool-badge">TOOL</span>
-                        </div>
-                        <div class="tool-desc">${t.description}</div>
-                    </div>
-                `;
-            });
-
-            container.innerHTML = html;
-            select.innerHTML = optHtml;
-        }
-
-        async function executarTesteMcp() {
-            const toolName = document.getElementById('select-mcp-tool').value;
-            const resBox = document.getElementById('mcp-test-response');
-            resBox.innerText = 'Executando MCP Tool: ' + toolName + '...';
-
-            try {
-                const payload = {
-                    jsonrpc: "2.0",
-                    id: Date.now(),
-                    method: "tools/call",
-                    params: {
-                        name: toolName,
-                        arguments: {}
-                    }
-                };
-
-                const res = await fetch('/mcp', {
+        async function executarRpc() {{
+            const input = document.getElementById('rpc-input').value;
+            const output = document.getElementById('rpc-output');
+            output.textContent = 'Enviando chamada RPC...';
+            try {{
+                const res = await fetch('/api/mcp/rpc', {{
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: input
+                }});
                 const data = await res.json();
-                resBox.innerText = JSON.stringify(data, null, 2);
-            } catch (err) {
-                resBox.innerText = 'Erro: ' + err.message;
-            }
-        }
+                output.textContent = JSON.stringify(data, null, 2);
+            }} catch (err) {{
+                output.textContent = 'Erro ao processar chamada RPC: ' + err.message;
+            }}
+        }}
 
-        function copiarConfig() {
-            const code = document.querySelector('pre.code-block').innerText;
-            navigator.clipboard.writeText(code);
-            alert('Configuração MCP copiada para a área de transferência!');
-        }
+        function prepararTesteTool(name) {{
+            document.getElementById('rpc-input').value = JSON.stringify({{
+                "jsonrpc": "2.0",
+                "id": "call-" + Date.now(),
+                "method": "tools/call",
+                "params": {{
+                    "name": name,
+                    "arguments": {{}}
+                }}
+            }}, null, 2);
+            window.scrollTo({{ top: document.body.scrollHeight, behavior: 'smooth' }});
+        }}
 
-        window.onload = renderizarFerramentas;
+        function testarListTools() {{
+            document.getElementById('rpc-input').value = JSON.stringify({{
+                "jsonrpc": "2.0",
+                "id": "list-1",
+                "method": "tools/list"
+            }}, null, 2);
+            executarRpc();
+        }}
     </script>
 </body>
-</html>"""
-
-if __name__ == "__main__":
-    db_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "suite.db")
-    server = EnterpriseMCPServer(db_file)
-    server.run_stdio()
+</html>
+"""

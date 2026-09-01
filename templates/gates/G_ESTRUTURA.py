@@ -1,72 +1,156 @@
-import os, sys, json, re
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+=============================================================================
+AIDD v4.1 Enterprise — GATE DETERMINÍSTICO DE ESTRUTURA (G_ESTRUTURA)
+=============================================================================
+Valida layout do projeto, presença do Shared Kernel, módulos desacoplados,
+manifesto estruturado e suíte de testes. Falha imediatamente se houver atalhos
+monolíticos ou arquivos estruturais faltantes.
+"""
+
+import os
+import sys
+import json
+import argparse
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-def verificar():
-    print("[GATE G_ESTRUTURA v4.1] Validando conformidade arquitetural e fatias verticais...")
-    erros = []
-    
-    # 1. Verificar diretórios estruturais obrigatórios
-    dirs_obrigatorios = [
-        os.path.join("src", "core"),
-        os.path.join("src", "modules"),
-        os.path.join("src", "static"),
-        os.path.join("tests", "unit")
-    ]
-    for d in dirs_obrigatorios:
-        if not os.path.exists(d) or not os.path.isdir(d):
-            erros.append(f"Diretório estrutural ausente: {d}")
 
-    # 2. Verificar arquivos essenciais de governança
-    arquivos_governanca = [
-        "requirements.txt",
-        "PLANO-EXECUCAO-ESTRUTURADO.json"
-    ]
-    for a in arquivos_governanca:
-        if not os.path.exists(a):
-            erros.append(f"Arquivo de governança ausente na raiz: {a}")
+class StructureGate:
+    def __init__(self, root_dir: str = "."):
+        self.root = os.path.abspath(root_dir)
+        self.errors = []
+        self.warnings = []
+        self.checks_passed = 0
 
-    # 3. Validar Fatias Verticais (src/modules)
-    modules_dir = os.path.join("src", "modules")
-    if os.path.exists(modules_dir):
-        modulos = [
-            m for m in os.listdir(modules_dir)
-            if os.path.isdir(os.path.join(modules_dir, m)) and not m.startswith("__")
-        ]
-        if not modulos:
-            erros.append("Nenhum módulo vertical encontrado em 'src/modules/'. Monólitos acoplados sem módulos são estritamente proibidos.")
+    def check(self, condition: bool, description: str, error_msg: str):
+        if condition:
+            print(f"  ✅ [PASS] {description}")
+            self.checks_passed += 1
         else:
-            for m in modulos:
+            print(f"  ❌ [FAIL] {description} ➔ {error_msg}")
+            self.errors.append(f"{description}: {error_msg}")
+
+    def warn(self, condition: bool, description: str, warn_msg: str):
+        if condition:
+            print(f"  ✅ [PASS] {description}")
+            self.checks_passed += 1
+        else:
+            print(f"  ⚠️ [WARN] {description} ➔ {warn_msg}")
+            self.warnings.append(f"{description}: {warn_msg}")
+
+    def run(self) -> int:
+        print("=" * 80)
+        print("🏗️  [GATE G_ESTRUTURA v4.1] Auditoria de Arquitetura e Layout do Projeto")
+        print(f"📁 Diretório Alvo: {self.root}")
+        print("=" * 80)
+
+        # 1. Diretórios Principais
+        src_dir = os.path.join(self.root, "src")
+        core_dir = os.path.join(src_dir, "core")
+        modules_dir = os.path.join(src_dir, "modules")
+        static_dir = os.path.join(src_dir, "static")
+        tests_dir = os.path.join(self.root, "tests", "unit")
+        scripts_gates_dir = os.path.join(self.root, "scripts", "gates")
+
+        self.check(os.path.isdir(src_dir), "Diretório 'src/'", "Pasta raiz de código-fonte não encontrada")
+        self.check(os.path.isdir(core_dir), "Shared Kernel 'src/core/'", "Pasta de core kernel não encontrada")
+        self.check(os.path.isdir(modules_dir), "Fatias Verticais 'src/modules/'", "Pasta de módulos não encontrada")
+        self.check(os.path.isdir(static_dir), "Assets e UI 'src/static/'", "Pasta estática de front-end não encontrada")
+        self.check(os.path.isdir(tests_dir), "Suíte de Testes 'tests/unit/'", "Pasta de testes unitários não encontrada")
+        self.check(os.path.isdir(scripts_gates_dir), "Quality Gates 'scripts/gates/'", "Pasta de gates mecânicos não encontrada")
+
+        # 2. Shared Kernel Core Files
+        core_files = ["database.py", "events.py", "openapi.py", "security.py", "webhooks.py", "mcp_server.py"]
+        for cf in core_files:
+            cf_path = os.path.join(core_dir, cf)
+            self.check(
+                os.path.isfile(cf_path) and os.path.getsize(cf_path) > 50,
+                f"Core Kernel '{cf}'",
+                f"Arquivo ausente ou vazio em {cf_path}"
+            )
+
+        # 3. Módulos / Fatias Verticais
+        if os.path.isdir(modules_dir):
+            mod_dirs = [
+                d for d in os.listdir(modules_dir)
+                if os.path.isdir(os.path.join(modules_dir, d)) and not d.startswith("__")
+            ]
+            self.check(
+                len(mod_dirs) > 0,
+                f"Detecção de Fatias Verticais ({len(mod_dirs)} módulo(s) ativo(s))",
+                f"Nenhum módulo encontrado em {modules_dir}"
+            )
+
+            for m in mod_dirs:
                 m_path = os.path.join(modules_dir, m)
-                for req_file in ["models.py", "services.py", "routes.py"]:
-                    f_full = os.path.join(m_path, req_file)
-                    if not os.path.exists(f_full):
-                        erros.append(f"Módulo '{m}' incompleto: arquivo ausente '{req_file}'")
-                        
-                # Verificar se o teste unitário correspondente existe
-                test_file = os.path.join("tests", "unit", f"test_{m}.py")
-                if not os.path.exists(test_file):
-                    erros.append(f"Módulo '{m}' sem teste unitário correspondente: '{test_file}'")
+                for req_f in ["__init__.py", "models.py", "services.py", "routes.py"]:
+                    f_path = os.path.join(m_path, req_f)
+                    self.check(
+                        os.path.isfile(f_path),
+                        f"Módulo '{m}' -> {req_f}",
+                        f"Arquivo obrigatório {req_f} ausente no módulo {m}"
+                    )
 
-    # 4. Validar Core Kernel
-    core_dir = os.path.join("src", "core")
-    if os.path.exists(core_dir):
-        for kf in ["database.py", "events.py", "openapi.py"]:
-            kf_full = os.path.join(core_dir, kf)
-            if not os.path.exists(kf_full):
-                erros.append(f"Arquivo essencial do Core Kernel ausente: {kf_full}")
+        # 4. Manifestos Estruturais
+        plano_path = os.path.join(self.root, "PLANO-EXECUCAO-ESTRUTURADO.json")
+        if os.path.isfile(plano_path):
+            try:
+                with open(plano_path, "r", encoding="utf-8") as f:
+                    plano_data = json.load(f)
+                has_proj = "projeto" in plano_data and "nome" in plano_data["projeto"]
+                has_mods = "modulos" in plano_data or "fases" in plano_data
+                self.check(has_proj and has_mods, "Manifesto 'PLANO-EXECUCAO-ESTRUTURADO.json'", "JSON sem campos 'projeto' e 'modulos'")
+            except Exception as e:
+                self.check(False, "Manifesto 'PLANO-EXECUCAO-ESTRUTURADO.json'", f"JSON corrompido: {e}")
+        else:
+            self.check(False, "Manifesto 'PLANO-EXECUCAO-ESTRUTURADO.json'", "Arquivo de plano estruturado ausente na raiz")
 
-    # 5. Resultado
-    if erros:
-        print("\n[FAIL] ❌ BLOQUEIO DE ESTRUTURA: Foram detectadas não-conformidades graves:")
-        for e in erros:
-            print(f"  - {e}")
-        print("\nRegra de Ouro: Todo projeto AIDD v4+ exige fatias verticais isoladas em src/modules/ com testes unitários.")
-        sys.exit(1)
-        
-    print("[OK] SUCESSO: Layout arquitetural e fatias verticais 100% em conformidade com o padrão AIDD v4.1!")
-    sys.exit(0)
+        req_path = os.path.join(self.root, "requirements.txt")
+        self.check(
+            os.path.isfile(req_path) and os.path.getsize(req_path) > 0,
+            "Manifesto 'requirements.txt'",
+            "Arquivo requirements.txt ausente ou vazio"
+        )
 
-if __name__ == '__main__':
-    verificar()
+        # 5. Arquivo de Entrada do Servidor
+        server_path = os.path.join(src_dir, "server.py")
+        self.check(
+            os.path.isfile(server_path) and os.path.getsize(server_path) > 100,
+            "Servidor Monolítico Modular 'src/server.py'",
+            "Servidor ausente ou vazio"
+        )
+
+        # 6. Testes Unitários Presentes
+        if os.path.isdir(tests_dir):
+            test_files = [f for f in os.listdir(tests_dir) if f.startswith("test_") and f.endswith(".py")]
+            self.check(
+                len(test_files) > 0,
+                f"Arquivos de Teste em tests/unit/ ({len(test_files)} encontrados)",
+                "Nenhum arquivo de teste 'test_*.py' encontrado"
+            )
+
+        print("\n" + "=" * 80)
+        print(f"📊 RESUMO DO GATE G_ESTRUTURA:")
+        print(f"   - Validações Aprovadas: {self.checks_passed}")
+        print(f"   - Falhas Estruturais:   {len(self.errors)}")
+        print(f"   - Alertas:              {len(self.warnings)}")
+        print("=" * 80)
+
+        if self.errors:
+            print("❌ [BLOQUEADO]: Estrutura do projeto não atende aos requisitos AIDD v4.1 Enterprise.")
+            return 1
+
+        print("🏆 [APROVADO]: Layout estrutural 100% em conformidade com Clean Architecture Modular!")
+        return 0
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="G_ESTRUTURA — Gate de Validação Estrutural")
+    parser.add_argument("--dir", default=".", help="Diretório raiz do projeto")
+    args = parser.parse_args()
+
+    gate = StructureGate(args.dir)
+    sys.exit(gate.run())

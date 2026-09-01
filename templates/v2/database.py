@@ -36,6 +36,21 @@ def append_audit_log(cursor, action: str, payload: dict):
         (log_id, timestamp, action, payload_json, prev_hash, curr_hash)
     )
 
+def enable_rls_tenant(cursor, table_name: str):
+    if hasattr(cursor, '_cursor') or type(cursor).__name__ == 'PostgresCursorProxy':
+        cursor.execute(f"ALTER TABLE {table_name} ENABLE ROW LEVEL SECURITY;")
+        cursor.execute(f"CREATE POLICY tenant_isolation ON {table_name} USING (tenant_id = current_setting('app.current_tenant_id')::uuid);")
+    else:
+        # RLS enforced at application layer
+        pass
+
+def set_tenant(cursor, tenant_id: str):
+    if hasattr(cursor, '_cursor') or type(cursor).__name__ == 'PostgresCursorProxy':
+        cursor.execute(f"SET app.current_tenant_id = '{tenant_id}';")
+    else:
+        # RLS enforced at application layer
+        pass
+
 
 _PLACEHOLDER_RE = re.compile(r"\?")
 _AUTOINCREMENT_RE = re.compile(r"INTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT", re.IGNORECASE)

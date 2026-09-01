@@ -218,6 +218,28 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)
 
+        if path in ["/", "/index.html"]:
+            index_file = os.path.join(STATIC_DIR, "index.html")
+            if os.path.isfile(index_file):
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.end_headers()
+                with open(index_file, "rb") as f:
+                    self.wfile.write(f.read())
+                return
+
+        if path.startswith("/static/"):
+            rel_p = path[len("/static/"):]
+            target_f = os.path.join(STATIC_DIR, rel_p)
+            if os.path.isfile(target_f):
+                content_type = "text/html" if target_f.endswith(".html") else ("application/javascript" if target_f.endswith(".js") else "text/css" if target_f.endswith(".css") else "text/plain")
+                self.send_response(200)
+                self.send_header("Content-Type", f"{content_type}; charset=utf-8")
+                self.end_headers()
+                with open(target_f, "rb") as f:
+                    self.wfile.write(f.read())
+                return
+
         if path == "/openapi.json":
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")

@@ -1424,7 +1424,8 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
             {"gate": "G_TESTES", "descricao": "Execução obrigatória de 100% dos testes unitários com pytest"},
             {"gate": "G_CONTRACTS", "descricao": "Validação de esquemas OpenAPI 3.1 e contratos MCP"},
             {"gate": "G_SEGREDOS", "descricao": "Varredura de entropia de Shannon contra vazamento de chaves"},
-            {"gate": "G_HARNESS_COMPAT", "descricao": "Conformidade multi-harness (Antigravity, Cline, OpenHands, Cursor)"}
+            {"gate": "G_HARNESS_COMPAT", "descricao": "Conformidade multi-harness (Antigravity, Cline, OpenHands, Cursor)"},
+            {"gate": "G_CHAOS", "descricao": "Simulação de Quedas (Chaos) e resiliência do sistema"}
         ]
     }
     with open(os.path.join(target_dir, "PLANO-EXECUCAO-ESTRUTURADO.json"), "w", encoding="utf-8") as f:

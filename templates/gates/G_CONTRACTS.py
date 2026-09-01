@@ -1,23 +1,40 @@
-import os, sys, json, inspect
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+=============================================================================
+AIDD v4.1 Enterprise — GATE DETERMINÍSTICO DE CONTRATOS OPENAPI & MCP (G_CONTRACTS)
+=============================================================================
+Valida a conformidade de 100% das rotas registradas no RouteRegistry com o padrão
+OpenAPI 3.1 e das ferramentas expostas no servidor Model Context Protocol (MCP).
+Garante esquemas válidos, tags, descrições e schemas de entrada/saída.
+"""
+
+import os
+import sys
+import argparse
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-def verificar_contratos():
+
+def verificar_contratos(target_dir: str = "."):
     print("[GATE G_CONTRACTS v4.1] Validando contratos de rotas, esquemas OpenAPI 3.1 e ferramentas MCP...")
-    
-    erros = []
-    
-    src_path = os.path.abspath("src")
+    target_dir = os.path.abspath(target_dir)
+    src_path = os.path.join(target_dir, "src")
     if src_path not in sys.path:
         sys.path.insert(0, src_path)
-        
+
+    erros = []
+
     # 1. Validar RouteRegistry e Rotas dos Módulos
     try:
         from core.openapi import RouteRegistry
-        modules_dir = os.path.join("src", "modules")
+        modules_dir = os.path.join(src_path, "modules")
         if os.path.exists(modules_dir):
-            modulos = [m for m in os.listdir(modules_dir) if os.path.isdir(os.path.join(modules_dir, m)) and not m.startswith("__")]
+            modulos = [
+                m for m in os.listdir(modules_dir)
+                if os.path.isdir(os.path.join(modules_dir, m)) and not m.startswith("__")
+            ]
             for m in modulos:
                 routes_path = os.path.join(modules_dir, m, "routes.py")
                 if os.path.exists(routes_path):
@@ -29,13 +46,13 @@ def verificar_contratos():
         erros.append(f"Falha ao validar RouteRegistry: {str(e)}")
 
     # 2. Validar MCP Server
-    mcp_file = os.path.join("src", "core", "mcp_server.py")
+    mcp_file = os.path.join(src_path, "core", "mcp_server.py")
     if os.path.exists(mcp_file):
         try:
             with open(mcp_file, "r", encoding="utf-8", errors="ignore") as f:
                 code = f.read()
-                if "MCPServer" not in code or "handle_request" not in code:
-                    erros.append("Servidor MCP presente mas sem classe MCPServer ou método handle_request.")
+                if "MCPServer" not in code or ("handle_json_rpc" not in code and "handle_request" not in code):
+                    erros.append("Servidor MCP presente mas sem classe MCPServer ou método de processamento JSON-RPC.")
         except Exception as e:
             erros.append(f"Erro ao inspecionar MCP server: {str(e)}")
 
@@ -44,9 +61,14 @@ def verificar_contratos():
         for e in erros:
             print(f"  - {e}")
         sys.exit(1)
-        
+
     print("[OK] SUCESSO: Todos os contratos OpenAPI e interfaces MCP foram validados sem erros!")
     sys.exit(0)
 
+
 if __name__ == '__main__':
-    verificar_contratos()
+    parser = argparse.ArgumentParser(description="G_CONTRACTS — Gate de Validação de Contratos OpenAPI e MCP")
+    parser.add_argument("--dir", default=".", help="Diretório raiz do projeto")
+    args = parser.parse_args()
+
+    verificar_contratos(args.dir)

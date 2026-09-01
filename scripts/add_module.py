@@ -23,11 +23,21 @@ if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 
+import keyword
+
+RESERVED_WORDS = set(keyword.kwlist) | {"test", "core", "static", "modules", "shared", "server", "app", "api"}
+
+
 def slugify(text: str) -> str:
-    """Gera identificador slug padronizado em snake_case."""
+    """Gera identificador slug padronizado em snake_case com proteção contra palavras reservadas."""
     text = text.lower().strip()
     text = re.sub(r'[^\w\s-]', '', text)
-    return re.sub(r'[\s_-]+', '_', text)
+    slug = re.sub(r'[\s_-]+', '_', text)
+    if not slug:
+        slug = "modulo_custom"
+    if slug in RESERVED_WORDS or slug.isdigit():
+        slug = f"mod_{slug}"
+    return slug
 
 
 def pascal_case(text: str) -> str:
@@ -65,10 +75,11 @@ Schema e inicialização de banco de dados para o módulo '{slug}'.
 """
 
 import sqlite3
+import json
 
 
 def init_schema(conn: sqlite3.Connection):
-    """Cria a tabela e índices do módulo {slug} se não existirem."""
+    """Cria a tabela, índices e insere seed data do módulo {slug} se não existirem."""
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS mod_{slug} (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,6 +95,19 @@ def init_schema(conn: sqlite3.Connection):
         CREATE INDEX IF NOT EXISTS idx_{slug}_status ON mod_{slug}(status);
     """)
     conn.commit()
+
+    # Seed Fixtures Determinísticas (se a tabela estiver vazia)
+    cur = conn.cursor()
+    cur.execute("SELECT count(*) FROM mod_{slug}")
+    if cur.fetchone()[0] == 0:
+        conn.executemany("""
+            INSERT INTO mod_{slug} (titulo, descricao, dados_json, status, ativo)
+            VALUES (?, ?, ?, 'ativo', 1);
+        """, [
+            (f"Registro Exemplo 01 - {slug.upper()}", f"Primeiro registro semeado para o módulo {slug}", json.dumps({{"origem": "seed", "tag": "demo"}})),
+            (f"Registro Exemplo 02 - {slug.upper()}", f"Segundo registro semeado para validação de KPIs", json.dumps({{"origem": "seed", "tag": "producao"}}))
+        ])
+        conn.commit()
 '''
     with open(os.path.join(module_dir, "models.py"), "w", encoding="utf-8") as f:
         f.write(models_code)
@@ -441,8 +465,8 @@ def test_fluxo_completo_crud_{slug}(test_env):
 
     # 3. LIST
     lista = service.listar()
-    assert len(lista) == 1
-    assert lista[0]["id"] == novo_id
+    assert len(lista) >= 1
+    assert any(i["id"] == novo_id for i in lista)
 
     # 4. UPDATE
     res_up = service.atualizar(
@@ -464,8 +488,10 @@ def test_fluxo_completo_crud_{slug}(test_env):
     assert len(eventos) == 3
     assert eventos[2][0] == "deletado"
 
-    assert len(service.listar()) == 0
-    assert service.obter_por_id(novo_id) is None
+    item_deletado = service.obter_por_id(novo_id)
+    assert item_deletado is None
+    lista_pos = service.listar()
+    assert all(i["id"] != novo_id for i in lista_pos)
 
 
 def test_validacao_titulo_obrigatorio_{slug}(test_env):

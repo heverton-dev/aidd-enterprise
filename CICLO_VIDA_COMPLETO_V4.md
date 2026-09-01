@@ -14,7 +14,7 @@
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ FASE 1: ENTRADA DO USUÁRIO (USER INPUT - ZERO ATRITO & LINGUAGEM NATURAL)   │
-│ Modo A (Linguagem Natural):                                                 │
+│ Modo A (Linguagem Natural no Chat ou CLI):                                  │
 │ $ python scripts/aidd.py "Crie uma aplicação de CRM e ERP de faturamento"   │
 │                                                                             │
 │ Modo B (Comando Declarativo):                                               │
@@ -31,30 +31,37 @@
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ FASE 2: PROCESSAMENTO MECÂNICO (PROCESSING)                                 │
-│ 1. Injeção de Governança (AGENTS.md, CLAUDE.md, GEMINI.md, 02_golden_rules) │
-│ 2. Scaffolding do Shared Kernel (database.py WAL, events.py, openapi.py)    │
-│ 3. Geração Atômica das Fatias Verticais (models, services, routes, UI)      │
-│ 4. Geração dos Testes Unitários pytest por módulo (tests/unit/test_*.py)    │
-│ 5. Compilação do Servidor Dinâmico src/server.py com RouteRegistry          │
-│ 6. Execução e Bloqueio pelos 7 Quality Gates (exit 0 obrigatório)           │
+│ FASE 2: PROCESSAMENTO MECÂNICO (PROCESSING - 9 CAMADAS DE BLINDAGEM)        │
+│ 1. Sanitização de Palavras Reservadas (Anti-Crash)                          │
+│ 2. Scaffolding do Shared Kernel com SQLite WAL + busy_timeout = 5000        │
+│ 3. Controle de Migrações de Schema (_schema_migrations)                     │
+│ 4. Geração Atômica de Fatias Verticais com Seed Fixtures Determinísticas    │
+│ 5. EventBus Pub/Sub com Validação de Contrato de Payload e Tracing UUID     │
+│ 6. Servidor Dinâmico src/server.py com Port Fallback (3000..3025) e CORS    │
+│ 7. Geração de Testes Unitários pytest com Asserções Compatíveis com Seeds   │
+│ 8. Healthcheck Efêmero de Inicialização                                     │
+│ 9. Execução dos 7 Quality Gates com Limpeza Automática de Cache (.pytest)   │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ FASE 3: SAÍDA ENTREGUE E OPERACIONAL (OUTPUT)                               │
-│ Servidor ativo na porta 3000 com 4 Portais e Relatório Auditado             │
+│ Servidor ativo com 4 Portais e Relatório Auditado (Nota A+ 100% Blindado)   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Detalhamento Passo a Passo
+## 2. Detalhamento das 9 Melhorias da Fase 2 (Processamento)
 
-| Fase | Ação | Comandos e Exemplos | O que Acontece nos Bastidores |
-| :--- | :--- | :--- | :--- |
-| **Fase 0: Acesso & Setup** | **Download & Bootstrap** | `git clone <repo>`<br>`cd aidd-master-pack-v4`<br>`python scripts/aidd.py setup` | Auto-instalação de dependências (`pytest`, `requests`), validação de Python (>= 3.9) e detecção de ambiente (ORCA vs Subagentes). |
-| **Fase 1: Entrada (Input)** | **Linguagem Natural** | `python scripts/aidd.py "Crie um CRM e ERP"`<br>*ou*<br>`python scripts/aidd.py plan "Crie um CRM e ERP"` | O parser analisa o texto em linguagem natural e extrai as fatias verticais. |
-| **Fase 1.5: Spec Gate** | **Especificação & Revisão** | Arquivos: `SPEC-ARQUITETURA.md` e `PLANO-EXECUCAO-ESTRUTURADO.json` | O sistema exibe o plano detalhado e aguarda aprovação ou iteração do usuário antes de compilar código. |
-| **Fase 2: Processamento** | **Scaffolding e Gates** | `python scripts/aidd.py apply --dir <pasta>` | Disparado após aprovação: injeta governança, gera Kernel, fatias verticais, testes e executa os 7 Quality Gates locais. |
-| **Fase 3: Saída (Output)** | **Execução da Aplicação** | `cd <destino>`<br>`python src/server.py`<br>`python scripts/aidd.py audit --report` | Disponibiliza Super-App UI (`/`), Swagger Studio (`/docs`), MCP Server (`/mcp`), Webhook Studio (`/webhooks`) e Relatório Técnico auditado. |
+| # | Melhoria Implementada | Risco Mitigado | Arquivos Modificados |
+| :---: | :--- | :--- | :--- |
+| **1** | **Port Fallback Dinâmico (3000..3025)** | Bloqueio de porta ocupada (`OSError: Address in use`). | `compose_suite.py` / `src/server.py` |
+| **2** | **Carga Inicial de Dados (Seed Fixtures)** | Telas e KPIs vazios na primeira inicialização. | `add_module.py` (`models.py`) |
+| **3** | **Healthcheck Efêmero de Inicialização** | Servidor subir com rotas quebradas sem aviso. | `templates/gates/G_TESTES.py` |
+| **4** | **Sanitização de Palavras Reservadas** | Nomes como `import`, `class`, `test` causarem erros sintáticos. | `add_module.py` (`slugify`) |
+| **5** | **SQLite `PRAGMA busy_timeout = 5000`** | Bloqueios de concorrência (`database is locked`). | `templates/v2/database.py` |
+| **6** | **CORS Preflight Middleware (`OPTIONS`)** | Bloqueios de chamadas por frontends externos ou Postman. | `compose_suite.py` (`AppHandler`) |
+| **7** | **Migration Tracker (`_schema_migrations`)** | Conflitos e drift de schema em atualizações. | `templates/v2/database.py` |
+| **8** | **EventBus Envelope & UUID Tracing** | Eventos mal formatados ou sem rastro de auditoria. | `templates/v2/events.py` |
+| **9** | **Limpeza Automática de Caches** | Acúmulo de arquivos residuais `.pytest_cache` e `__pycache__`. | `templates/gates/G_TESTES.py` |

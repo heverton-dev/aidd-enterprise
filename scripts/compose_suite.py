@@ -201,9 +201,17 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=STATIC_DIR, **kwargs)
 
     def end_headers(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
         for header, value in SecurityService.get_security_headers().items():
             self.send_header(header, value)
         super().end_headers()
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+        self.end_headers()
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -330,8 +338,22 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
 
 
 def run_server():
+    global PORT
     socketserver.ThreadingTCPServer.allow_reuse_address = True
-    with socketserver.ThreadingTCPServer(("", PORT), AppHandler) as httpd:
+    httpd = None
+    for attempt_port in range(PORT, PORT + 25):
+        try:
+            httpd = socketserver.ThreadingTCPServer(("", attempt_port), AppHandler)
+            PORT = attempt_port
+            break
+        except OSError:
+            continue
+
+    if not httpd:
+        print("[FATAL] Não foi possível vincular o servidor em nenhuma porta entre 3000 e 3025.")
+        sys.exit(1)
+
+    with httpd:
         print("=" * 80)
         print(f"🚀 __SUITE_NAME__ (AIDD v4.1 Enterprise)")
         print(f"📡 Servidor Ativo:     http://localhost:{PORT}")

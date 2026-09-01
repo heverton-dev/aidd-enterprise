@@ -343,9 +343,9 @@ class RouteRegistry:
             line-height: 1.2 !important;
         }
 
-        body { background: var(--bg-body); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { background: var(--bg-body); color: var(--text-main); height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* TOPBAR (IMPECCABLE SINGLE LINE NON-BREAKING) */
+        /* TOPBAR (IMPECCABLE SINGLE LINE NON-BREAKING & TRUNCATING) */
         header {
             min-height: 56px;
             height: 56px;
@@ -360,39 +360,70 @@ class RouteRegistry:
             flex-shrink: 0;
             z-index: 50;
             gap: 1rem;
-            white-space: nowrap;
-            overflow-x: auto;
-            overflow-y: hidden;
-            scrollbar-width: none;
+            width: 100%;
         }
-        header::-webkit-scrollbar { display: none; }
-        .brand-title { flex-shrink: 0; white-space: nowrap; }
-        .brand-title { font-weight: 800; font-size: 0.95rem; color: #fff; display: flex; align-items: center; gap: 0.6rem; }
-        .badge-ver { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: var(--primary-light); font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 9999px; }
+        .brand-title {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            min-width: 0;
+            flex: 1;
+            overflow: hidden;
+        }
+        .brand-title svg { flex-shrink: 0; }
+        .brand-title span.title-text {
+            font-weight: 800;
+            font-size: 0.92rem;
+            color: #fff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .badge-ver {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: var(--primary-light);
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 0.15rem 0.5rem;
+            border-radius: 9999px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
 
-        .btn { padding: 0.45rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.04); color: #fff; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.15s; }
+        .btn { padding: 0.4rem 0.75rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.04); color: #fff; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; transition: all 0.15s; flex-shrink: 0; }
         .btn:hover { background: rgba(255, 255, 255, 0.08); border-color: var(--border-hover); }
         .btn-primary { background: var(--primary); border-color: var(--primary); }
 
-        /* STUDIO 3-COLUMNS LAYOUT */
+        /* STUDIO 3-COLUMNS LAYOUT (100% VIEWPORT PROTECTED WITH MINMAX) */
         .studio-layout {
             display: grid;
-            grid-template-columns: 310px 1fr 500px;
+            grid-template-columns: 300px minmax(0, 1fr) 460px;
             flex: 1;
             height: calc(100vh - 56px);
+            width: 100%;
             overflow: hidden;
         }
-        @media (max-width: 1300px) { .studio-layout { grid-template-columns: 280px 1fr 440px; } }
+        @media (max-width: 1366px) { .studio-layout { grid-template-columns: 270px minmax(0, 1fr) 410px; } }
+        @media (max-width: 1100px) { .studio-layout { grid-template-columns: 240px minmax(0, 1fr) 370px; } }
 
         /* 1. SIDEBAR */
         aside.sidebar {
             background: var(--bg-sidebar);
             border-right: 1px solid var(--border);
             overflow-y: auto;
-            padding: 1.2rem 0.8rem;
+            overflow-x: hidden;
+            padding: 1rem 0.75rem;
             display: flex;
             flex-direction: column;
-            gap: 1.2rem;
+            gap: 1rem;
+            height: 100%;
         }
         .search-box {
             display: flex;
@@ -400,28 +431,32 @@ class RouteRegistry:
             gap: 0.5rem;
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--border);
-            padding: 0.55rem 0.8rem;
+            padding: 0.5rem 0.75rem;
             border-radius: 8px;
             color: var(--text-muted);
-            font-size: 0.82rem;
+            font-size: 0.8rem;
+            flex-shrink: 0;
         }
-        .search-box input { background: none; border: none; outline: none; color: #fff; font-size: 0.84rem; width: 100%; }
-        .nav-cat-title { font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 0.8rem 0.6rem 0.3rem 0.6rem; }
+        .search-box input { background: none; border: none; outline: none; color: #fff; font-size: 0.82rem; width: 100%; }
+        .nav-cat-title { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 0.7rem 0.5rem 0.3rem 0.5rem; }
         .endpoint-link {
             display: flex;
             align-items: center;
-            gap: 0.6rem;
-            padding: 0.55rem 0.7rem;
+            gap: 0.5rem;
+            padding: 0.5rem 0.65rem;
             border-radius: 8px;
             color: #cbd5e1;
-            font-size: 0.84rem;
+            font-size: 0.82rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.15s;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .endpoint-link:hover, .endpoint-link.active { background: rgba(59, 130, 246, 0.12); color: #fff; }
         
-        .method-pill { font-size: 0.65rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; padding: 0.15rem 0.4rem; border-radius: 4px; min-width: 52px; text-align: center; }
+        .method-pill { font-size: 0.65rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; padding: 0.15rem 0.4rem; border-radius: 4px; min-width: 48px; text-align: center; flex-shrink: 0; }
         .pill-get { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
         .pill-post { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
         .pill-put { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
@@ -432,37 +467,47 @@ class RouteRegistry:
         main.doc-column {
             background: var(--bg-middle);
             overflow-y: auto;
-            padding: 3rem 3.5rem;
+            overflow-x: hidden;
+            padding: 2rem 2.5rem;
             border-right: 1px solid var(--border);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
         }
-        .doc-tag-badge { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--primary-light); letter-spacing: 0.05em; margin-bottom: 0.6rem; }
-        .doc-endpoint-title { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 1rem; color: #fff; }
+        .doc-tag-badge { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--primary-light); letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+        .doc-endpoint-title { font-size: 1.65rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.85rem; color: #fff; line-height: 1.25; word-break: break-word; }
         .path-badge-box {
             display: inline-flex;
             align-items: center;
-            gap: 0.8rem;
+            gap: 0.75rem;
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--border);
-            padding: 0.6rem 1rem;
-            border-radius: 10px;
+            padding: 0.5rem 0.85rem;
+            border-radius: 8px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             font-weight: 600;
-            margin-bottom: 1.8rem;
+            margin-bottom: 1.5rem;
+            max-width: 100%;
+            overflow-x: auto;
+            word-break: break-all;
         }
-        .doc-desc { font-size: 0.98rem; line-height: 1.7; color: #cbd5e1; margin-bottom: 2rem; }
+        .doc-desc { font-size: 0.92rem; line-height: 1.65; color: #cbd5e1; margin-bottom: 1.5rem; }
 
-        h3.section-header { font-size: 1.1rem; font-weight: 800; color: #fff; margin: 2rem 0 1rem 0; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+        h3.section-header { font-size: 0.98rem; font-weight: 800; color: #fff; margin: 1.5rem 0 0.85rem 0; padding-bottom: 0.4rem; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.04em; }
 
-        .params-table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
-        .params-table th, .params-table td { padding: 0.85rem 1rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.86rem; }
-        .params-table th { font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
+        .params-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; table-layout: fixed; }
+        .params-table th, .params-table td { padding: 0.75rem 0.85rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.82rem; word-break: break-word; }
+        .params-table th:nth-child(1) { width: 30%; }
+        .params-table th:nth-child(2) { width: 25%; }
+        .params-table th:nth-child(3) { width: 45%; }
+        .params-table th { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
         .param-name { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #fff; }
-        .param-type { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #94a3b8; }
-        .badge-req { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.68rem; font-weight: 800; padding: 0.1rem 0.35rem; border-radius: 4px; margin-left: 0.4rem; }
+        .param-type { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #94a3b8; }
+        .badge-req { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.65rem; font-weight: 800; padding: 0.1rem 0.3rem; border-radius: 4px; margin-left: 0.3rem; }
 
-        .response-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
-        .resp-status-btn { padding: 0.3rem 0.7rem; border-radius: 6px; font-size: 0.75rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; border: 1px solid var(--border); background: rgba(255,255,255,0.02); color: var(--text-muted); cursor: pointer; }
+        .response-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.85rem; }
+        .resp-status-btn { padding: 0.3rem 0.65rem; border-radius: 6px; font-size: 0.72rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; border: 1px solid var(--border); background: rgba(255,255,255,0.02); color: var(--text-muted); cursor: pointer; }
         .resp-status-btn.active-200 { background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
         .resp-status-btn.active-400 { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
         .resp-status-btn.active-500 { background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
@@ -471,35 +516,37 @@ class RouteRegistry:
         aside.studio-column {
             background: var(--bg-studio);
             overflow-y: auto;
-            padding: 2rem;
+            overflow-x: hidden;
+            padding: 1.5rem;
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 1.2rem;
+            height: 100%;
         }
         .studio-header { display: flex; justify-content: space-between; align-items: center; }
-        .studio-title { font-size: 0.88rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+        .studio-title { font-size: 0.82rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
 
         .lang-tabs { display: flex; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 8px; padding: 0.2rem; gap: 0.2rem; }
-        .lang-tab { padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); cursor: pointer; border: none; background: none; transition: all 0.15s; }
+        .lang-tab { padding: 0.3rem 0.65rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); cursor: pointer; border: none; background: none; transition: all 0.15s; }
         .lang-tab.active { background: rgba(59, 130, 246, 0.2); color: var(--primary-light); }
 
-        .code-box { background: var(--code-bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-        .code-header { background: rgba(255, 255, 255, 0.02); border-bottom: 1px solid var(--border); padding: 0.6rem 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); }
-        pre.code-content { padding: 1.2rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.6; color: #e2e8f0; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+        .code-box { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+        .code-header { background: rgba(255, 255, 255, 0.02); border-bottom: 1px solid var(--border); padding: 0.5rem 0.85rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); }
+        pre.code-content { padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.55; color: #e2e8f0; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
 
         textarea.body-editor {
             width: 100%;
-            height: 180px;
+            height: 150px;
             background: var(--code-bg);
             border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 1rem;
+            border-radius: 8px;
+            padding: 0.85rem;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.82rem;
+            font-size: 0.78rem;
             color: #60a5fa;
             outline: none;
             resize: vertical;
-            line-height: 1.5;
+            line-height: 1.45;
         }
         textarea.body-editor:focus { border-color: var(--primary); }
 
@@ -508,27 +555,28 @@ class RouteRegistry:
             border: 1px solid var(--primary);
             color: #fff;
             font-weight: 800;
-            font-size: 0.9rem;
-            padding: 0.8rem;
-            border-radius: 10px;
+            font-size: 0.85rem;
+            padding: 0.7rem;
+            border-radius: 8px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
             transition: all 0.2s;
+            flex-shrink: 0;
         }
         .btn-run:hover { background: #2563eb; transform: translateY(-1px); }
 
         .response-box {
             background: var(--code-bg);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1rem;
+            border-radius: 10px;
+            padding: 0.85rem;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            min-height: 140px;
-            max-height: 240px;
+            font-size: 0.76rem;
+            min-height: 120px;
+            max-height: 200px;
             overflow-y: auto;
             color: #34d399;
             white-space: pre-wrap;
@@ -548,19 +596,19 @@ class RouteRegistry:
         }
         .aidd-toast {
             pointer-events: auto;
-            min-width: 280px;
-            max-width: 420px;
+            min-width: 260px;
+            max-width: 400px;
             background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 12px;
-            padding: 0.85rem 1.1rem;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
             color: #f8fafc;
-            font-size: 0.86rem;
+            font-size: 0.82rem;
             font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.65rem;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
             transform: translateY(20px) scale(0.95);
             opacity: 0;
@@ -575,10 +623,10 @@ class RouteRegistry:
     <header>
         <div class="brand-title">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-            <span>__TITLE__</span>
+            <span class="title-text">__TITLE__</span>
             <span class="badge-ver">OpenAPI 3.1.0</span>
         </div>
-        <div style="display: flex; gap: 0.8rem;">
+        <div class="header-actions">
             <a href="/" class="btn">Aplicação Web</a>
             <a href="/webhooks" class="btn" style="border-color: rgba(139, 92, 246, 0.4); color: #c4b5fd;">Webhook Studio</a>
             <a href="/mcp" class="btn" style="border-color: rgba(16,185,129,0.4); color: #34d399;">Portal MCP</a>
@@ -592,7 +640,8 @@ class RouteRegistry:
         <aside class="sidebar">
             <div class="search-box">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" id="filter-input" placeholder="Filtrar endpoints..." oninput="filtrarSidebar(this.value)">
+                <input type="text" id="filter-input" placeholder="Filtrar endpoints (Ctrl + K)..." oninput="filtrarSidebar(this.value)">
+                <kbd style="font-size: 0.65rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 0.15rem 0.35rem; color: var(--text-muted); font-family: monospace; flex-shrink: 0;">Ctrl K</kbd>
             </div>
             <div id="sidebar-endpoints-tree"></div>
         </aside>
@@ -1007,6 +1056,173 @@ class RouteRegistry:
                 showToast('Falha ao copiar snippet.', 'error');
             });
         }
+
+        // SPOTLIGHT COMMAND PALETTE PARA SWAGGER STUDIO (ZERO EMOJIS)
+        let spotlightSelectedIndex = 0;
+        let spotlightFilteredCommands = [];
+
+        function getOpenApiIconSvg(type, method) {
+            if (method) {
+                const color = method === 'GET' ? '#22c55e' : method === 'POST' ? '#38bdf8' : method === 'PUT' ? '#f59e0b' : '#ef4444';
+                return `<span style="font-size:0.65rem;font-weight:800;color:${color};background:${color}15;border:1px solid ${color}40;padding:0.15rem 0.4rem;border-radius:4px;font-family:monospace;">${method}</span>`;
+            }
+            const icons = {
+                app: '<svg width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>',
+                docs: '<svg width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>',
+                webhooks: '<svg width="16" height="16" fill="none" stroke="#f59e0b" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>',
+                mcp: '<svg width="16" height="16" fill="none" stroke="#a855f7" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>',
+                guia: '<svg width="16" height="16" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>',
+                json: '<svg width="16" height="16" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>'
+            };
+            return icons[type] || '<svg width="16" height="16" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>';
+        }
+
+        function getSpotlightCommands() {
+            const baseCommands = [
+                { id: 'nav-app', cat: 'Navegação', title: 'Super-App Clínico (Home)', desc: 'Dashboard e painéis hospitalares', iconType: 'app', action: () => { window.location.href = '/'; } },
+                { id: 'nav-docs', cat: 'Navegação', title: 'Swagger Studio (OpenAPI)', desc: 'Documentação interativa REST e live playground', iconType: 'docs', action: () => { window.location.href = '/docs'; } },
+                { id: 'nav-wh', cat: 'Navegação', title: 'Webhook Studio', desc: 'Simulador de eventos e logs de webhook', iconType: 'webhooks', action: () => { window.location.href = '/webhooks'; } },
+                { id: 'nav-mcp', cat: 'Navegação', title: 'MCP Native Server Portal', desc: '16 Ferramentas JSON-RPC para Claude Desktop e LLMs', iconType: 'mcp', action: () => { window.location.href = '/mcp'; } },
+                { id: 'nav-guia', cat: 'Navegação', title: 'Manual Enciclopédico & Design System', desc: '11 Capítulos de arquitetura, segurança e UI', iconType: 'guia', action: () => { window.location.href = '/docs/guia'; } },
+                { id: 'nav-json', cat: 'Navegação', title: 'Exportar OpenAPI JSON', desc: 'Download do manifesto bruto openapi.json', iconType: 'json', action: () => { window.open('/openapi.json', '_blank'); } }
+            ];
+
+            const endpointCommands = endpointsData.map(ep => ({
+                id: 'ep-' + ep.id,
+                cat: 'Endpoints REST',
+                title: `${ep.method} ${ep.path}`,
+                desc: ep.summary || ep.description || '',
+                method: ep.method,
+                action: () => { selecionarEndpoint(ep.id); }
+            }));
+
+            return [...baseCommands, ...endpointCommands];
+        }
+
+        function abrirSpotlight() {
+            let modal = document.getElementById('spotlight-modal');
+            if (!modal) {
+                criarSpotlightDOM();
+                modal = document.getElementById('spotlight-modal');
+            }
+            modal.style.display = 'flex';
+            const inp = document.getElementById('spotlight-input');
+            inp.value = '';
+            filtrarSpotlight('');
+            setTimeout(() => inp.focus(), 50);
+        }
+
+        function fecharSpotlight() {
+            const modal = document.getElementById('spotlight-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function criarSpotlightDOM() {
+            const div = document.createElement('div');
+            div.id = 'spotlight-modal';
+            div.style.cssText = 'position:fixed;inset:0;background:rgba(2,6,23,0.85);backdrop-filter:blur(8px);z-index:9999;display:none;align-items:flex-start;justify-content:center;padding-top:5rem;';
+            div.onclick = (e) => { if (e.target === div) fecharSpotlight(); };
+            div.innerHTML = `
+                <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.15);border-radius:16px;width:100%;max-width:640px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.7);overflow:hidden;display:flex;flex-direction:column;max-height:80vh;" onclick="event.stopPropagation()">
+                    <div style="padding:1rem;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:0.75rem;background:rgba(255,255,255,0.02);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="text" id="spotlight-input" placeholder="Buscar endpoints REST, ações ou navegação (Ctrl + K)..." 
+                               oninput="filtrarSpotlight(this.value)" onkeydown="navegarSpotlightTeclado(event)"
+                               style="width:100%;background:transparent;border:none;color:#fff;font-size:0.9rem;font-weight:600;outline:none;">
+                        <kbd style="font-size:0.7rem;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);padding:0.2rem 0.5rem;border-radius:4px;color:#94a3b8;cursor:pointer;" onclick="fecharSpotlight()">ESC</kbd>
+                    </div>
+                    <div id="spotlight-results" style="overflow-y:auto;padding:0.5rem;max-height:55vh;display:flex;flex-direction:column;gap:0.25rem;"></div>
+                    <div style="padding:0.6rem 1rem;background:#020617;border-top:1px solid rgba(255,255,255,0.1);display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;color:#94a3b8;">
+                        <div><kbd style="background:rgba(255,255,255,0.1);padding:0.1rem 0.3rem;border-radius:3px;">↑</kbd> <kbd style="background:rgba(255,255,255,0.1);padding:0.1rem 0.3rem;border-radius:3px;">↓</kbd> Navegar • <kbd style="background:rgba(255,255,255,0.1);padding:0.1rem 0.3rem;border-radius:3px;">↵</kbd> Executar • <kbd style="background:rgba(255,255,255,0.1);padding:0.1rem 0.3rem;border-radius:3px;">ESC</kbd> Fechar</div>
+                        <span style="color:#38bdf8;font-weight:bold;font-family:monospace;">Spotlight Command Palette</span>
+                    </div>
+                </div>`;
+            document.body.appendChild(div);
+        }
+
+        function filtrarSpotlight(q) {
+            const query = (q || '').toLowerCase().trim();
+            const allCommands = getSpotlightCommands();
+            spotlightFilteredCommands = allCommands.filter(cmd => 
+                !query || 
+                cmd.title.toLowerCase().includes(query) || 
+                cmd.desc.toLowerCase().includes(query) || 
+                cmd.cat.toLowerCase().includes(query)
+            );
+            spotlightSelectedIndex = 0;
+            renderizarSpotlightResultados();
+        }
+
+        function renderizarSpotlightResultados() {
+            const container = document.getElementById('spotlight-results');
+            if (!container) return;
+            if (spotlightFilteredCommands.length === 0) {
+                container.innerHTML = `<div style="padding:2rem;text-align:center;color:#64748b;font-size:0.85rem;">Nenhum comando ou endpoint encontrado</div>`;
+                return;
+            }
+            let html = '';
+            let currentCat = '';
+            spotlightFilteredCommands.forEach((cmd, idx) => {
+                if (cmd.cat !== currentCat) {
+                    currentCat = cmd.cat;
+                    html += `<div style="font-size:0.68rem;font-weight:800;text-transform:uppercase;color:#64748b;padding:0.5rem 0.75rem 0.2rem 0.75rem;letter-spacing:0.05em;">${currentCat}</div>`;
+                }
+                const isSelected = idx === spotlightSelectedIndex;
+                const iconHtml = getOpenApiIconSvg(cmd.iconType, cmd.method);
+                html += `
+                <div onclick="executarSpotlightComando(${idx})" 
+                     style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0.8rem;border-radius:8px;cursor:pointer;background:${isSelected ? 'rgba(56,189,248,0.15)' : 'transparent'};border:1px solid ${isSelected ? 'rgba(56,189,248,0.3)' : 'transparent'};transition:all 0.15s;">
+                    <div style="display:flex;align-items:center;gap:0.6rem;min-width:0;">
+                        <div style="width:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${iconHtml}</div>
+                        <div style="min-width:0;">
+                            <div style="font-weight:700;font-size:0.82rem;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:${cmd.method ? 'monospace' : 'inherit'};">${cmd.title}</div>
+                            <div style="font-size:0.72rem;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cmd.desc}</div>
+                        </div>
+                    </div>
+                    <span style="font-size:0.68rem;color:#94a3b8;background:rgba(255,255,255,0.05);padding:0.15rem 0.4rem;border-radius:4px;flex-shrink:0;">${cmd.cat}</span>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function executarSpotlightComando(idx) {
+            const cmd = spotlightFilteredCommands[idx];
+            if (cmd && cmd.action) {
+                fecharSpotlight();
+                cmd.action();
+            }
+        }
+
+        function navegarSpotlightTeclado(e) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (spotlightSelectedIndex < spotlightFilteredCommands.length - 1) {
+                    spotlightSelectedIndex++;
+                    renderizarSpotlightResultados();
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (spotlightSelectedIndex > 0) {
+                    spotlightSelectedIndex--;
+                    renderizarSpotlightResultados();
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                executarSpotlightComando(spotlightSelectedIndex);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                fecharSpotlight();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                abrirSpotlight();
+            } else if (e.key === 'Escape') {
+                fecharSpotlight();
+            }
+        });
 
         window.onload = function() {
             montarSidebar(endpointsData);

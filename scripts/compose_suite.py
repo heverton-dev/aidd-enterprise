@@ -218,6 +218,11 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)
 
+        if path == "/favicon.ico":
+            self.send_response(204)
+            self.end_headers()
+            return
+
         if path in ["/", "/index.html"]:
             index_file = os.path.join(STATIC_DIR, "index.html")
             if os.path.isfile(index_file):

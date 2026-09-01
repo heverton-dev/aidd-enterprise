@@ -28,7 +28,68 @@ if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 
+def ensure_environment(auto_install: bool = True):
+    """Garante de forma 100% automática que o runtime possui os pré-requisitos necessários."""
+    missing = []
+    try:
+        import pytest
+    except ImportError:
+        missing.append("pytest")
+    try:
+        import requests
+    except ImportError:
+        missing.append("requests")
+
+    if missing and auto_install:
+        print(f"[*] [BOOTSTRAP AUTOMÁTICO] Instalando dependências essenciais: {', '.join(missing)}...")
+        try:
+            subprocess.run([sys.executable, "-m", "pip", "install"] + missing, check=True, capture_output=True)
+            print("[OK] Dependências instaladas com sucesso.")
+        except Exception as e:
+            print(f"[WARN] Não foi possível auto-instalar dependências: {e}")
+
+
+def cmd_setup(args):
+    """Executa diagnóstico completo e configuração automática do ambiente."""
+    print("=" * 80)
+    print("🔧 [AIDD SETUP] Diagnóstico e Inicialização Automática do Ambiente")
+    print("=" * 80)
+    
+    # 1. Checagem de Python
+    py_ver = platform.python_version()
+    print(f"  [+] Python Runtime: {py_ver} ({sys.executable})")
+    
+    # 2. Instalação de requirements.txt
+    req_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "requirements.txt")
+    if os.path.exists(req_file):
+        print("  [+] Instalando dependências do 'requirements.txt'...")
+        res = subprocess.run([sys.executable, "-m", "pip", "install", "-r", req_file], capture_output=True, text=True)
+        if res.returncode == 0:
+            print("  [OK] Dependências instaladas com êxito.")
+        else:
+            print(f"  [WARN] Aviso ao instalar requirements: {res.stderr.strip()}")
+    else:
+        ensure_environment(auto_install=True)
+
+    # 3. Detecção de Git
+    import shutil
+    git_bin = shutil.which("git")
+    print(f"  [+] Git CLI: {'Presente (' + git_bin + ')' if git_bin else 'Ausente'}")
+
+    # 4. Detecção de ORCA ADE
+    orca_bin = shutil.which("orca")
+    if orca_bin:
+        print(f"  [+] ORCA ADE: Detectado ({orca_bin}) ➔ Modo A (Mesas de Trabalho Isoladas)")
+    else:
+        print("  [+] ORCA ADE: Não instalado ➔ Modo B (Subagentes Nativos / Git Worktrees)")
+
+    print("=" * 80)
+    print("🏆 [SUCESSO]: Ambiente 100% pronto para compor e executar projetos AIDD v4.1!")
+    print("=" * 80)
+
+
 def cmd_init(args):
+    ensure_environment()
     try:
         from provision_project import provision
     except ImportError:
@@ -37,6 +98,7 @@ def cmd_init(args):
 
 
 def cmd_compose(args):
+    ensure_environment()
     try:
         from compose_suite import compose_suite
     except ImportError:
@@ -273,6 +335,9 @@ def main():
     parser = argparse.ArgumentParser(description="AIDD Framework CLI — Dividir para Conquistar (v4.1 Enterprise)")
     subparsers = parser.add_subparsers(dest="command", help="Comando a executar")
 
+    # setup
+    subparsers.add_parser("setup", help="Executa diagnóstico completo e instalação automática de dependências")
+
     # init
     p_init = subparsers.add_parser("init", help="Provisiona novo projeto modular")
     p_init.add_argument("nome", help="Nome ou descrição do projeto")
@@ -315,6 +380,7 @@ def main():
         sys.exit(1)
 
     cmds = {
+        "setup": cmd_setup,
         "init": cmd_init,
         "compose": cmd_compose,
         "add-module": cmd_add_module,

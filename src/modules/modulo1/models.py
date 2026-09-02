@@ -28,9 +28,8 @@ def init_schema(conn: sqlite3.Connection):
     conn.commit()
 
     # Seed Fixtures Determinísticas (se a tabela estiver vazia)
-    cur = conn.cursor()
-    cur.execute("SELECT count(*) FROM mod_modulo1 WHERE deletado_em IS NULL")
-    if cur.fetchone()[0] == 0:
+    result = conn.execute("SELECT count(*) FROM mod_modulo1 WHERE deletado_em IS NULL").fetchone()
+    if result[0] == 0:
         conn.executemany("""
             INSERT INTO mod_modulo1 (titulo, descricao, dados_json, status, ativo)
             VALUES (?, ?, ?, 'ativo', 1);

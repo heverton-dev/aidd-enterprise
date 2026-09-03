@@ -1,7 +1,7 @@
 # Camada Frontend — Regras de Interface & UX
 
 > **Escopo:** Toda interface visual em `src/static/`, componentes HTML e Super-App SPA.
-> **Referencia:** `templates/rules/03_impeccable.md`, `templates/v2/index.html`, `templates/v2/docs.html`.
+> **Referencia:** `templates/rules/03_impeccable.md`, `templates/core/index.html`, `templates/core/docs.html`.
 
 ---
 

@@ -1,7 +1,7 @@
 # Camada Routes & API — Regras de Endpoints HTTP
 
 > **Escopo:** Toda definicao de rotas HTTP em `routes.py` dos modulos e no core (`server.py`).
-> **Referencia:** `templates/v2/openapi.py`, `templates/v2/security.py`, `templates/v2/mcp_server.py`, `templates/rules/05_production_vps.md`.
+> **Referencia:** `templates/core/openapi.py`, `templates/core/security.py`, `templates/core/mcp_server.py`, `templates/rules/05_production_vps.md`.
 
 ---
 

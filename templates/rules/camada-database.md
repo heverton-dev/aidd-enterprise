@@ -1,7 +1,7 @@
 # Camada Database — Regras de Persistencia
 
 > **Escopo:** Toda interacao com banco de dados (SQLite, PostgreSQL/Supabase) dentro do AIDD v5/v6.
-> **Referencia:** `templates/v2/database.py`, `templates/rules/04_cross_project.md`, `templates/rules/04_security.md`.
+> **Referencia:** `templates/core/database.py`, `templates/rules/04_cross_project.md`, `templates/rules/04_security.md`.
 
 ---
 

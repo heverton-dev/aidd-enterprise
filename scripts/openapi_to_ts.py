@@ -211,7 +211,7 @@ import type {{ Metadata }} from "next";
 
 export const metadata: Metadata = {{
   title: "{suite_name}",
-  description: "Frontend gerado automaticamente pelo AIDD Master Pack v5",
+  description: "Frontend gerado automaticamente pelo AIDD Master Enterprise",
 }};
 
 export default function RootLayout({{ children }}: {{ children: React.ReactNode }}) {{

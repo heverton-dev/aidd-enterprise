@@ -1413,7 +1413,8 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
     print("=" * 80)
 
     SKILL_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    templates_v2 = os.path.join(SKILL_ROOT, "templates", "v2")
+    templates_core = os.path.join(SKILL_ROOT, "templates", "core")
+    templates_v2 = templates_core if os.path.isdir(templates_core) else os.path.join(SKILL_ROOT, "templates", "v2")
     gates_dir = os.path.join(SKILL_ROOT, "templates", "gates")
     scripts_dir = os.path.join(SKILL_ROOT, "scripts")
 
@@ -1478,7 +1479,7 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
             "nome": suite_name,
             "slug": slugify(suite_name),
             "versao": "4.1.0",
-            "framework": "AIDD Master Pack v5.1 Enterprise Anti-Fail",
+            "framework": "AIDD Master Enterprise",
             "status": "em_desenvolvimento",
             "criado_em": datetime.datetime.now().isoformat()
         },
@@ -1611,7 +1612,7 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
 
 ## 1. Visão Geral
 - **Nome:** {suite_name}
-- **Framework:** AIDD Master Pack v5.1 Enterprise Anti-Fail
+- **Framework:** AIDD Master Enterprise
 - **Banco de Dados:** SQLite Concorrente WAL (`suite.db`)
 - **Portais Ativos:** `/` (Super-App), `/docs` (Swagger Studio), `/mcp` (MCP Server), `/webhooks` (Webhook Studio)
 

@@ -161,7 +161,7 @@ output "eventbus_url" {{
 def _generate_helm_chart_yaml(slug: str) -> str:
     return f"""apiVersion: v2
 name: {slug}
-description: Helm chart gerado automaticamente pelo AIDD Master Pack v6.0 Enterprise
+description: Helm chart gerado automaticamente pelo AIDD Master Enterprise
 type: application
 version: 0.1.0
 appVersion: "5.0.0"

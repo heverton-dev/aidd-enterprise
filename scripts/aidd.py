@@ -341,7 +341,7 @@ def cmd_audit(args):
     ]
 
     gates_dir = os.path.join(target_dir, "scripts", "gates")
-    # Fallback para pasta global do master pack
+    # Fallback para pasta global do aidd-master-enterprise
     master_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     fallback_gates_dir = os.path.join(master_root, "scripts", "gates")
 
@@ -358,7 +358,7 @@ def cmd_audit(args):
             "target_dir": target_dir,
             "python_version": platform.python_version(),
             "sistema_operacional": platform.platform(),
-            "framework": "AIDD Master Pack v5.1 Enterprise Anti-Fail"
+            "framework": "AIDD Master Enterprise"
         },
         "gates": [],
         "resumo": {
@@ -462,6 +462,7 @@ def cmd_bench(args):
     candidates = [
         os.path.join(target_dir, "src"),
         os.path.join(target_dir, "src", "core"),
+        os.path.join(master_root, "templates", "core"),
         os.path.join(master_root, "templates", "v2"),
         os.path.join(master_root, "src", "core")
     ]

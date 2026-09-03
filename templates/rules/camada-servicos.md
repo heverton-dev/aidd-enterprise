@@ -1,7 +1,7 @@
 # Camada Servicos — Regras de Logica de Negocio
 
 > **Escopo:** Toda logica de negocio em `services.py` dos modulos (`src/modules/<dominio>/`).
-> **Referencia:** `templates/v2/result.py`, `templates/v2/events.py`, `templates/v2/circuit_breaker.py`, `templates/v2/saga.py`.
+> **Referencia:** `templates/core/result.py`, `templates/core/events.py`, `templates/core/circuit_breaker.py`, `templates/core/saga.py`.
 
 ---
 

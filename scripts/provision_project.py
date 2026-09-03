@@ -18,7 +18,7 @@ def provision(project_desc, base_dir=None):
         
     project_dir = os.path.join(base_dir, f'proj_{slug}')
     
-    print(f"🚀 [AIDD MASTER PACK v5.1] Provisionando ecossistema modular: {slug}")
+    print(f"🚀 [AIDD MASTER ENTERPRISE] Provisionando ecossistema modular: {slug}")
     print(f"📁 Destino: {project_dir}")
     
     # 1. Estrutura de Diretórios Modulares + Shared Kernel
@@ -37,7 +37,8 @@ def provision(project_desc, base_dir=None):
 
     # 2. Localização Dinâmica de Templates (Zero Hardcoded Paths)
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    templates_dir = os.path.join(repo_root, 'templates', 'v2')
+    templates_core = os.path.join(repo_root, 'templates', 'core')
+    templates_dir = templates_core if os.path.isdir(templates_core) else os.path.join(repo_root, 'templates', 'v2')
     gates_dir = os.path.join(repo_root, 'templates', 'gates')
 
     if os.path.exists(templates_dir):

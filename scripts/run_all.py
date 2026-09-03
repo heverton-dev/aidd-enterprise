@@ -39,6 +39,7 @@ ALL_GATES = [
     "G_CHAOS",
     "G_HARNESS_COMPAT",
     "G_ARQUITETURA",
+    "G_INJECT",
 ]
 
 GATE_SCRIPTS = {
@@ -51,6 +52,7 @@ GATE_SCRIPTS = {
     "G_CHAOS": "G_CHAOS.py",
     "G_HARNESS_COMPAT": "G_HARNESS_COMPAT.py",
     "G_ARQUITETURA": "G_ARQUITETURA.py",
+    "G_INJECT": "G_INJECT.py",
 }
 
 

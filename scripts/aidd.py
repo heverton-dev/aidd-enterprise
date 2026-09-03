@@ -24,6 +24,7 @@ import time
 import datetime
 import platform
 import re
+import unicodedata
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -796,13 +797,151 @@ def cmd_apply(args):
     compose_suite(target_dir, suite_name, modulos)
 
 
+def _default_component_content(tipo: str, nome: str, descricao: str) -> str:
+    """Gera um conteúdo padrão em PT-BR quando o usuário não fornece --content-file."""
+    titulo = nome.replace("-", " ").title()
+    descricao = descricao or ""
+    if tipo == "skill":
+        return (
+            "---\n"
+            f"name: {nome}\n"
+            f"description: {descricao or f'Skill {nome}.'}\n"
+            "commands:\n"
+            f'  - "/{nome}"\n'
+            "---\n\n"
+            f"# {titulo}\n\n"
+            f"{descricao or 'Descreva aqui o objetivo desta skill.'}\n\n"
+            "## Uso\n\nDetalhe aqui o comportamento esperado ao ativar esta skill.\n"
+        )
+    if tipo == "rule":
+        return f"# Regra: {titulo}\n\n{descricao or 'Descreva aqui a regra determinística.'}\n"
+    if tipo == "spec":
+        return f"# Especificação: {titulo}\n\n**Status:** RASCUNHO\n\n{descricao or 'Descreva aqui os requisitos técnicos.'}\n"
+    if tipo == "agent":
+        return f"# Agente: {titulo}\n\n## Missão\n\n{descricao or 'Descreva aqui a missão deste subagente.'}\n\n## Diretrizes\n\n- \n"
+    if tipo == "hook":
+        return json.dumps({"name": nome, "description": descricao, "trigger": "manual"}, indent=2, ensure_ascii=False)
+    return descricao
+
+
+def run_inject(tipo, nome, base_dir=".", descricao="", content=None, content_file=None,
+                command=None, mcp_args=None, mcp_env=None, files_json=None, dry_run=False):
+    """Motor compartilhado de injeção — usado pelo comando CLI 'inject' e pelo IntentRouter PT-BR."""
+    scripts_dir = os.path.dirname(os.path.abspath(__file__))
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    from injector import aidd_core_injector as injector_core
+
+    component = {"type": tipo, "name": nome, "description": descricao}
+
+    if tipo in ("skill", "rule", "spec", "agent", "hook"):
+        if content_file:
+            with open(content_file, "r", encoding="utf-8") as f:
+                component["content"] = f.read()
+        elif content:
+            component["content"] = content
+        else:
+            component["content"] = _default_component_content(tipo, nome, descricao)
+    elif tipo == "mcp":
+        if not command:
+            print("[ERRO] type 'mcp' exige --command (ex: --command python).")
+            sys.exit(1)
+        component["mcp"] = {"command": command, "args": mcp_args or [], "env": mcp_env or {}}
+    elif tipo == "config":
+        if not files_json:
+            print("[ERRO] type 'config' exige --files-json apontando para um JSON {caminho: conteudo}.")
+            sys.exit(1)
+        with open(files_json, "r", encoding="utf-8") as f:
+            component["files"] = json.load(f)
+
+    resultado = injector_core.materialize(component, base_dir=base_dir, dry_run=dry_run)
+
+    print("=" * 80)
+    if dry_run:
+        print(f"🔍 [INJECTOR - DRY RUN] Simulação de injeção: {tipo} '{nome}'")
+    else:
+        print(f"🧩 [INJECTOR] Injeção de componente: {tipo} '{nome}'")
+    print("=" * 80)
+
+    if not resultado.sucesso:
+        print(f"[FAIL] ❌ {resultado.erro}")
+        for problema in (resultado.detalhes or {}).get("problemas", []):
+            print(f"  - {problema}")
+        sys.exit(1)
+
+    for caminho in resultado.valor:
+        print(f"  [+] {caminho}")
+    print(f"\n[OK] SUCESSO: {len(resultado.valor)} arquivo(s) {'simulados (dry-run)' if dry_run else 'materializados e sincronizados'}.")
+    return resultado
+
+
+def cmd_inject(args):
+    """Comando CLI 'inject' — injeta e sincroniza um componente em todos os harnesses."""
+    ensure_environment()
+    mcp_args = [a for a in (args.mcp_args.split(",") if args.mcp_args else []) if a]
+    mcp_env = {}
+    if args.mcp_env:
+        for par in args.mcp_env.split(","):
+            if "=" in par:
+                k, v = par.split("=", 1)
+                mcp_env[k.strip()] = v.strip()
+    run_inject(
+        args.tipo, args.nome, base_dir=args.dir, descricao=args.descricao,
+        content_file=args.content_file, command=args.mcp_command,
+        mcp_args=mcp_args, mcp_env=mcp_env, files_json=args.files_json,
+        dry_run=args.dry_run,
+    )
+
+
+def _slugify(texto: str) -> str:
+    """Converte texto livre em PT-BR para um slug ^[a-z][a-z0-9-]*$."""
+    texto = unicodedata.normalize("NFKD", texto.strip().lower()).encode("ascii", "ignore").decode("ascii")
+    texto = re.sub(r"[^a-z0-9]+", "-", texto).strip("-")
+    partes = [p for p in texto.split("-") if p][:4]
+    slug = "-".join(partes)
+    if not slug or not slug[0].isalpha():
+        slug = f"componente-{slug}" if slug else "componente"
+    return slug
+
+
+_INTENT_VERBOS = re.compile(
+    r"\b(adicion\w*|cri[ae]r?|criando|gera\w*|nov[ao]s?|quero|preciso|instala\w*)\b",
+    re.IGNORECASE,
+)
+
+_INTENT_KEYWORD_PATTERNS = [
+    ("skill", re.compile(r"\bskill\s+(?:de\s+|para\s+)?([a-zA-Z0-9À-ÿ][\w\-À-ÿ ]{1,60})", re.IGNORECASE)),
+    ("mcp", re.compile(r"\bmcp\s+(?:de\s+|para\s+)?([a-zA-Z0-9À-ÿ][\w\-À-ÿ ]{1,60})", re.IGNORECASE)),
+    ("rule", re.compile(r"\bregra\s+(?:de\s+|para\s+)?([a-zA-Z0-9À-ÿ][\w\-À-ÿ ]{1,60})", re.IGNORECASE)),
+    ("spec", re.compile(r"\b(?:especifica[cç][aã]o|spec)\s+(?:de\s+|para\s+)?([a-zA-Z0-9À-ÿ][\w\-À-ÿ ]{1,60})", re.IGNORECASE)),
+    ("config", re.compile(r"\bconfigura[cç][aã]o\s+(?:de\s+|para\s+)?([a-zA-Z0-9À-ÿ][\w\-À-ÿ ]{1,60})", re.IGNORECASE)),
+    ("hook", re.compile(r"\bhook\s+(?:de\s+|para\s+)?([a-zA-Z0-9À-ÿ][\w\-À-ÿ ]{1,60})", re.IGNORECASE)),
+    ("agent", re.compile(r"\b(?:agente|subagente)\s+(?:de\s+|para\s+)?([a-zA-Z0-9À-ÿ][\w\-À-ÿ ]{1,60})", re.IGNORECASE)),
+]
+
+
 def parse_natural_language_intent(prompt: str, base_dir: str = "."):
-    """Ponto de entrada por Linguagem Natural — Gera o Plano / SPEC (Fase 1.5)."""
+    """Ponto de entrada por Linguagem Natural.
+
+    Roteia para o Universal Component Injector (inject) quando o pedido
+    descreve claramente um componente (ex: "adicione uma skill de X",
+    "novo mcp de Y", "crie uma regra de Z"). Caso nenhum padrão de injeção
+    seja identificado, cai no fluxo padrão de Plano / SPEC (Fase 1.5).
+    """
+    if _INTENT_VERBOS.search(prompt):
+        for tipo, pattern in _INTENT_KEYWORD_PATTERNS:
+            m = pattern.search(prompt)
+            if m:
+                nome = _slugify(m.group(1))
+                print(f"[IntentRouter] Intenção detectada: inject '{tipo}' → '{nome}'")
+                run_inject(tipo, nome, base_dir=base_dir, descricao=prompt.strip())
+                return
+
     cmd_plan(prompt, base_dir=base_dir, auto_apply=False)
 
 
 def main():
-    known_cmds = {"setup", "init", "plan", "apply", "prompt", "compose", "compose-orca", "add-module", "test", "audit", "bench", "heal", "deploy", "status", "export-frontend", "refine-module", "scaffold-infra", "-h", "--help"}
+    known_cmds = {"setup", "init", "plan", "apply", "prompt", "compose", "compose-orca", "add-module", "test", "audit", "bench", "heal", "deploy", "status", "export-frontend", "refine-module", "scaffold-infra", "inject", "-h", "--help"}
     if len(sys.argv) > 1 and sys.argv[1] not in known_cmds:
         raw_prompt = " ".join(sys.argv[1:])
         parse_natural_language_intent(raw_prompt)
@@ -896,6 +1035,22 @@ def main():
     p_infra = subparsers.add_parser("scaffold-infra", help="Gera infraestrutura declarativa Terraform + Helm em infra/")
     p_infra.add_argument("--dir", default=".", help="Diretório do projeto")
 
+    # inject (Universal Component Injector)
+    p_inject = subparsers.add_parser(
+        "inject",
+        help="Injeta e sincroniza um componente (skill, mcp, rule, spec, config, hook, agent) em todos os harnesses",
+    )
+    p_inject.add_argument("tipo", choices=["skill", "mcp", "rule", "spec", "config", "hook", "agent"], help="Tipo do componente")
+    p_inject.add_argument("nome", help="Nome/slug do componente (ex: minha-skill)")
+    p_inject.add_argument("--descricao", "-d", default="", help="Descrição do componente")
+    p_inject.add_argument("--content-file", default=None, help="Arquivo com o conteúdo completo do componente")
+    p_inject.add_argument("--mcp-command", dest="mcp_command", default=None, help="[mcp] Comando executável do servidor MCP")
+    p_inject.add_argument("--mcp-args", default=None, help="[mcp] Argumentos separados por vírgula")
+    p_inject.add_argument("--mcp-env", default=None, help="[mcp] Variáveis de ambiente no formato CHAVE=valor,CHAVE2=valor2")
+    p_inject.add_argument("--files-json", default=None, help="[config] Caminho de um JSON {caminho: conteudo}")
+    p_inject.add_argument("--dry-run", action="store_true", help="Simula a injeção sem escrever no filesystem")
+    p_inject.add_argument("--dir", default=".", help="Diretório do projeto")
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
@@ -918,7 +1073,8 @@ def main():
         "status": cmd_status,
         "export-frontend": cmd_export_frontend,
         "refine-module": cmd_refine_module,
-        "scaffold-infra": cmd_scaffold_infra
+        "scaffold-infra": cmd_scaffold_infra,
+        "inject": cmd_inject
     }
     cmds[args.command](args)
 

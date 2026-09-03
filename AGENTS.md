@@ -51,6 +51,7 @@ Toda alteração de código ou criação de nova funcionalidade DEVE respeitar r
 | Adicionar uma fatia vertical | `python scripts/aidd.py add-module <nome>` |
 | Rodar testes unitários | `python -m pytest tests/` |
 | Validar todos os 10 Gates | `python scripts/run_all.py` |
+| Adicionar skill/mcp/regra/spec/config/hook/agente (auto-sincroniza `.claude/`, `.agent/`, `.mimocode/`, `.gemini/`, `.skills/`) | `python scripts/aidd.py inject <tipo> <nome>` |
 | Exportar histórico da sessão | Executar a skill `/resumo-sessao` |
 
 ---

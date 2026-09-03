@@ -4,7 +4,7 @@
 =============================================================================
 AIDD v5.1 Enterprise — GATE DETERMINÍSTICO DE SEGURANÇA E AUDITORIA MILITAR (G_SEGURANCA)
 =============================================================================
-Executa a bateria completa de 7 camadas de testes de cibersegurança e compliance:
+Executa a bateria completa de 8 camadas de testes de cibersegurança e compliance:
 1. Auditoria de Headers OWASP e Hardening HTTP
 2. Teste de Criptografia JWT HS256 e Resistência a Timing Attacks
 3. Varredura Estática contra SQL Injection em 100% dos arquivos
@@ -12,6 +12,7 @@ Executa a bateria completa de 7 camadas de testes de cibersegurança e complianc
 5. Auditoria de Configuração do Nginx (Rate Limiting, SSL/TLS, Anti-DDoS)
 6. Auditoria de Container Docker e Princípio do Menor Privilégio (Non-Root)
 7. Auditoria de Persistência Concorrente SQLite WAL e Logs de Auditoria
+8. CVE Dependency Audit via pip-audit (requirements.txt)
 """
 
 import os
@@ -22,6 +23,8 @@ import json
 import hmac
 import hashlib
 import argparse
+import subprocess
+import subprocess
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -298,6 +301,84 @@ class SecurityGate:
                 self.log("FAIL", "Camada 7: API Compliance", "OpenAPI 3.1 Security Schemes", "bearerAuth ausente em components.securitySchemes")
         except Exception as e:
             self.log("FAIL", "Camada 7: API Compliance", "Auditoria OpenAPI", str(e))
+
+        # ---------------------------------------------------------
+        # CAMADA 8: CVE DEPENDENCY AUDIT (pip-audit)
+        # ---------------------------------------------------------
+        req_path = os.path.join(self.root, "requirements.txt")
+        if not os.path.exists(req_path):
+            self.log("WARN", "Camada 8: CVE Dependency Audit", "Arquivo requirements.txt", "Não localizado na raiz do projeto — auditoria de dependências ignorada")
+        else:
+            # Garante que pip-audit está instalado
+            try:
+                subprocess.run(
+                    [sys.executable, "-m", "pip_audit", "--version"],
+                    capture_output=True, check=True
+                )
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                try:
+                    subprocess.run(
+                        [sys.executable, "-m", "pip", "install", "pip-audit", "-q"],
+                        capture_output=True, check=True
+                    )
+                except Exception as e:
+                    self.log("WARN", "Camada 8: CVE Dependency Audit", "Instalação do pip-audit", f"Falha ao instalar pip-audit: {e}")
+                    req_path = None  # sinaliza para pular auditoria
+
+            if req_path and os.path.exists(req_path):
+                try:
+                    result = subprocess.run(
+                        [sys.executable, "-m", "pip_audit", "--format=json", "-r", req_path],
+                        capture_output=True, text=True, timeout=120, cwd=self.root
+                    )
+                    audit_output = result.stdout.strip()
+                    if not audit_output:
+                        self.log("WARN", "Camada 8: CVE Dependency Audit", "Saída do pip-audit", "Saída vazia — nenhuma dependência analisada")
+                    else:
+                        try:
+                            audit_data = json.loads(audit_output)
+                        except json.JSONDecodeError:
+                            self.log("WARN", "Camada 8: CVE Dependency Audit", "Parse do pip-audit", "Saída JSON inválida")
+                            audit_data = None
+
+                        if audit_data is not None:
+                            # pip-audit JSON format: list of {"name", "version", "vulns": [...]}
+                            # or dict with "dependencies" key
+                            dependencies_list = audit_data.get("dependencies", []) if isinstance(audit_data, dict) else audit_data
+                            high_critical_found = []
+                            if isinstance(dependencies_list, list):
+                                for dep in dependencies_list:
+                                    if not isinstance(dep, dict):
+                                        continue
+                                    pkg_name = dep.get("name", "unknown")
+                                    pkg_version = dep.get("version", "unknown")
+                                    for vuln in dep.get("vulns", []):
+                                        vuln_id = vuln.get("id", "N/A")
+                                        vuln_desc = vuln.get("description", "")
+                                        # pip-audit may not always provide severity; check for it
+                                        severity = vuln.get("severity", "").lower()
+                                        # Also infer severity from CVE ID or GHSA description keywords
+                                        is_high_critical = (
+                                            severity in ("high", "critical")
+                                            or "critical" in vuln_desc.lower()
+                                            or "high" in vuln_desc.lower()
+                                        )
+                                        if is_high_critical:
+                                            high_critical_found.append((pkg_name, pkg_version, vuln_id, severity or "high/critical"))
+
+                            if high_critical_found:
+                                for pkg, ver, cve_id, sev in high_critical_found:
+                                    self.log("FAIL", "Camada 8: CVE Dependency Audit",
+                                             f"Vulnerabilidade em {pkg}=={ver}",
+                                             f"{cve_id} (severity: {sev})")
+                            else:
+                                self.log("PASS", "Camada 8: CVE Dependency Audit",
+                                         "Auditoria CVE de Dependências",
+                                         "Nenhuma vulnerabilidade HIGH/CRITICAL encontrada em requirements.txt")
+                except subprocess.TimeoutExpired:
+                    self.log("WARN", "Camada 8: CVE Dependency Audit", "Timeout do pip-audit", "Execução excedeu 120 segundos")
+                except Exception as e:
+                    self.log("WARN", "Camada 8: CVE Dependency Audit", "Execução do pip-audit", f"Erro inesperado: {e}")
 
         # ---------------------------------------------------------
         # RELATÓRIO FINAL DO TESTE DE FOGO

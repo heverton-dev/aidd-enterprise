@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-AIDD v4.1 Enterprise — GATE DETERMINÍSTICO DE SEGURANÇA E AUDITORIA MILITAR (G_SEGURANCA)
+AIDD v5.1 Enterprise — GATE DETERMINÍSTICO DE SEGURANÇA E AUDITORIA MILITAR (G_SEGURANCA)
 =============================================================================
 Executa a bateria completa de 7 camadas de testes de cibersegurança e compliance:
 1. Auditoria de Headers OWASP e Hardening HTTP
@@ -53,7 +53,7 @@ class SecurityGate:
 
     def run_all_checks(self):
         print("=" * 80)
-        print("🛡️  AIDD v4.1 — INICIANDO TESTE DE FOGO DE CIBERSEGURANÇA & AUDITORIA")
+        print("🛡️  AIDD v5.1 — INICIANDO TESTE DE FOGO DE CIBERSEGURANÇA & AUDITORIA")
         print(f"📁 Diretório Alvo: {self.root}")
         print("=" * 80)
 
@@ -83,7 +83,11 @@ class SecurityGate:
                     self.log("FAIL", "Camada 1: OWASP", f"Header '{h}'", f"Esperado conter '{expected}', obtido: '{headers.get(h)}'")
 
             if "Content-Security-Policy" in headers:
-                self.log("PASS", "Camada 1: OWASP", "Content-Security-Policy (CSP)", "Configurado e restritivo")
+                csp_val = headers["Content-Security-Policy"]
+                if "'unsafe-eval'" in csp_val:
+                    self.log("FAIL", "Camada 1: OWASP", "Content-Security-Policy (CSP)", "VULNERABILIDADE: 'unsafe-eval' presente no CSP")
+                else:
+                    self.log("PASS", "Camada 1: OWASP", "Content-Security-Policy (CSP)", "Configurado e restritivo (sem unsafe-eval)")
             else:
                 self.log("FAIL", "Camada 1: OWASP", "Content-Security-Policy (CSP)", "Não encontrado")
 
@@ -125,6 +129,25 @@ class SecurityGate:
 
         except Exception as e:
             self.log("FAIL", "Camada 2: JWT Auth", "Execução de testes JWT", str(e))
+
+        # ---------------------------------------------------------
+        # CAMADA 2.5: VARREDURA POR BACKDOORS DE DESENVOLVIMENTO
+        # ---------------------------------------------------------
+        backdoor_vulns = []
+        if os.path.exists(self.src_dir):
+            for root, _, files in os.walk(self.src_dir):
+                for f in files:
+                    if f.endswith(".py"):
+                        fpath = os.path.join(root, f)
+                        with open(fpath, "r", encoding="utf-8", errors="ignore") as fp:
+                            for idx, line in enumerate(fp, 1):
+                                if "ALLOW_ANONYMOUS" in line and "dev_guest" in line:
+                                    backdoor_vulns.append((fpath, idx, line.strip()))
+        if not backdoor_vulns:
+            self.log("PASS", "Camada 2.5: Auth Integrity", "Varredura Anti-Backdoor (Zero Bypass)", "Nenhum bypass de desenvolvimento detectado")
+        else:
+            for bf, ln, code in backdoor_vulns:
+                self.log("FAIL", "Camada 2.5: Auth Integrity", f"Backdoor detectado em {os.path.basename(bf)}:{ln}", code)
 
         # ---------------------------------------------------------
         # CAMADA 3: VARREDURA ESTÁTICA CONTRA SQL INJECTION
@@ -226,8 +249,23 @@ class SecurityGate:
         if os.path.exists(db_py_path):
             with open(db_py_path, "r", encoding="utf-8") as f:
                 db_content = f.read()
-            if "_audit_log" in db_content and "curr_hash" in db_content:
-                self.log("PASS", "Camada 6: SQLite Safety", "WORM Audit Hash Chain", "Tabela _audit_log e curr_hash implementados com sucesso")
+            # Validação da tabela e do encadeamento ativo nos módulos
+            modules_dir = os.path.join(self.src_dir, "modules")
+            audit_active_count = 0
+            total_modules = 0
+            if os.path.exists(modules_dir):
+                for m_dir in os.listdir(modules_dir):
+                    srv_f = os.path.join(modules_dir, m_dir, "services.py")
+                    if os.path.isfile(srv_f):
+                        total_modules += 1
+                        with open(srv_f, "r", encoding="utf-8", errors="ignore") as fp:
+                            if "append_audit_log" in fp.read():
+                                audit_active_count += 1
+
+            if "_audit_log" in db_content and "curr_hash" in db_content and (total_modules == 0 or audit_active_count == total_modules):
+                self.log("PASS", "Camada 6: SQLite Safety", "WORM Audit Hash Chain", f"Tabela _audit_log ativa com {audit_active_count}/{total_modules} módulos auditados")
+            elif "_audit_log" in db_content and "curr_hash" in db_content:
+                self.log("FAIL", "Camada 6: SQLite Safety", "WORM Audit Hash Chain", f"Tabela existe mas apenas {audit_active_count}/{total_modules} módulos chamam append_audit_log")
             else:
                 self.log("FAIL", "Camada 6: SQLite Safety", "WORM Audit Hash Chain", "Pilar de auditoria WORM ausente no database.py")
         else:
@@ -267,7 +305,7 @@ class SecurityGate:
         print("\n" + "=" * 80)
         total = self.passed + self.failed + self.warnings
         score = (self.passed / total) * 100 if total > 0 else 0
-        print(f"📊 RESULTADO FINAL DO GATE DE SEGURANÇA AIDD v4.1:")
+        print(f"📊 RESULTADO FINAL DO GATE DE SEGURANÇA AIDD v5.1:")
         print(f"   - Testes Executados: {total}")
         print(f"   - Aprovados (PASS):  {self.passed}")
         print(f"   - Falhas (FAIL):     {self.failed}")

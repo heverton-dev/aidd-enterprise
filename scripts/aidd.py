@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-AIDD v4.1 Enterprise CLI — Dividir para Conquistar (aidd.py)
+AIDD v5.1 Enterprise CLI — Dividir para Conquistar (aidd.py)
 =============================================================================
 CLI oficial de automação agêntica e execução de gates determinísticos.
 Suporta:
@@ -85,7 +85,7 @@ def cmd_setup(args):
         print("  [+] ORCA ADE: Não instalado ➔ Modo B (Subagentes Nativos / Git Worktrees)")
 
     print("=" * 80)
-    print("🏆 [SUCESSO]: Ambiente 100% pronto para compor e executar projetos AIDD v4.1!")
+    print("🏆 [SUCESSO]: Ambiente 100% pronto para compor e executar projetos AIDD v5.1!")
     print("=" * 80)
 
 
@@ -169,7 +169,7 @@ def cmd_test(args):
     target_dir = os.path.abspath(getattr(args, "dir", "."))
     tipo = getattr(args, "tipo", "unit") or "unit"
     print("=" * 80)
-    print(f"🧪 [AIDD v4.1 TEST] Executando testes: '{tipo}' em {target_dir}")
+    print(f"🧪 [AIDD v5.1 TEST] Executando testes: '{tipo}' em {target_dir}")
     print("=" * 80)
 
     src_path = os.path.join(target_dir, "src")
@@ -212,7 +212,7 @@ def cmd_test(args):
 def cmd_audit(args):
     target_dir = os.path.abspath(getattr(args, "dir", "."))
     print("=" * 80)
-    print(f"🛡️  [AIDD v4.1 ENTERPRISE AUDIT] Bateria Completa de Gates Determinísticos")
+    print(f"🛡️  [AIDD v5.1 ENTERPRISE AUDIT] Bateria Completa de Gates Determinísticos")
     print(f"📁 Diretório Alvo: {target_dir}")
     print("=" * 80)
 
@@ -243,7 +243,7 @@ def cmd_audit(args):
             "target_dir": target_dir,
             "python_version": platform.python_version(),
             "sistema_operacional": platform.platform(),
-            "framework": "AIDD Master Pack v4.1 Enterprise Anti-Fail"
+            "framework": "AIDD Master Pack v5.1 Enterprise Anti-Fail"
         },
         "gates": [],
         "resumo": {
@@ -317,7 +317,7 @@ def cmd_audit(args):
         print(f"\n📄 [FACTUAL REPORT] Relatório salvo com sucesso em: {rep_file}")
 
     print("\n" + "=" * 80)
-    print(f"📊 PAINEL CONSOLIDADO DE AUDITORIA AIDD v4.1:")
+    print(f"📊 PAINEL CONSOLIDADO DE AUDITORIA AIDD v5.1:")
     print(f"   - Total de Gates:     {relatorio['resumo']['total']}")
     print(f"   - Aprovados (PASS):   {relatorio['resumo']['aprovados']}")
     print(f"   - Falhas (FAIL):      {relatorio['resumo']['falhas']}")
@@ -329,7 +329,7 @@ def cmd_audit(args):
         print("❌ [BLOQUEADO]: O projeto NÃO passou em todos os gates determinísticos.")
         sys.exit(1)
 
-    print("🏆 [HOMOLOGAÇÃO APROVADA]: Projeto 100% aderente às Regras Anti-Fail AIDD v4.1!")
+    print("🏆 [HOMOLOGAÇÃO APROVADA]: Projeto 100% aderente às Regras Anti-Fail AIDD v5.1!")
     sys.exit(0)
 
 
@@ -338,7 +338,8 @@ def cmd_bench(args):
     ensure_environment()
     target_dir = os.path.abspath(getattr(args, "dir", "."))
     print("=" * 80)
-    print(f"⚡ [AIDD BENCHMARK v4.1] Teste de Carga e Concorrência Local")
+    print(f"⚡ [AIDD BENCHMARK v5.1] Teste de Concorrência SQLite WAL (Local / In-Process)")
+    print("   ℹ️  Medição direta do throughput SQLite WAL (sem overhead de stack HTTP).")
     print(f"📁 Diretório Alvo: {target_dir}")
     print("=" * 80)
 
@@ -421,7 +422,7 @@ def cmd_heal(args):
     ensure_environment()
     target_dir = os.path.abspath(getattr(args, "dir", "."))
     print("=" * 80)
-    print(f"🩺 [AIDD SELF-HEALING v4.1] Auto-Remediação de Artefatos")
+    print(f"🩺 [AIDD SELF-HEALING v5.1] Auto-Remediação de Artefatos")
     print(f"📁 Diretório Alvo: {target_dir}")
     print("=" * 80)
 
@@ -691,7 +692,7 @@ def main():
         parse_natural_language_intent(raw_prompt)
         return
 
-    parser = argparse.ArgumentParser(description="AIDD Framework CLI — Dividir para Conquistar (v4.1 Enterprise)")
+    parser = argparse.ArgumentParser(description="AIDD Framework CLI — Dividir para Conquistar (v5.1 Enterprise)")
     subparsers = parser.add_subparsers(dest="command", help="Comando a executar")
 
     # plan (Fase 1.5 - Especificação e Planejamento)

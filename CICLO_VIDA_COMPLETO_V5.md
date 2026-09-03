@@ -5,7 +5,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
 │ FASE 0: ACESSO E INSTALAÇÃO NO AMBIENTE DO USUÁRIO                                  │
-│ 1. Obtenção do Pacote: git clone heverton-dev/aidd-master-pack (branch main/v5.0.0) │
+│ 1. Obtenção do Pacote: git clone heverton-dev/aidd-master-pack (branch v5.1.0) │
 │ 2. Bootstrap Automático: pip install -r requirements.txt (behave, psycopg2, pyjwt)  │
 │ 3. Verificação de Saúde: detecção de modo (SQLite local vs. PostgreSQL remoto)      │
 │    $ python scripts/aidd.py setup                                                   │

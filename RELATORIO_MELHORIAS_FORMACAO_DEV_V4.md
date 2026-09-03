@@ -1,15 +1,15 @@
-# Relatório de Extração de Melhorias: Formação.DEV (Leonardo Leitão) para o AIDD v4.1
+# Relatório de Extração de Melhorias: Formação.DEV (Leonardo Leitão) para o AIDD v5.1
 
 > **Origem:** Transcrições e livros da Formação IA / Trilha AI-Driven Development (`escola.formacao.dev`).  
 > **Volume Analisado:** 14 cursos completos (+390 mil palavras transcritas).  
 > **Escopo:** Análise arquitetural e agêntica dos cursos de *Arquitetura com IA*, *Engenharia Agêntica*, *Agentes & Skills*, *Ferramentas Agênticas*, *Design Admin Template*, *Fundamentos Cursor*, *Dev para Negócios* e *Projetos Práticos (Financeiro, Banco de Ideias, Instagram)*.  
-> **Objetivo:** Mapear todas as oportunidades estratégicas para elevar o **AIDD Master Pack v4.1** ao estado da arte em Clean Architecture, DDD, SDD (Spec-Driven Development), UI Enterprise e Orquestração Multi-Agente.
+> **Objetivo:** Mapear todas as oportunidades estratégicas para elevar o **AIDD Master Pack v5.1** ao estado da arte em Clean Architecture, DDD, SDD (Spec-Driven Development), UI Enterprise e Orquestração Multi-Agente.
 
 ---
 
 ## Sumário Executivo das 12 Oportunidades Mapeadas
 
-A análise integral do corpus de conhecimento da Formação.DEV revelou **12 oportunidades de alto valor** para o AIDD v4.1:
+A análise integral do corpus de conhecimento da Formação.DEV revelou **12 oportunidades de alto valor** para o AIDD v5.1:
 
 | # | Oportunidade Estratégica | Origem no Curso | Dimensão Arquitetural |
 | :---: | :--- | :--- | :--- |
@@ -143,4 +143,4 @@ A análise integral do corpus de conhecimento da Formação.DEV revelou **12 opo
 | **11. Fila de Jobs Assíncronos** | Média | Alto | Neutro (zero HTTP timeouts) |
 | **12. Cards de KPIs & Métricas** | Baixa | Alto | Neutro (visibilidade executiva) |
 
-*Documento salvo e homologado para referência e evolução contínua do AIDD Master Pack v4.1.*
+*Documento salvo e homologado para referência e evolução contínua do AIDD Master Pack v5.1.*

@@ -7,7 +7,8 @@ PADROES_CONHECIDOS = [
     r'sk-[a-zA-Z0-9]{20,}',
     r'AIza[0-9A-Za-z-_]{35}',
     r'ghp_[a-zA-Z0-9]{36}',
-    r'xox[baprs]-[0-9a-zA-Z]{10,48}'
+    r'xox[baprs]-[0-9a-zA-Z]{10,48}',
+    r'aidd_enterprise_master_jwt_secret_key'
 ]
 
 def calcular_entropia_shannon(texto: str) -> float:
@@ -30,6 +31,8 @@ def verificar():
         if any(ignored in root for ignored in ['.git', 'node_modules', '.venv', '__pycache__', '.pytest_cache']):
             continue
         for f in files:
+            if f == 'G_SEGREDOS.py':
+                continue
             if f.endswith(('.py', '.js', '.json', '.md', '.env.example', '.yml', '.yaml')):
                 path = os.path.join(root, f)
                 try:

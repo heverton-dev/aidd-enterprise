@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-AIDD v4.1 Enterprise — Cross-Project Enterprise Suite Composition Engine
+AIDD v5.1 Enterprise — Cross-Project Enterprise Suite Composition Engine
 =============================================================================
 Compõe suítes empresariais e monólitos modulares completos com:
 - Shared Kernel (Database SQLite WAL, EventBus, RouteRegistry, WebhookDispatcher, SecurityService, MCPServer)
@@ -34,9 +34,11 @@ def generate_modular_server_code(suite_name: str, module_slugs: list, db_engine:
     """Gera o código-fonte do servidor dinâmico server.py que carrega todos os módulos."""
     imports_lines = []
     init_schema_calls = []
+    rls_init_calls = []
     service_inits = []
     routes_regs = []
     mcp_tool_regs = []
+    webhook_event_regs = []
 
     for mod in module_slugs:
         slug = slugify(mod)
@@ -46,6 +48,7 @@ def generate_modular_server_code(suite_name: str, module_slugs: list, db_engine:
         imports_lines.append(f"from modules.{slug}.routes import registrar_rotas as reg_{slug}_routes")
 
         init_schema_calls.append(f"    init_{slug}_schema(conn)")
+        rls_init_calls.append(f"    enable_rls_tenant(conn, '{slug}')")
         service_inits.append(f"service_{slug} = {pascal}Service(db, events)")
         # NOTA: RouteRegistry agora é um Singleton (ver templates/v2/openapi.py) —
         # o registry local de cada módulo já É o mesmo objeto do servidor, então
@@ -54,17 +57,20 @@ def generate_modular_server_code(suite_name: str, module_slugs: list, db_engine:
         # em RouteRegistry.mount() ao iterar e appendar em self.endpoints).
         routes_regs.append(f"reg_{slug}_routes(service_{slug})")
         mcp_tool_regs.append(f"mcp_server.register_module_tools('{slug}', '{pascal}')")
+        webhook_event_regs.append(f"webhook_dispatcher.register_module_events('{slug}', '{pascal}')")
 
     imports_str = "\n".join(imports_lines)
     init_schemas_str = "\n".join(init_schema_calls)
+    rls_init_str = "\n".join(rls_init_calls)
     service_inits_str = "\n".join(service_inits)
     routes_regs_str = "\n".join(routes_regs)
     mcp_tool_regs_str = "\n".join(mcp_tool_regs)
+    webhook_event_regs_str = "\n".join(webhook_event_regs)
 
     template = """# -*- coding: utf-8 -*-
 \"\"\"
 =============================================================================
-__SUITE_NAME__ — Servidor Monolítico Modular (AIDD v4.1 Enterprise)
+__SUITE_NAME__ — Servidor Monolítico Modular (AIDD v5.1 Enterprise)
 =============================================================================
 Inicializa o Shared Kernel, orquestra fatias verticais, registra rotas OpenAPI 3.1,
 servidor Webhook Studio, servidor nativo MCP e serve a aplicação Web Super-App.
@@ -88,7 +94,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 if CURRENT_DIR not in sys.path:
     sys.path.insert(0, CURRENT_DIR)
 
-from core.database import Database
+from core.database import Database, enable_rls_tenant, set_tenant
 from core.events import EventBus
 from core.outbox_worker import OutboxWorker
 from core.jobs import JobQueue
@@ -97,6 +103,18 @@ from core.webhooks import WebhookDispatcher
 from core.security import SecurityService, JWTService, OIDCService
 from core.mcp_server import MCPServer
 from core.metrics import MetricsRegistry, RequestInstrumentation
+from core.circuit_breaker import CircuitBreaker, CircuitState
+from core.logs import get_logger, correlation_id_var
+
+# Inicialização do Logger Universal
+logger = get_logger("__SUITE_NAME__")
+
+# Registro de Circuit Breakers (Serviços Externos)
+circuit_breakers = {
+    "webhooks": CircuitBreaker("webhooks", failure_threshold=5, timeout=60),
+    "sso": CircuitBreaker("sso", failure_threshold=3, timeout=30),
+    "mcp": CircuitBreaker("mcp", failure_threshold=5, timeout=60)
+}
 
 # Módulos / Fatias Verticais
 __IMPORTS__
@@ -106,6 +124,8 @@ STATIC_DIR = os.path.join(CURRENT_DIR, "static")
 __DB_INIT__
 
 db = Database(__DB_URL_EXPR__)
+from core.token_revocation import TokenRevocationList
+TokenRevocationList.configure(db)
 events = EventBus()
 webhook_dispatcher = WebhookDispatcher(db)
 registry = RouteRegistry()
@@ -132,6 +152,10 @@ _oidc_pending_states = {}
 with db.get_connection() as conn:
 __INIT_SCHEMAS__
 
+# 1.2 Habilitar Row Level Security (RLS) para cada módulo
+with db.get_connection() as conn:
+__RLS_INIT__
+
 # 1.5 Workers de background (Outbox e Jobs) só iniciam DEPOIS do schema pronto
 outbox_worker = OutboxWorker(db, events)
 outbox_worker.start()
@@ -145,6 +169,9 @@ __ROUTES_REGS__
 
 # 4. Registrar Ferramentas MCP para cada Módulo
 __MCP_TOOL_REGS__
+
+# 4.5 Registrar Catálogo de Eventos Webhook para cada Módulo
+__WEBHOOK_EVENT_REGS__
 
 # 5. Rota de Autenticação JWT
 @registry.post(
@@ -164,8 +191,9 @@ __MCP_TOOL_REGS__
 )
 def post_login(data):
     email = data.get("email", "admin@empresa.com")
-    token = JWTService.encode({"sub": email, "role": "admin", "name": "Administrador Suite"})
-    payload = {"email": email, "role": "admin"}
+    tenant_id = data.get("tenant_id", "default")
+    token = JWTService.encode({"sub": email, "role": "admin", "name": "Administrador Suite", "tenant_id": tenant_id})
+    payload = {"email": email, "role": "admin", "tenant_id": tenant_id}
     events.emit("usuario_autenticado", payload)
     webhook_dispatcher.disparar("auth.login_sucesso", payload)
     return {
@@ -173,7 +201,7 @@ def post_login(data):
         "token": token,
         "tipo": "Bearer",
         "expira_em": 86400,
-        "usuario": {"email": email, "role": "admin", "nome": "Administrador Suite"}
+        "usuario": {"email": email, "role": "admin", "nome": "Administrador Suite", "tenant_id": tenant_id}
     }
 
 @registry.get(
@@ -324,11 +352,43 @@ def post_jobs_reprocessar(data):
     return job_queue.reprocessar(job_id)
 
 
-# 7. Handler HTTP com OWASP Security Headers + Instrumentação Prometheus
+# 7.5 Rota de Circuit Breakers (Resiliência)
+@registry.get(
+    "/api/circuit-breakers",
+    summary="Listar Circuit Breakers",
+    tags=["8. Resiliência & Estabilidade"],
+    description="Retorna o status dos Circuit Breakers Nativos protetores de serviços externos.",
+    responses={"200": {"description": "Lista de Circuit Breakers"}}
+)
+def get_circuit_breakers(params):
+    return [
+        {
+            "name": cb.name,
+            "state": cb.state.value,
+            "failures": cb._failures,
+            "threshold": cb.failure_threshold
+        }
+        for cb in circuit_breakers.values()
+    ]
+
+
+# 7. Handler HTTP com OWASP Security Headers + Instrumentação Prometheus + RLS Tenant Context
 class AppHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         self._last_status_code = 200
         super().__init__(*args, directory=STATIC_DIR, **kwargs)
+
+    def _set_rls_tenant_context(self):
+        """Extrai tenant_id do JWT (header Authorization) e configura o contexto
+        RLS para isolamento multi-tenant automático em todas as queries."""
+        from core.database import _RLS_TENANT_CONTEXT
+        auth = self.headers.get('Authorization', '')
+        if auth:
+            ok, payload, _ = JWTService.decode(auth)
+            if ok and payload and payload.get('tenant_id'):
+                _RLS_TENANT_CONTEXT.tenant_id = payload['tenant_id']
+                return
+        _RLS_TENANT_CONTEXT.tenant_id = None
 
     def send_response(self, code, message=None):
         self._last_status_code = code
@@ -350,18 +410,34 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         t0 = time.time()
         path_only = self.path.split("?")[0]
+        corr_id = self.headers.get('X-Correlation-ID', uuid.uuid4().hex)
+        correlation_id_var.set(corr_id)
+        self._set_rls_tenant_context()
+        logger.info(f"Iniciando requisição GET para {path_only}")
         try:
             self._handle_get()
+        except Exception as e:
+            logger.error(f"Exceção não tratada em GET {path_only}: {e}", exc_info=True)
+            raise
         finally:
             instrumentation.track_request("GET", path_only, self._last_status_code, time.time() - t0)
+            logger.info(f"Finalizando requisição GET para {path_only} com status {self._last_status_code}")
 
     def do_POST(self):
         t0 = time.time()
         path_only = self.path.split("?")[0]
+        corr_id = self.headers.get('X-Correlation-ID', uuid.uuid4().hex)
+        correlation_id_var.set(corr_id)
+        self._set_rls_tenant_context()
+        logger.info(f"Iniciando requisição POST para {path_only}")
         try:
             self._handle_post()
+        except Exception as e:
+            logger.error(f"Exceção não tratada em POST {path_only}: {e}", exc_info=True)
+            raise
         finally:
             instrumentation.track_request("POST", path_only, self._last_status_code, time.time() - t0)
+            logger.info(f"Finalizando requisição POST para {path_only} com status {self._last_status_code}")
 
     def _handle_get(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -491,13 +567,18 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
-            res = webhook_dispatcher.testar_disparo(
-                url=body_data.get("url", ""),
-                secret=body_data.get("secret", ""),
-                evento=body_data.get("evento", "*"),
-                payload=body_data.get("payload", {})
-            )
-            self.wfile.write(json.dumps(res, ensure_ascii=False).encode("utf-8"))
+            cb = circuit_breakers["webhooks"]
+            try:
+                res = cb.call(
+                    webhook_dispatcher.testar_disparo,
+                    url=body_data.get("url", ""),
+                    secret=body_data.get("secret", ""),
+                    evento=body_data.get("evento", "*"),
+                    payload=body_data.get("payload", {})
+                )
+                self.wfile.write(json.dumps(res, ensure_ascii=False).encode("utf-8"))
+            except Exception as e:
+                self.wfile.write(json.dumps({"sucesso": False, "erro": str(e), "circuit_breaker": cb.state.value}).encode("utf-8"))
             return
 
         if path in registry.routes.get("POST", {}):
@@ -539,7 +620,7 @@ def run_server():
 
     with httpd:
         print("=" * 80)
-        print(f"🚀 __SUITE_NAME__ (AIDD v4.1 Enterprise)")
+        print(f"🚀 __SUITE_NAME__ (AIDD v5.1 Enterprise)")
         print(f"📡 Servidor Ativo:     http://localhost:{PORT}")
         print(f"📜 Swagger Studio:     http://localhost:{PORT}/docs")
         print(f"⚡ Webhook Studio:     http://localhost:{PORT}/webhooks")
@@ -574,9 +655,10 @@ if __name__ == "__main__":
         .replace("__SUITE_NAME__", suite_name)
         .replace("__IMPORTS__", imports_str)
         .replace("__INIT_SCHEMAS__", init_schemas_str)
+        .replace("__RLS_INIT__", rls_init_str)
         .replace("__SERVICE_INITS__", service_inits_str)
         .replace("__ROUTES_REGS__", routes_regs_str)
-        .replace("__MCP_TOOL_REGS__", mcp_tool_regs_str)
+        .replace("__MCP_TOOL_REGS__", mcp_tool_regs_str).replace("__WEBHOOK_EVENT_REGS__", webhook_event_regs_str)
         .replace("__DB_INIT__", db_init_str)
         .replace("__DB_URL_EXPR__", db_url_expr_str)
     )
@@ -1090,7 +1172,7 @@ def generate_superapp_index_html(suite_name: str, module_slugs: list) -> str:
     <header class="topbar">
         <div class="topbar-brand">
             <span>__SUITE_NAME__</span>
-            <span class="badge-ver">v4.1 Enterprise</span>
+            <span class="badge-ver">v5.1 Enterprise</span>
         </div>
         <div class="topbar-links">
             <a href="/docs" target="_blank" class="topbar-link">Swagger Studio</a>
@@ -1244,6 +1326,81 @@ __INITIAL_LOADS__
     )
 
 
+
+def generate_documentation_html(suite_name: str, module_slugs: list, src_dir: str, html_template: str) -> str:
+    import ast
+    sidebar_links = []
+    module_docs = []
+    spotlight_commands = []
+    
+    spotlight_commands.extend([
+        "{ id: 'nav-app', cat: 'Navegação', title: 'Super-App Clínico (Home)', desc: 'Dashboard', iconType: 'app', action: () => { window.location.href = '/'; } }",
+        "{ id: 'nav-docs', cat: 'Navegação', title: 'Swagger Studio', desc: 'API Docs', iconType: 'docs', action: () => { window.location.href = '/docs'; } }"
+    ])
+
+    for i, mod in enumerate(module_slugs):
+        cap_num = i + 1
+        pascal = mod.title().replace('_', '')
+        
+        sidebar_links.append(f'<a href="#cap{cap_num}" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800/80 hover:text-white transition">{cap_num}. Módulo {pascal}</a>')
+        spotlight_commands.append(f"{{ id: 'cap-{cap_num}', cat: 'Capítulos do Guia', title: 'Capítulo {cap_num}: {pascal}', desc: 'Documentação do módulo {pascal}', iconType: 'chapter', action: () => {{ window.location.hash = \'#cap{cap_num}\'; }} }}")
+        
+        mod_dir = os.path.join(src_dir, "modules", mod)
+        models_file = os.path.join(mod_dir, "models.py")
+        routes_file = os.path.join(mod_dir, "routes.py")
+        
+        models_info = []
+        routes_info = []
+        
+        try:
+            if os.path.isfile(models_file):
+                with open(models_file, "r", encoding="utf-8") as mf:
+                    tree = ast.parse(mf.read())
+                    for node in tree.body:
+                        if isinstance(node, ast.ClassDef):
+                            models_info.append(node.name)
+        except Exception: pass
+        
+        try:
+            if os.path.isfile(routes_file):
+                with open(routes_file, "r", encoding="utf-8") as rf:
+                    tree = ast.parse(rf.read())
+                    for node in tree.body:
+                        if isinstance(node, ast.FunctionDef):
+                            routes_info.append(node.name)
+        except Exception: pass
+        
+        m_str = ", ".join(models_info) if models_info else "Nenhum modelo encontrado."
+        r_str = ", ".join(routes_info) if routes_info else "Nenhuma rota encontrada."
+        
+        doc_section = f'''
+            <!-- CAPÍTULO {cap_num} -->
+            <section id="cap{cap_num}" class="doc-section space-y-4">
+                <div class="border-b border-slate-800 pb-2">
+                    <span class="text-xs font-mono text-sky-400 uppercase tracking-wider font-bold">Capítulo {cap_num}</span>
+                    <h2 class="text-2xl font-bold text-slate-100">Módulo: {pascal}</h2>
+                </div>
+                <p>Módulo gerado automaticamente via AST. Sem mocks ou dados legados.</p>
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                        <div class="text-sky-400 font-bold text-base mb-1">Modelos Detectados</div>
+                        <div class="text-xs text-slate-400">{m_str}</div>
+                    </div>
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                        <div class="text-emerald-400 font-bold text-base mb-1">Rotas Detectadas</div>
+                        <div class="text-xs text-slate-400">{r_str}</div>
+                    </div>
+                </div>
+            </section>
+        '''
+        module_docs.append(doc_section)
+
+    sidebar_str = "\n            ".join(sidebar_links)
+    module_docs_str = "\n".join(module_docs)
+    spotlight_str = "[\n            " + ",\n            ".join(spotlight_commands) + "\n        ]"
+    
+    return html_template.replace("__SIDEBAR_LINKS__", sidebar_str).replace("__MODULE_DOCS__", module_docs_str).replace("__SPOTLIGHT_COMMANDS__", spotlight_str)
+
 def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: str = "sqlite"):
     """Motor principal de composição cross-project."""
     target_dir = os.path.abspath(target_dir)
@@ -1321,7 +1478,7 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
             "nome": suite_name,
             "slug": slugify(suite_name),
             "versao": "4.1.0",
-            "framework": "AIDD Master Pack v4.1 Enterprise Anti-Fail",
+            "framework": "AIDD Master Pack v5.1 Enterprise Anti-Fail",
             "status": "em_desenvolvimento",
             "criado_em": datetime.datetime.now().isoformat()
         },
@@ -1341,7 +1498,8 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
             {"gate": "G_TESTES", "descricao": "Execução obrigatória de 100% dos testes unitários com pytest"},
             {"gate": "G_CONTRACTS", "descricao": "Validação de esquemas OpenAPI 3.1 e contratos MCP"},
             {"gate": "G_SEGREDOS", "descricao": "Varredura de entropia de Shannon contra vazamento de chaves"},
-            {"gate": "G_HARNESS_COMPAT", "descricao": "Conformidade multi-harness (Antigravity, Cline, OpenHands, Cursor)"}
+            {"gate": "G_HARNESS_COMPAT", "descricao": "Conformidade multi-harness (Antigravity, Cline, OpenHands, Cursor)"},
+            {"gate": "G_CHAOS", "descricao": "Simulação de Quedas (Chaos) e resiliência do sistema"}
         ]
     }
     with open(os.path.join(target_dir, "PLANO-EXECUCAO-ESTRUTURADO.json"), "w", encoding="utf-8") as f:
@@ -1364,17 +1522,25 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
         f.write(index_html)
     print("  [+] Front-end Super-App 'src/static/index.html' gerado!")
 
-    # Copiar docs.html estático se existir
-    if os.path.isfile(os.path.join(templates_v2, "docs.html")):
-        shutil.copyfile(os.path.join(templates_v2, "docs.html"), os.path.join(static_dir, "docs.html"))
+    # Gerar docs.html dinâmico via AST
+    docs_template_path = os.path.join(templates_v2, "docs.html")
+    if os.path.isfile(docs_template_path):
+        with open(docs_template_path, "r", encoding="utf-8") as tmpf:
+            raw_docs_html = tmpf.read()
+        final_docs_html = generate_documentation_html(suite_name, clean_modules, src_dir, raw_docs_html)
+        with open(os.path.join(static_dir, "docs.html"), "w", encoding="utf-8") as outf:
+            outf.write(final_docs_html)
+        print("  [+] Front-end Docs 'src/static/docs.html' gerado dinamicamente via AST!")
 
-    # 7. Gerar requirements.txt
-    req_content = "pytest>=7.4.0\nrequests>=2.31.0\n"
+    # 7. Gerar requirements.txt e config do mutmut
+    req_content = "pytest>=7.4.0\nmutmut>=2.4.0\nrequests>=2.31.0\n"
     if db_engine == "postgres":
         req_content += "psycopg2-binary>=2.9.9\n"
     with open(os.path.join(target_dir, "requirements.txt"), "w", encoding="utf-8") as f:
         f.write(req_content)
-    print("  [+] Manifesto 'requirements.txt' gerado!")
+    with open(os.path.join(target_dir, "setup.cfg"), "w", encoding="utf-8") as f:
+        f.write("[mutmut]\npaths_to_mutate=src/\nbackup=False\nrunner=pytest\ntests_dir=tests/\n")
+    print("  [+] Manifesto 'requirements.txt' e 'setup.cfg' gerados!")
 
     # 8. Copiar Quality Gates
     if os.path.isdir(gates_dir):
@@ -1382,6 +1548,12 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
             if g.endswith(".py"):
                 shutil.copyfile(os.path.join(gates_dir, g), os.path.join(target_gates_dir, g))
                 print(f"  [+] Quality Gate: {g}")
+
+    # 8.5 Copiar módulo de Fuzzing Contínuo
+    fuzzing_src = os.path.join(templates_v2, "..", "..", "src", "core", "fuzzing.py")
+    if os.path.isfile(fuzzing_src):
+        shutil.copyfile(fuzzing_src, os.path.join(core_dir, "fuzzing.py"))
+        print(f"  [+] Fuzzing Contínuo: fuzzing.py")
 
     # 9. Copiar Scripts de Automação
     for s in ["aidd.py", "add_module.py", "compose_suite.py", "openapi_to_ts.py", "scaffold_infra.py"]:
@@ -1439,7 +1611,7 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
 
 ## 1. Visão Geral
 - **Nome:** {suite_name}
-- **Framework:** AIDD Master Pack v4.1 Enterprise Anti-Fail
+- **Framework:** AIDD Master Pack v5.1 Enterprise Anti-Fail
 - **Banco de Dados:** SQLite Concorrente WAL (`suite.db`)
 - **Portais Ativos:** `/` (Super-App), `/docs` (Swagger Studio), `/mcp` (MCP Server), `/webhooks` (Webhook Studio)
 

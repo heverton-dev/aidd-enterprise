@@ -241,9 +241,9 @@ O maior diferencial das versões v5 e v6 é transformar a arquitetura distribuí
 
 ---
 
-### Comparativo de Fluidez: v4.1 vs v5 / v6
+### Comparativo de Fluidez: v5.1 vs v5 / v6
 
-| Etapa do Fluxo | Versão v4.1 (Atual) | Versão v5 / v6 (Evolução Fluida) |
+| Etapa do Fluxo | Versão v5.1 (Atual) | Versão v5 / v6 (Evolução Fluida) |
 | :--- | :--- | :--- |
 | **Clone & Setup** | Exige `python scripts/aidd.py setup` para pre-flight e pacotes. | **Zero Setup:** O bootstrap roda no primeiro input e autodetecta PostgreSQL/Docker/Redis se existirem. |
 | **Entrada do Usuário** | Aceita prompt natural para planejar fatias CRUD básicas. | **Intenção Completa:** Aceita prompts de regras complexas, inferindo stack (Vanilla vs Next.js) e banco. |

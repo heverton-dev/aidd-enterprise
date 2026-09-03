@@ -5,4 +5,7 @@ __pycache__/
 *.db-wal
 *.db-shm
 .venv/
+venv/
 node_modules/
+app/
+AIDD_EXECUTION_REPORT.md

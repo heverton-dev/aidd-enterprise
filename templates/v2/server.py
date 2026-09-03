@@ -9,7 +9,7 @@ from core.events import EventBus
 from core.openapi import RouteRegistry
 from core.webhooks import WebhookDispatcher
 from core.models import init_all_schemas
-from core.mcp_server import MedHealthMCPServer
+from core.mcp_server import AIDD_EnterpriseMCPServer
 from core.security import SecurityService, JWTService
 
 PORT = 3000
@@ -18,7 +18,7 @@ DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "suite.
 db = Database(f"sqlite:///{DB_PATH}")
 events = EventBus()
 webhook_dispatcher = WebhookDispatcher(db)
-mcp_engine = MedHealthMCPServer(DB_PATH)
+mcp_engine = AIDD_EnterpriseMCPServer(DB_PATH)
 
 with db.get_connection() as conn:
     init_all_schemas(conn)
@@ -615,7 +615,7 @@ def post_farmacia_dispensar(data):
     "/api/farmacia/dispensacoes",
     summary="Histórico de Dispensações",
     tags=["4. Farmácia Hospitalar & Dispensação"],
-    description="Retorna o histórico de todas as baixas de medicamentos hospitalares.",
+    description="Retorna o histórico de todas as baixas de medicamentos empresariais.",
     responses={"200": {"description": "Lista de dispensações", "content": {"application/json": {"example": [{"id": 1, "medicamento": "AAS", "quantidade": 3}]}}}}
 )
 def get_farmacia_dispensacoes(params):
@@ -631,7 +631,7 @@ def get_farmacia_dispensacoes(params):
     "/api/faturamento/guias",
     summary="Listar Guias de Faturamento TISS/TUSS",
     tags=["5. Faturamento Hospitalar TISS/TUSS"],
-    description="Retorna todas as contas hospitalares e guias de convênio.",
+    description="Retorna todas as contas empresariais e guias de convênio.",
     responses={"200": {"description": "Lista de guias", "content": {"application/json": {"example": [{"id": 1, "numero_guia": "TISS-8801", "paciente_nome": "Carlos Alberto", "valor_total": 14850.0}]}}}}
 )
 def get_faturamento_guias(params):
@@ -750,7 +750,7 @@ def get_webhooks(params):
         {"name": "secret", "type": "string", "req": False, "desc": "Chave secreta para assinatura HMAC SHA-256"},
         {"name": "eventos", "type": "string", "req": True, "desc": "Eventos assinados separados por vírgula (ou '*' para todos)"}
     ],
-    body_example={"url": "https://n8n.hospital.com/webhook/tiss", "secret": "sec_prod_992", "eventos": "faturamento.guia_gerada,triagem.urgencia_critica"},
+    body_example={"url": "https://webhook.site/demo", "secret": "sec_prod_992", "eventos": "faturamento.guia_gerada,triagem.urgencia_critica"},
     responses={"200": {"description": "Webhook cadastrado", "content": {"application/json": {"example": {"sucesso": True, "id": 2}}}}}
 )
 def post_webhooks(data):
@@ -792,7 +792,7 @@ def delete_webhooks(data):
         {"name": "evento", "type": "string", "req": True, "desc": "Nome do evento teste"},
         {"name": "payload", "type": "object", "req": False, "desc": "Objeto JSON de carga útil"}
     ],
-    body_example={"url": "https://webhook.site/health-mock-n8n", "secret": "sec_med_health_2026", "evento": "triagem.urgencia_critica", "payload": {"protocolo": "TRI-9081", "teste": True}},
+    body_example={"url": "https://webhook.site/health-mock-n8n", "secret": "sec_aidd_suite_2026", "evento": "triagem.urgencia_critica", "payload": {"protocolo": "TRI-9081", "teste": True}},
     responses={"200": {"description": "Resultado do teste", "content": {"application/json": {"example": {"sucesso": True, "status_code": 200, "tempo_ms": 142}}}}}
 )
 def post_testar_webhook(data):
@@ -849,7 +849,7 @@ def post_reenviar_webhook_log(data):
     "/api/webhooks/eventos",
     summary="Catálogo Oficial de Eventos do Sistema",
     tags=["6. Webhook Configuration Studio"],
-    description="Retorna o dicionário de todos os eventos suportados pela MedHealth Suite v4.0.",
+    description="Retorna o dicionário de todos os eventos suportados pela AIDD Enterprise Suite v5.1.",
     responses={"200": {"description": "Catálogo de eventos", "content": {"application/json": {"example": [{"event": "triagem.urgencia_critica", "modulo": "Pronto-Socorro"}]}}}}
 )
 def get_webhook_eventos(params):
@@ -884,7 +884,7 @@ def get_logs_auditoria(params):
 # =========================================================================
 # HTTP HANDLER COM OWASP SECURITY HEADERS
 # =========================================================================
-class MedHealthAppHandler(http.server.SimpleHTTPRequestHandler):
+class AIDD_EnterpriseAppHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=STATIC_DIR, **kwargs)
 
@@ -911,7 +911,7 @@ class MedHealthAppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
-            doc = registry.generate_openapi_json("MedHealth Core Suite v4.0 — Hospital & Biotech Enterprise Monolith", "4.0.0")
+            doc = registry.generate_openapi_json("Plataforma Core Suite v5.1 — Hospital & Biotech Enterprise Monolith", "4.0.0")
             self.wfile.write(json.dumps(doc, ensure_ascii=False, indent=2).encode("utf-8"))
             return
 
@@ -919,7 +919,7 @@ class MedHealthAppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
-            html = registry.get_swagger_html("MedHealth Core Suite v4.0 — API Reference Studio")
+            html = registry.get_swagger_html("Plataforma Core Suite v5.1 — API Reference Studio")
             self.wfile.write(html.encode("utf-8"))
             return
 
@@ -927,7 +927,7 @@ class MedHealthAppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
-            html = webhook_dispatcher.get_studio_html("MedHealth Suite v4.0 — Webhook Studio")
+            html = webhook_dispatcher.get_studio_html("Plataforma SaaS Suite — Webhook Studio")
             self.wfile.write(html.encode("utf-8"))
             return
 
@@ -945,7 +945,7 @@ class MedHealthAppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
-            html = mcp_engine.get_studio_html("MedHealth Suite v4.0 — MCP Native Server Studio")
+            html = mcp_engine.get_studio_html("AIDD Enterprise Suite v5.1 — MCP Native Server Studio")
             self.wfile.write(html.encode("utf-8"))
             return
 
@@ -1060,9 +1060,9 @@ class MedHealthAppHandler(http.server.SimpleHTTPRequestHandler):
 
 def run_server():
     socketserver.ThreadingTCPServer.allow_reuse_address = True
-    with socketserver.ThreadingTCPServer(("0.0.0.0", PORT), MedHealthAppHandler) as httpd:
+    with socketserver.ThreadingTCPServer(("0.0.0.0", PORT), AIDD_EnterpriseAppHandler) as httpd:
         print(f"================================================================================")
-        print(f"  [MEDHEALTH] MedHealth Core Suite v4.0 — Hospital & Biotech Enterprise Monolith")
+        print(f"  [MEDHEALTH] Plataforma Core Suite v5.1 — Hospital & Biotech Enterprise Monolith")
         print(f"================================================================================")
         print(f"  • App Super-App Front-End : http://localhost:{PORT}")
         print(f"  • Swagger Studio (/docs)  : http://localhost:{PORT}/docs")

@@ -1,6 +1,6 @@
 # Protocolo de Orquestração Dual: ORCA ADE e Subagentes Nativos
 
-**Conceito Fundamental:** Zero Contaminação de Contexto. O framework AIDD v4.1 adapta-se automaticamente ao ambiente de desenvolvimento disponível.
+**Conceito Fundamental:** Zero Contaminação de Contexto. O framework AIDD v5.1 adapta-se automaticamente ao ambiente de desenvolvimento disponível.
 
 ---
 

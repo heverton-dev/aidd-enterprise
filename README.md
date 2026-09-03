@@ -1,4 +1,4 @@
-# 📦 AIDD Master Pack v4.1 (Enterprise Modular Suite)
+# 📦 AIDD Master Pack v5.1 (Enterprise Modular Suite)
 
 > **O Framework Definitivo para Monólitos Modulares, Clean Architecture, Fatias Verticais e Governança Anti-Atalhos por Gates Rígidos.**
 

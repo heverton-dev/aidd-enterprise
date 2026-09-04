@@ -379,8 +379,8 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=STATIC_DIR, **kwargs)
 
     def _set_rls_tenant_context(self):
-        """Extrai tenant_id do JWT (header Authorization) e configura o contexto
-        RLS para isolamento multi-tenant automático em todas as queries."""
+        \"\"\"Extrai tenant_id do JWT (header Authorization) e configura o contexto
+        RLS para isolamento multi-tenant automático em todas as queries.\"\"\"
         from core.database import _RLS_TENANT_CONTEXT
         auth = self.headers.get('Authorization', '')
         if auth:
@@ -1447,7 +1447,7 @@ def compose_suite(target_dir: str, suite_name: str, modules: list, db_engine: st
     open(os.path.join(shared_utils_dir, "__init__.py"), "w", encoding="utf-8").close()
 
     # 2. Copiar Shared Kernel Core
-    core_files = ["database.py", "events.py", "outbox_worker.py", "openapi.py", "security.py", "webhooks.py", "mcp_server.py", "result.py", "jobs.py", "metrics.py", "cqrs.py", "saga.py", "circuit_breaker.py", "token_revocation.py", "local_first.py"]
+    core_files = ["database.py", "events.py", "outbox_worker.py", "openapi.py", "security.py", "webhooks.py", "mcp_server.py", "result.py", "jobs.py", "metrics.py", "cqrs.py", "saga.py", "circuit_breaker.py", "token_revocation.py", "local_first.py", "logs.py"]
     for cf in core_files:
         src = os.path.join(templates_v2, cf)
         dst = os.path.join(core_dir, cf)
